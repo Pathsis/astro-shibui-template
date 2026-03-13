@@ -174,26 +174,11 @@ Post content goes here...
 
 > **Tip**: When `toc: true` is enabled, the template automatically numbers your headings (e.g., 1.1, 1.2, 2.1) and generates a clickable table of contents.
 
-#### Tag Cover Images
-
-Tag pages support custom cover images. Place images in `public/images/terms/` directory, with filename format `{tag-name}.{extension}`:
-
-```
-public/images/terms/
-├── tech.jpg
-├── philosophy.png
-└── life.webp
-```
-
-Supported formats: `.jpg`, `.jpeg`, `.png`, `.webp`
-
-The system will automatically find and display the cover image for the corresponding tag.
-
 ### Image Management
 
 Astro Shibui template provides comprehensive image handling features including cover images, inline images, and social sharing images.
 
-#### 4.3.1 Image Directory Structure
+#### Image Directory Structure
 
 Place images in the `public/images/` directory:
 
@@ -205,11 +190,12 @@ public/images/
 │   ├── favicon.ico
 │   ├── apple-touch-icon.png
 │   └── ...
-└── generated/         # Auto-generated social images
-    └── social/        # Social sharing images (auto-generated)
+├── generated/         # Auto-generated social images
+│   └── social/        # Social sharing images (auto-generated)
+└── terms/            # Tag cover images
 ```
 
-#### 4.3.2 Cover Images
+#### Cover Images
 
 Set cover image in post frontmatter:
 
@@ -225,7 +211,23 @@ Cover images appear in:
 - 📄 Article detail page top (if set)
 - 🌐 Social media sharing cards
 
-#### 4.3.3 Inline Images
+#### Tag Cover Images
+
+Tag pages support custom cover images. Place images in `public/images/terms/` directory:
+
+```
+public/images/terms/
+├── tech.jpg
+├── philosophy.png
+└── life.webp
+```
+
+**Rules**:
+- Filename is tag name + extension (e.g., `tech.jpg`)
+- Supported formats: `.jpg`, `.jpeg`, `.png`, `.webp`
+- System will automatically find and display the cover image for the corresponding tag
+
+#### Inline Images
 
 Reference directly in Markdown:
 
@@ -251,7 +253,7 @@ Automatically converts to:
 </figure>
 ```
 
-#### 4.3.4 Social Sharing Images
+#### Social Sharing Images
 
 The template automatically generates social media sharing images (1200x630):
 
@@ -272,7 +274,7 @@ The template automatically generates social media sharing images (1200x630):
 - External URLs: Unsplash and other images automatically add crop parameters
 - Auto-cache: Unmodified images won't be regenerated
 
-#### 4.3.5 Image Path Processing
+#### Image Path Processing
 
 The template provides intelligent image path processing:
 
@@ -295,7 +297,7 @@ More text...
 ```
 The system will automatically identify and use `/images/first.jpg` as the cover image.
 
-#### 4.3.6 Using External Images as Cover
+#### External Images as Cover
 
 Use external URLs directly in frontmatter, no need to download images.
 
@@ -318,10 +320,6 @@ images: ["https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=form
    https://images.unsplash.com/photo-xxxxx?auto=format&fit=crop&w=1200&q=80
    ```
 
-**Recommended parameters** (cover):
-```bash
-?auto=format&fit=crop&w=1200&h=630&q=80
-```
 
 **Cover displays at**:
 - 📱 Homepage post cards
@@ -362,7 +360,7 @@ images: ["https://example.com/image.jpg"]
 - Most free image libraries allow commercial use, check license
 - Recommended to add image source attribution at article end
 
-#### 4.3.7 Image Best Practices
+#### Image Best Practices
 
 **URL format**:
 ```bash
@@ -383,7 +381,7 @@ images: [
 - ✅ High quality photos
 - ✅ CDN supported
 
-#### 2. Pixabay
+#### Pixabay
 
 **URL format**:
 ```bash
@@ -404,7 +402,7 @@ images: [
 - ✅ SVG and vector graphics supported
 - ✅ Provides thumbnails
 
-#### 3. Burst (Shopify)
+#### Burst (Shopify)
 
 **URL format**:
 ```bash
@@ -425,7 +423,7 @@ images: [
 - ✅ Business friendly
 - ✅ No registration needed
 
-### 🔧 Benefits of External Images
+### Benefits of External Images
 
 **Advantages of using external images**:
 
@@ -436,14 +434,14 @@ images: [
 5. **Free licensing**: Most are commercially usable
 6. **Quick start**: Copy URL and use immediately
 
-#### 4.3.7 Image Best Practices
+#### Image Best Practices
 
 **Example**:
 ```markdown
 Photo source: Unsplash
 ```
 
-#### 4.3.7 Image Best Practices
+#### Image Best Practices
 
 ```markdown
 ---
@@ -453,7 +451,7 @@ Photo source: Unsplash
 **License**: Unsplash License
 ```
 
-#### 4.3.7 Image Best Practices
+#### mage Best Practices
 
 **Image Optimization**:
 1. Compress images: Use [TinyPNG](https://tinypng.com/) or [Squoosh](https://squoosh.app/)
@@ -481,7 +479,7 @@ toc: true
 This was the most memorable moment of my trip...
 ```
 
-#### 4.3.7 Auto-generate Social Images
+#### Auto-generate Social Images
 
 Auto-executed during build (`pnpm build`):
 
@@ -499,7 +497,7 @@ pnpm run prebuild  # → scripts/generate-social-images.ts
 - `generated`: Number of newly generated social images
 - `skipped`: Existing and unmodified images
 
-#### 4.3.8 External Image Support
+#### External Image Support
 
 Supports external image services like Unsplash:
 
@@ -516,7 +514,7 @@ System automatically adds crop parameters:
 ?auto=format&fit=crop&w=1200&h=630&q=80&fm=jpg
 ```
 
-#### 4.3.9 Image Version Control
+#### Image Version Control
 
 Social sharing images support version control to avoid cache issues:
 
@@ -532,7 +530,7 @@ PUBLIC_SOCIAL_IMAGE_VERSION=v1.0  # Manually specify version
 - Cloudflare Pages: `CF_PAGES_COMMIT_SHA`
 - Build time: `BUILD_TIME`
 
-#### 4.3.10 Common Issues
+#### Common Issues
 
 **Q: Images not showing?**
 A: Check the following:
@@ -571,7 +569,7 @@ figcaption {
 }
 ```
 
-#### 4.3.11 Advanced Image Processing
+#### Advanced Image Processing
 
 **Using Astro Image Component** (optional):
 

@@ -428,26 +428,11 @@ categories: ["技术", "前端", "React"]
 - **分类**：层级结构，更正式
 - **标签**：扁平结构，更灵活
 
-#### 标签封面设置
-
-标签页面支持自定义封面图。将图片放在 `public/images/terms/` 目录下，文件名为 `{标签名}.{扩展名}`：
-
-```
-public/images/terms/
-├── 技术.jpg
-├── 哲学.png
-└── 生活.webp
-```
-
-支持的格式：`.jpg`、`.jpeg`、`.png`、`.webp`
-
-系统会自动查找并显示对应标签的封面图。
-
 ### 图片管理
 
 Astro Shibui 模板提供了完整的图片处理功能，包括封面图、文章内图片、社交分享图片等。
 
-#### 4.3.1 图片目录结构
+#### 图片目录结构
 
 将图片放在 `public/images/` 目录下：
 
@@ -459,11 +444,12 @@ public/images/
 │   ├── favicon.ico
 │   ├── apple-touch-icon.png
 │   └── ...
-└── generated/         # 自动生成的社交图片
-    └── social/        # 社交分享图片（自动生成）
+├── generated/         # 自动生成的社交图片
+│   └── social/        # 社交分享图片（自动生成）
+└── terms/            # 标签封面图
 ```
 
-#### 4.3.2 封面图片
+#### 封面图片
 
 在文章 frontmatter 中设置封面图：
 
@@ -479,7 +465,23 @@ images: ["/images/cover.jpg"]  # 封面图列表
 - 📄 文章详情页顶部（如果设置了）
 - 🌐 社交媒体分享卡片
 
-#### 4.3.3 文章内图片
+#### 标签封面
+
+标签页面支持自定义封面图。将图片放在 `public/images/terms/` 目录下：
+
+```
+public/images/terms/
+├── 技术.jpg
+├── 哲学.png
+└── 生活.webp
+```
+
+**规则**：
+- 文件名为标签名称 + 扩展名（如 `技术.jpg`）
+- 支持格式：`.jpg`、`.jpeg`、`.png`、`.webp`
+- 系统会自动查找并显示对应标签的封面图
+
+#### 文章内图片
 
 在 Markdown 中直接引用：
 
@@ -505,7 +507,7 @@ images: ["/images/cover.jpg"]  # 封面图列表
 </figure>
 ```
 
-#### 4.3.4 社交分享图片
+#### 社交分享图片
 
 模板会自动生成社交媒体分享图片（1200x630）：
 
@@ -526,7 +528,7 @@ images: ["/images/cover.jpg"]  # 封面图列表
 - 外部 URL：Unsplash 等图片会自动添加裁剪参数
 - 自动缓存：未修改的图片不会重复生成
 
-#### 4.3.5 图片路径处理
+#### 图片路径处理
 
 模板提供了智能的图片路径处理：
 
@@ -549,7 +551,7 @@ data:image/png;base64,... → data:image/png;base64,...
 ```
 系统会自动识别并使用 `/images/first.jpg` 作为封面图。
 
-#### 4.3.6 使用外部图片作为封面图
+#### 使用外部图片作为封面图
 
 直接在 frontmatter 中使用外部 URL，无需下载图片到本地。
 
@@ -571,11 +573,6 @@ images: ["https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=form
    ```
    https://images.unsplash.com/photo-xxxxx?auto=format&fit=crop&w=1200&q=80
    ```
-
-**推荐参数**（封面图）：
-```bash
-?auto=format&fit=crop&w=1200&h=630&q=80
-```
 
 **封面图会显示在**：
 - 📱 首页文章卡片
@@ -616,7 +613,7 @@ images: ["https://example.com/image.jpg"]
 - 大部分免费图库可商用，使用时注意查看许可协议
 - 建议在文章末尾添加图片来源声明
 
-#### 4.3.7 图片最佳实践
+#### 图片最佳实践
 
 **图片优化**：
 1. 压缩图片：使用 [TinyPNG](https://tinypng.com/) 或 [Squoosh](https://squoosh.app/)
@@ -644,7 +641,7 @@ toc: true
 这是我旅行中最难忘的瞬间...
 ```
 
-#### 4.3.7 自动生成社交图片
+#### 自动生成社交图片
 
 在构建时会自动执行（`pnpm build`）：
 
@@ -662,7 +659,7 @@ pnpm run prebuild  # → scripts/generate-social-images.ts
 - `generated`: 新生成的社交图片数
 - `skipped`: 已存在且未修改的图片数
 
-#### 4.3.8 外部图片支持
+#### 外部图片支持
 
 支持使用 Unsplash 等外部图片服务：
 
@@ -679,7 +676,7 @@ images: [
 ?auto=format&fit=crop&w=1200&h=630&q=80&fm=jpg
 ```
 
-#### 4.3.9 图片版本控制
+#### 图片版本控制
 
 社交分享图片支持版本控制，避免缓存问题：
 
@@ -695,7 +692,7 @@ PUBLIC_SOCIAL_IMAGE_VERSION=v1.0  # 手动指定版本
 - Cloudflare Pages: `CF_PAGES_COMMIT_SHA`
 - 构建时间：`BUILD_TIME`
 
-#### 4.3.10 常见问题
+#### 常见问题
 
 **Q: 图片不显示？**
 A: 检查以下几点：
@@ -734,7 +731,7 @@ figcaption {
 }
 ```
 
-#### 4.3.11 高级图片处理
+#### 高级图片处理
 
 **使用 Astro Image 组件**（可选）：
 
