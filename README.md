@@ -159,7 +159,7 @@ toc: false
 images: ["/images/cover.jpg"]
 draft: false
 categories: ["技术"]
-podcast: false  # 设为 true 启用播客
+podcast: true  # false 是默认的。确保你已经上传了音频。
 ---
 ```
 
