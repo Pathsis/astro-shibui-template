@@ -203,6 +203,20 @@ a {
   color: var(--color-text-primary);
 }
 
+/* 纯图标链接（如 GitHub、RSS 等）不显示下划线 */
+a.icon-link,
+a.icon-link:hover,
+a.icon-link:focus,
+a.icon-link:active,
+a.icon-link:visited {
+  text-decoration: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
 strong {
   font-weight: bold;
 }
