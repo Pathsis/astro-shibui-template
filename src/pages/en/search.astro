@@ -1,0 +1,20 @@
+---
+import CoverLayout from "../../layouts/CoverLayout.astro";
+import SearchComponent from "../../components/Search.astro";
+
+const description = "Search articles";
+const featuredImage = "/images/terms/about.webp";
+---
+
+<CoverLayout
+  title="Search"
+  description={description}
+  isHome={false}
+  pageKind="section"
+  featuredImage={featuredImage}
+>
+  <article class="gh-content">
+    <h1>Search</h1>
+    <SearchComponent lang="en" />
+  </article>
+</CoverLayout>

@@ -1,0 +1,68 @@
+---
+/**
+ * 写作统计组件
+ * 显示文章总数和字数统计
+ */
+import { getCollection } from "astro:content";
+import { countWords, formatWordCount } from "../lib/word-count";
+
+interface Props {
+  lang?: "zh-cn" | "en";
+}
+
+const { lang = "zh-cn" } = Astro.props;
+
+// 获取指定语言的文章并计算总字数
+const allPosts = lang === "zh-cn"
+  ? await getCollection("blog-zh")
+  : await getCollection("blog-en");
+
+// 与 CoverLayout 统计口径保持一致
+const posts = allPosts.filter(post => post.id && !post.id.startsWith("_"));
+const totalWords = posts.reduce((sum, post) => sum + countWords(post.body ?? "", lang), 0);
+
+const totalPosts = posts.length;
+
+// 构建时间
+const buildTime = new Date().toLocaleString("zh-CN", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false
+});
+
+const isZhCn = lang === "zh-cn";
+const statsText = isZhCn
+  ? `共 ${totalPosts} 篇文章，约 ${formatWordCount(totalWords, lang)}字`
+  : `Total ${totalPosts} posts, about ${formatWordCount(totalWords, lang)} words`;
+
+const buildLabel = isZhCn ? "构建于" : "Built at";
+---
+
+<div class="stats">
+  {statsText}
+</div>
+<div class="build-info">
+  {buildLabel} {buildTime}
+  <svg aria-hidden="true" class="inline-block align-text-bottom overflow-visible" viewBox="0 0 16 16" width="16" height="16" fill="#3fb950">
+    <title>Success</title>
+    <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"></path>
+  </svg>
+</div>
+
+<style>
+  .stats {
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .build-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-small);
+  }
+</style>

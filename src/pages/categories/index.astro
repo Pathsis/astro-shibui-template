@@ -1,0 +1,49 @@
+---
+import CoverLayout from "../../layouts/CoverLayout.astro";
+import { getCollection } from "astro:content";
+import { getRelativeLocaleUrl } from "astro:i18n";
+
+// 获取当前语言
+const currentLang = Astro.currentLocale as "zh-cn" | "en" || "zh-cn";
+const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
+
+// 获取当前语言的文章
+const allPosts = await getCollection(collectionName);
+
+// 收集分类并统计文章数量
+const categories = new Map<string, number>();
+allPosts.forEach((post) => {
+  post.data.categories?.forEach((category) => {
+    categories.set(category, (categories.get(category) || 0) + 1);
+  });
+});
+
+// 按字母排序
+const sortedCategories = Array.from(categories.entries()).sort((a, b) =>
+  a[0].localeCompare(b[0])
+);
+
+// 界面文本
+const pageTitle = currentLang === "en" ? "Categories" : "分类";
+const pageDescription = currentLang === "en" ? "All categories" : "所有分类";
+---
+
+<CoverLayout
+  title={pageTitle}
+  description={pageDescription}
+  pageKind="taxonomy"
+>
+  <h1>{pageTitle}</h1>
+
+  <div class="terms-list">
+    <ul>
+      {sortedCategories.map(([category, count]) => (
+        <li>
+          <a href={getRelativeLocaleUrl(currentLang, `/categories/${category}/`)}>
+            [{category}] ({count})
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</CoverLayout>

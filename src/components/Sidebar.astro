@@ -1,0 +1,152 @@
+---
+/**
+ * 侧边栏组件 - 显示目录和相关文章
+ */
+import { getCollection } from "astro:content";
+import type { CollectionEntry } from "astro:content";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import { getLocalizedBlogPathById } from "../lib/post-url";
+import { countWords } from "../lib/word-count";
+
+interface Props {
+  tags?: string[];
+  toc?: boolean;
+  currentSlug: string;
+  lang?: "zh-cn" | "en";
+  related?: string;
+}
+
+const { tags = [], toc = false, currentSlug, lang = "zh-cn", related } = Astro.props;
+
+// 使用 Astro.currentLocale 如果 props 中没有提供
+const currentLang = lang || (Astro.currentLocale as "zh-cn" | "en") || "zh-cn";
+
+// 根据语言选择正确的 collection
+const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
+const allPosts = await getCollection(collectionName);
+type BlogEntry = CollectionEntry<"blog-zh"> | CollectionEntry<"blog-en">;
+
+const normalizeRelatedTarget = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const noQuery = trimmed.split("?")[0].split("#")[0] || "";
+  const noExt = noQuery.replace(/\.mdx?$/i, "");
+  const noSlashes = noExt.replace(/^\/+|\/+$/g, "");
+  if (!noSlashes) return "";
+  if (noSlashes.startsWith("blog/")) return noSlashes.slice(5);
+  if (noSlashes.startsWith("en/blog/")) return noSlashes.slice(8);
+  return noSlashes;
+};
+
+// 获取相关阅读：优先使用 frontmatter.related，未命中时回退到首标签最新文章
+let relatedPosts: BlogEntry[] = [];
+if (related && related.trim()) {
+  const target = normalizeRelatedTarget(related);
+  if (target) {
+    const matched = allPosts.find(
+      (post) => post.id !== currentSlug && post.id === target
+    );
+    if (matched) {
+      relatedPosts = [matched];
+    }
+  }
+}
+
+if (relatedPosts.length === 0 && tags.length > 0) {
+  const firstTag = tags[0];
+  relatedPosts = allPosts
+    .filter(post =>
+      post.data.tags?.includes(firstTag) &&
+      post.id !== currentSlug
+    )
+    .sort((a, b) => {
+      const aTime = new Date(a.data.date).getTime();
+      const bTime = new Date(b.data.date).getTime();
+      return bTime - aTime;
+    })
+    .slice(0, 1);
+}
+
+const tocText = currentLang === "en" ? "Table of Contents" : "目录";
+const nextReadText = currentLang === "en" ? "Related" : "相关阅读";
+const podcastHint = currentLang === "en" ? " (Podcast available)" : "（可收听播客）";
+const readTimeUnit = currentLang === "en" ? "min" : "分钟";
+
+const toPlainText = (markdown: string) =>
+  markdown
+    .replace(/---[\s\S]*?---/g, "")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`]*`/g, " ")
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, " ")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[#*_>\-\[\](){}|]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const extractFirstParagraph = (markdown: string) => {
+  const blocks = markdown
+    .replace(/\r\n/g, "\n")
+    .replace(/```[\s\S]*?```/g, "\n")
+    .split(/\n\s*\n/);
+
+  for (const block of blocks) {
+    const trimmed = block.trim();
+    if (!trimmed) continue;
+    // 跳过标题、引用、列表、图片等非正文段落
+    if (/^(#{1,6}\s|>\s|[-*+]\s|\d+\.\s|!\[)/.test(trimmed)) continue;
+    const plain = toPlainText(trimmed);
+    if (plain.length > 0) return plain;
+  }
+
+  return toPlainText(markdown);
+};
+
+const truncateText = (text: string, maxLen: number) =>
+  text.length > maxLen ? `${text.slice(0, maxLen).trim()}...` : text;
+
+const nextPost = relatedPosts[0];
+const nextReadMinutes = nextPost
+  ? Math.max(
+      1,
+      Math.round(
+        countWords(nextPost.body ?? "", currentLang) / (currentLang === "en" ? 220 : 380)
+      )
+    )
+  : 0;
+const nextReadExcerpt = nextPost
+  ? truncateText(
+      extractFirstParagraph(nextPost.body ?? ""),
+      currentLang === "en" ? 150 : 110
+    )
+  : "";
+---
+
+{/* 目录 - 仅在文章页且 toc=true 时显示 */}
+{toc && (
+  <div class="widget toc-widget toc-desktop" data-toc="true">
+    <div class="widget-title">{tocText}</div>
+    <ul class="toc-list"></ul>
+  </div>
+)}
+
+{/* 接下来阅读 */}
+{nextPost && (
+  <div class="widget next-read-widget">
+    <div class="widget-title next-read-title-row">
+      <span>{nextReadText}</span>
+      <span class="next-read-time">{nextReadMinutes}{readTimeUnit}</span>
+    </div>
+    <a
+      class="next-read-card"
+      href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(nextPost.id, currentLang))}
+    >
+      <div class="next-read-head">
+        <h3 class="next-read-title">
+          {nextPost.data.title}
+          {nextPost.data.podcast && <span class="sr-only">{podcastHint}</span>}
+        </h3>
+      </div>
+      {nextReadExcerpt && <p class="next-read-excerpt">{nextReadExcerpt}</p>}
+    </a>
+  </div>
+)}

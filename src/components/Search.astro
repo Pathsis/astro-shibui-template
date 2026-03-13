@@ -1,0 +1,41 @@
+---
+/**
+ * 搜索组件 - Astro 胶水层
+ * 使用 Preact Island 组件实现交互式搜索
+ */
+import SearchWidget from "./SearchWidget";
+import { siteConfig } from "../lib/config";
+
+interface Props {
+  lang?: "zh-cn" | "en";
+}
+
+const { lang = "zh-cn" } = Astro.props;
+
+// 检查是否启用搜索功能
+const searchEnabled = siteConfig.features.search.enabled;
+
+// 从环境变量读取 Algolia 配置
+const ALGOLIA_APP_ID = import.meta.env.ALGOLIA_APP_ID || "9872TK5O1S";
+const ALGOLIA_SEARCH_KEY = import.meta.env.ALGOLIA_SEARCH_KEY || "cb96ceb3b9b2662dc26d1fd67ff62534";
+const ALGOLIA_INDEX_NAME = import.meta.env.ALGOLIA_INDEX_NAME || "hugo-shibui";
+---
+
+{searchEnabled && (
+  <SearchWidget
+    client:load
+    lang={lang}
+    appId={ALGOLIA_APP_ID}
+    searchKey={ALGOLIA_SEARCH_KEY}
+    indexName={ALGOLIA_INDEX_NAME}
+  />
+)}
+
+<style is:global>
+  /* 全局滚动锁定样式 */
+  html.search-scroll-locked,
+  body.search-scroll-locked {
+    overflow: hidden;
+    height: 100%;
+  }
+</style>

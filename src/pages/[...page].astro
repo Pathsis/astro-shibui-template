@@ -1,0 +1,88 @@
+---
+import CoverLayout from "../layouts/CoverLayout.astro";
+import { getCollection } from "astro:content";
+import type { CollectionEntry } from "astro:content";
+import type { GetStaticPaths, Page } from "astro";
+import { getLocalizedBlogPathById } from "../lib/post-url";
+import { normalizeImagePath } from "../lib/image-path";
+import { extractFirstParagraph, truncateChars } from "../lib/excerpt";
+import { siteConfig } from "../lib/config";
+
+export const getStaticPaths: GetStaticPaths = async ({ paginate }) => {
+  const allPosts = await getCollection("blog-zh")
+    .then(posts => posts.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()));
+
+  return paginate(allPosts, {
+    pageSize: 10,
+  });
+};
+
+const { page } = Astro.props as { page: Page<CollectionEntry<"blog-zh">> };
+
+// 获取首页封面图片：优先使用最新文章的图片，其次回退到固定封面
+let featuredImage: string | undefined = "/images/terms/about.webp";
+let featuredImageSource: "images" | "other" = "other";
+if (page.data.length > 0) {
+  const latestPost = page.data[0];
+  if (latestPost.data.images && latestPost.data.images.length > 0) {
+    featuredImage = normalizeImagePath(latestPost.data.images[0]);
+    featuredImageSource = "images";
+  }
+}
+
+// 页面描述
+const description = siteConfig.description;
+const podcastHint = "（可收听播客）";
+const paginationSignature = page.data
+  .map((post) => `${post.id}:${post.data.date.toISOString()}`)
+  .join("|");
+---
+
+<CoverLayout
+  title={siteConfig.name}
+  description={description}
+  isHome={true}
+  pageKind="home"
+  featuredImage={featuredImage}
+  featuredImageSource={featuredImageSource}
+>
+  <Fragment slot="head">
+    {page.url.next && (
+      <link rel="next" href={page.url.next} />
+    )}
+  </Fragment>
+
+  <section class="home-feed home-waterfall">
+    <div class="home-waterfall-list shibui-feed" data-pagination-signature={paginationSignature}>
+      {page.data.map((post) => {
+        const postUrl = getLocalizedBlogPathById(post.id, "zh-cn");
+        const excerpt = truncateChars(
+          extractFirstParagraph(post.body ?? "") || (post.data.description ?? ""),
+          100
+        );
+        return (
+          <article class="home-waterfall-item">
+            <header class="home-waterfall-meta">
+              <time datetime={post.data.date.toISOString()}>
+                {post.data.date.toISOString().split("T")[0]}
+              </time>
+            </header>
+            <h2 class="home-waterfall-title">
+              <a href={postUrl}>
+                {post.data.title}
+                {post.data.podcast && <span class="sr-only">{podcastHint}</span>}
+              </a>
+            </h2>
+            {excerpt && <p class="home-waterfall-desc">{excerpt}</p>}
+          </article>
+        );
+      })}
+    </div>
+
+    {page.url.next && (
+      <button class="shibui-loadmore home-loadmore" type="button" data-next-url={page.url.next}>
+        加载更多
+      </button>
+    )}
+  </section>
+</CoverLayout>

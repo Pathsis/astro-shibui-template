@@ -1,0 +1,76 @@
+---
+import CoverLayout from "../../../layouts/CoverLayout.astro";
+import SearchComponent from "../../../components/Search.astro";
+import { getCollection } from "astro:content";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import { getLocalizedBlogPathById } from "../../../lib/post-url";
+
+// 获取当前语言
+const currentLang = Astro.currentLocale as "zh-cn" | "en" || "en";
+const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
+
+// 获取所有博客文章，按日期倒序
+const allPosts = (await getCollection(collectionName))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+// 按年份分组
+const postsByYear = allPosts.reduce((acc, post) => {
+  const year = post.data.date.getFullYear();
+  if (!acc[year]) {
+    acc[year] = [];
+  }
+  acc[year].push(post);
+  return acc;
+}, {} as Record<number, typeof allPosts>);
+
+// 获取生肖
+function getZodiac(year: number): string {
+  const zodiacs = ["🐭", "🐮", "🐯", "🐰", "🐲", "🐍", "🐴", "🐑", "🐵", "🐔", "🐶", "🐷"];
+  return zodiacs[(year + 8) % 12];
+}
+
+// 格式化月份日期
+function formatDate(date: Date): string {
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  return `${month}/${day}`;
+}
+
+// 界面文本
+const pageTitle = currentLang === "en" ? "Archive" : "归档";
+const pageDescription = currentLang === "en" ? "All articles archive" : "所有文章归档";
+const podcastHint = currentLang === "en" ? " (Podcast available)" : "（可收听播客）";
+---
+
+<CoverLayout
+  title={pageTitle}
+  description={pageDescription}
+  pageKind="section"
+>
+  <h1>{pageTitle}</h1>
+
+  <SearchComponent lang={currentLang} />
+
+  {Object.entries(postsByYear)
+    .sort((a, b) => Number(b[0]) - Number(a[0]))
+    .map(([year, posts]) => (
+      <div>
+        <h2 class="year-heading">{year} {getZodiac(Number(year))}</h2>
+        <div class="time-list">
+          <ul>
+            {posts.map((post) => (
+              <li>
+                <span>{formatDate(post.data.date)}</span>
+                <div>
+                  <a href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(post.id, "en"))}>
+                    {post.data.title}
+                    {post.data.podcast && <span class="sr-only">{podcastHint}</span>}
+                  </a>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    ))}
+</CoverLayout>

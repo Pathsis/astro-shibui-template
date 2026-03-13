@@ -1,0 +1,201 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+import LanguageSwitcher from "../components/LanguageSwitcher.astro";
+import { getCollection } from "astro:content";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import { countWords, formatWordCount } from "../lib/word-count";
+import type { SocialImageSource } from "../lib/social-image";
+import { siteConfig } from "../lib/config";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  featuredImageSource?: SocialImageSource;
+  type?: "website" | "article";
+  lang?: "zh-cn" | "en";
+  featuredImage?: string;
+  isHome?: boolean;
+  pageKind?: "home" | "section" | "taxonomy" | "term" | "article";
+  hasTranslation?: boolean;
+  targetSlug?: string;
+  toc?: boolean;
+}
+
+const {
+  title = siteConfig.name,
+  description,
+  image = "/images/og-image.png",
+  featuredImageSource = "other",
+  type = "website",
+  lang,
+  featuredImage,
+  isHome = false,
+  pageKind = "home",
+  hasTranslation = false,
+  targetSlug,
+  toc = false,
+} = Astro.props;
+
+// 使用 Astro.currentLocale 获取当前语言，如果 props 中没有提供
+const currentLang = lang || (Astro.currentLocale as "zh-cn" | "en") || "zh-cn";
+
+// 封面图：只有明确提供 featuredImage 时才显示
+const coverImage = featuredImage;
+// OG/Twitter 图片优先跟随封面图（可为外链 URL），无封面时回退默认图。
+const socialImage = coverImage || image;
+const socialImageSource: SocialImageSource = coverImage ? featuredImageSource : "other";
+
+// 站点标题（始终显示固定标题）
+const siteTitle = siteConfig.name;
+
+// 使用 Astro 原生 API 获取当前语言的首页链接
+const homeUrl = getRelativeLocaleUrl(currentLang, "/");
+
+// 导航文字根据语言变化
+const navText = currentLang === "en"
+  ? { home: "Home", archive: "Archive", about: "About", tags: "Tags", feed: "Feed" }
+  : { home: "首页", archive: "归档", about: "关于", tags: "标签", feed: "订阅" };
+
+// 页脚版权文字（中英文统一格式，不包含年份）
+const copyrightHtml = `&copy; <a href="${homeUrl}">${siteConfig.name}</a>. All rights reserved.`;
+
+// 导航链接使用 Astro 原生 API
+const navLinks = {
+  home: getRelativeLocaleUrl(currentLang, "/"),
+  archive: getRelativeLocaleUrl(currentLang, "/blog/"),
+  about: getRelativeLocaleUrl(currentLang, "/about/"),
+  tags: getRelativeLocaleUrl(currentLang, "/tags/"),
+  feed: getRelativeLocaleUrl(currentLang, "/about/") + "#subscribe",
+};
+
+// 获取当前语言的文章统计信息
+const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
+const allPosts = await getCollection(collectionName);
+
+// 过滤掉非文章页面
+const posts = allPosts.filter(post => post.id && !post.id.startsWith("_"));
+const postCount = posts.length;
+
+// 使用共享工具计算总字数
+const totalWords = posts.reduce((sum, post) => sum + countWords(post.body ?? "", currentLang), 0);
+
+// 格式化统计数据
+const statsText = currentLang === "en"
+  ? `Total ${postCount} posts, about ${formatWordCount(totalWords, currentLang)} words`
+  : `共 ${postCount} 篇文章，约 ${formatWordCount(totalWords, currentLang)}字`;
+
+const homeLinkHint = currentLang === "en"
+  ? "Hint: clicking the site name returns to the previous expanded/scroll position on the first click; the second click resets pagination."
+  : "提示：点击站点名，第一次会返回上次展开与滚动位置，第二次才会重置分页。";
+
+
+// 构建信息
+const buildTime = (process.env.BUILD_TIME as string | undefined) ?? new Date().toLocaleString('zh-CN', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+  timeZone: 'Asia/Shanghai'
+}).replace(/\//g, '/');
+
+const commitSha = process.env.VERCEL_GIT_COMMIT_SHA;
+const commitMsg = process.env.VERCEL_GIT_COMMIT_MESSAGE;
+
+const buildInfoText = currentLang === "en"
+  ? `Built at ${buildTime}`
+  : `构建于 ${buildTime}`;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  image={socialImage}
+  socialImageSource={socialImageSource}
+  type={type}
+  lang={currentLang}
+  isHome={isHome}
+  pageKind={pageKind}
+>
+  <Fragment slot="head">
+    <slot name="head" />
+  </Fragment>
+
+  <!-- 菜单切换按钮 -->
+  <button class="menu-toggle" aria-label="Toggle menu">
+    <span></span>
+    <span></span>
+  </button>
+  <div class="menu-overlay"></div>
+
+  <div class="cover-layout">
+    <!-- 左侧区域 -->
+    <aside class="cover-left">
+      {coverImage && (
+        <img src={coverImage} alt={title} loading="eager" />
+      )}
+
+      {/* 站点名称 - 使用当前语言的首页链接 */}
+      <div class="cover-site-title">
+        <a class="js-home-link" href={homeUrl} aria-describedby="home-link-hint">
+          {siteTitle}
+          <span class="sr-only" id="home-link-hint">{homeLinkHint}</span>
+        </a>
+      </div>
+
+      {/* 语言切换 - 使用新的 LanguageSwitcher 组件 */}
+      <div class="cover-lang">
+        <LanguageSwitcher 
+          pageKind={pageKind}
+          lang={currentLang}
+          hasTranslation={hasTranslation}
+          targetSlug={targetSlug}
+        />
+      </div>
+
+      {/* 页脚导航 */}
+      <div class="cover-footer">
+        <div class="terminal-nav">
+          <nav>
+            <ul>
+              <li><a href={navLinks.archive}>{navText.archive}</a></li>
+              <li><a href={navLinks.about}>{navText.about}</a></li>
+              <li><a href={navLinks.tags}>{navText.tags}</a></li>
+              <li><a href={navLinks.feed}>{navText.feed}</a></li>
+            </ul>
+          </nav>
+        </div>
+        <p set:html={copyrightHtml} />
+        <div class="stats">
+          {statsText}
+        </div>
+        <div class="build-info">
+          {buildInfoText}
+        </div>
+        {commitSha && commitMsg && (
+          <div class="git-commit">
+            {commitMsg}
+            <svg aria-hidden="true" class="inline-block align-text-bottom overflow-visible" viewBox="0 0 16 16" width="16" height="16" fill="#3fb950">
+              <title>Success</title>
+              <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"></path>
+            </svg>
+          </div>
+        )}
+      </div>
+    </aside>
+
+    <!-- 右侧内容区域 -->
+    <div class="cover-right">
+      <main class="main-content">
+        <slot />
+      </main>
+
+      <aside class="sidebar-right">
+        <slot name="sidebar" />
+      </aside>
+    </div>
+  </div>
+</BaseLayout>

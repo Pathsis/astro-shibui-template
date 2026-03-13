@@ -1,0 +1,20 @@
+---
+import CoverLayout from "../layouts/CoverLayout.astro";
+import SearchComponent from "../components/Search.astro";
+
+const description = "搜索文章内容";
+const featuredImage = "/images/terms/about.webp";
+---
+
+<CoverLayout
+  title="搜索"
+  description={description}
+  isHome={false}
+  pageKind="section"
+  featuredImage={featuredImage}
+>
+  <article class="gh-content">
+    <h1>搜索</h1>
+    <SearchComponent lang="zh-cn" />
+  </article>
+</CoverLayout>

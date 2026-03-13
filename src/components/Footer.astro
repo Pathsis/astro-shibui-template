@@ -1,0 +1,24 @@
+---
+// 页脚组件
+const currentLang = (Astro.currentLocale as "zh-cn" | "en") || "zh-cn";
+const isZhCn = currentLang === "zh-cn";
+---
+
+<div class="terminal-nav">
+  <nav>
+    <ul>
+      <li><a href="/">{isZhCn ? "首页" : "Home"}</a></li>
+      <li><a href="/blog/">{isZhCn ? "归档" : "Blog"}</a></li>
+      <li><a href="/tags/">{isZhCn ? "标签" : "Tags"}</a></li>
+      <li><a href={currentLang === "en" ? "/en/search/" : "/search/"}>{isZhCn ? "搜索" : "Search"}</a></li>
+    </ul>
+  </nav>
+</div>
+
+<p>
+  &copy; <a href="/">2750 words</a>. All rights reserved.
+</p>
+
+<div class="stats">
+  博客建设中...
+</div>

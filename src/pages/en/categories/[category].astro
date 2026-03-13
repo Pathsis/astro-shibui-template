@@ -1,0 +1,71 @@
+---
+import CoverLayout from "../../../layouts/CoverLayout.astro";
+import { getCollection } from "astro:content";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import { getLocalizedBlogPathById } from "../../../lib/post-url";
+
+export async function getStaticPaths() {
+  // 获取所有文章（中英文混合）来收集所有分类
+  const zhPosts = await getCollection("blog-zh");
+  const enPosts = await getCollection("blog-en");
+  
+  const categories = new Set<string>();
+  
+  zhPosts.forEach((post) => {
+    post.data.categories?.forEach((cat) => categories.add(cat));
+  });
+  
+  enPosts.forEach((post) => {
+    post.data.categories?.forEach((cat) => categories.add(cat));
+  });
+  
+  return Array.from(categories).map((category) => ({
+    params: { category },
+    props: { category },
+  }));
+}
+
+const { category } = Astro.props;
+
+// 获取当前语言
+const currentLang = Astro.currentLocale as "zh-cn" | "en" || "en";
+const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
+
+// 获取该分类下的文章
+const posts = (await getCollection(collectionName))
+  .filter((post) => post.data.categories?.includes(category))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+// 界面文本
+const categoryLabel = currentLang === "en" ? "Category" : "分类";
+const categoryDescription = currentLang === "en" 
+  ? `All posts in category "${category}"` 
+  : `分类 ${category} 下的所有文章`;
+const podcastHint = currentLang === "en" ? " (Podcast available)" : "（可收听播客）";
+---
+
+<CoverLayout
+  title={`${categoryLabel}: ${category}`}
+  description={categoryDescription}
+  pageKind="term"
+>
+  <h1>{categoryLabel}: {category}</h1>
+
+  <div class="time-list">
+    <ul>
+      {posts.map((post) => (
+        <li>
+          <time datetime={post.data.date.toISOString()}>
+            {post.data.date.toISOString().split("T")[0]}
+          </time>
+          <div>
+            <a href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(post.id, "en"))}>
+              {post.data.title}
+              {post.data.podcast && <span class="sr-only">{podcastHint}</span>}
+            </a>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </div>
+</CoverLayout>

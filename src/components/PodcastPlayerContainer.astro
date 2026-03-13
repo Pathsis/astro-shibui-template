@@ -1,0 +1,206 @@
+---
+import { getAllPodcastEpisodes } from "../lib/podcast";
+import { siteConfig } from "../lib/config";
+
+// 只在播客功能启用时才获取剧集数据
+const episodes = siteConfig.features.podcast.enabled
+  ? await getAllPodcastEpisodes()
+  : [];
+---
+
+{episodes.length > 0 && (
+  <div
+    id="podcast-player-container"
+    data-episodes={JSON.stringify(episodes)}
+    transition:persist="podcast-player-container"
+    style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 900; pointer-events: none; display: none;"
+  >
+  </div>
+)}
+
+<script>
+  import { render, h } from 'preact';
+  import { PodcastPlayer } from '../components/PodcastPlayer';
+  import {
+    updatePlayerState,
+    getPlayerState,
+    initPlayerState,
+    clearPlayerState,
+    isPlayerDismissed,
+    clearDismissedState,
+    setPlayIntent,
+    getEpisodeProgress
+  } from '../lib/player-state';
+  import { getGlobalAudio, setAudioSrc, setCurrentTime, playAudio } from '../lib/audio-player';
+  import type { PodcastEpisode } from '../lib/podcast';
+
+  // 播放器状态管理
+  let isPlayerVisible = false;
+  let currentEpisodes: PodcastEpisode[] = [];
+  let isPlayerMounted = false;
+  let playRequestSeq = 0;
+
+  function mountPlayer() {
+    const container = document.getElementById('podcast-player-container');
+    if (!container || currentEpisodes.length === 0) return;
+
+    // 显示容器
+    container.style.display = 'block';
+
+    // 如果播放器已经挂载，不重复渲染
+    if (isPlayerMounted) return;
+    if (container.querySelector('.podcast-player')) {
+      isPlayerMounted = true;
+      isPlayerVisible = true;
+      return;
+    }
+
+    // 渲染播放器
+    render(
+      h(PodcastPlayer, {
+        episodes: currentEpisodes,
+        onClose: () => {
+          // 完全清除播放器状态
+          clearPlayerState();
+          unmountPlayer();
+        }
+      }),
+      container
+    );
+
+    isPlayerMounted = true;
+    isPlayerVisible = true;
+  }
+
+  function unmountPlayer() {
+    const container = document.getElementById('podcast-player-container');
+    if (container) {
+      render(null, container);
+      // 完全隐藏容器，防止阻挡点击
+      container.style.display = 'none';
+    }
+    isPlayerMounted = false;
+    isPlayerVisible = false;
+  }
+
+  function init() {
+    const container = document.getElementById('podcast-player-container');
+    if (!container) return;
+
+    // 初始化播放器状态
+    initPlayerState();
+
+    // 获取 episodes 数据
+    const episodesData = container.getAttribute('data-episodes');
+    if (episodesData) {
+      currentEpisodes = JSON.parse(episodesData);
+      currentEpisodes.forEach((ep: PodcastEpisode) => {
+        ep.date = new Date(ep.date);
+      });
+    }
+
+    // 检查是否需要显示播放器
+    // 如果有保存的 episode 且用户没有主动关闭播放器，则显示播放器
+    const state = getPlayerState();
+    if (state.currentSlug && !isPlayerDismissed()) {
+      mountPlayer();
+    }
+  }
+
+  // 初始化
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  // 全局播放函数
+  (window as any).playPodcastEpisode = function(
+    slug: string,
+    title: string,
+    url: string
+  ) {
+    const state = getPlayerState();
+
+    // 清除 dismissed 标记，用户想重新播放
+    clearDismissedState();
+
+    // 决定此次点击后的播放状态
+    const nextIsPlaying = state.currentSlug === slug && isPlayerVisible
+      ? !state.isPlaying
+      : true;
+
+    // 设置播放意图标记（用于页面跳转后恢复）
+    setPlayIntent(nextIsPlaying);
+
+    // 先挂载播放器（如果还没挂载）
+    if (!isPlayerMounted) {
+      mountPlayer();
+    }
+
+    const isSwitchingEpisode = !(state.currentSlug === slug && isPlayerVisible);
+    const audio = getGlobalAudio();
+
+    // 设置音频源
+    // 关键点：切换到“新的集”时，不能让全局 audio 带着旧 currentTime 直接播放。
+    // 否则在元数据未就绪、seek 失败等情况下，新音频会继承旧进度（您看到的 60% 就是这种）。
+    if (isSwitchingEpisode) {
+      try {
+        audio.currentTime = 0;
+      } catch (e) {
+        // ignore
+      }
+    }
+    setAudioSrc(url);
+
+    if (state.currentSlug === slug && isPlayerVisible) {
+      // 同一集：切换播放/暂停
+      updatePlayerState({ isPlaying: nextIsPlaying });
+      if (nextIsPlaying) {
+        playAudio().catch(() => {
+          updatePlayerState({ isPlaying: false });
+          setPlayIntent(false);
+        });
+      }
+    } else {
+      // 新的集：开始播放
+      const savedProgress = getEpisodeProgress(slug);
+      const savedTime = Number.isFinite(savedProgress?.currentTime)
+        ? Math.max(savedProgress!.currentTime, 0)
+        : 0;
+      const savedDuration = Number.isFinite(savedProgress?.duration) && (savedProgress!.duration ?? 0) > 0
+        ? savedProgress!.duration
+        : 0;
+
+      // 先把 isPlaying 置为 false，避免 PodcastPlayer 在 seek 之前抢先 play（导致继承旧进度）。
+      updatePlayerState({
+        currentSlug: slug,
+        isPlaying: false,
+        currentTime: savedTime,
+        ...(savedDuration > 0 ? { duration: savedDuration } : {}),
+      });
+
+      const requestId = ++playRequestSeq;
+      const finalizeStart = () => {
+        if (requestId !== playRequestSeq) return;
+        try {
+          setCurrentTime(savedTime);
+        } catch (e) {
+          // ignore
+        }
+        if (nextIsPlaying) {
+          // 让 PodcastPlayer 的统一播放 effect 接管 play()，这里仅切换状态。
+          updatePlayerState({ isPlaying: true });
+        }
+      };
+
+      if (audio.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        finalizeStart();
+      } else {
+        audio.addEventListener('loadedmetadata', finalizeStart, { once: true });
+      }
+    }
+  };
+
+  // 移除跨标签同步逻辑，保留单页内状态
+</script>

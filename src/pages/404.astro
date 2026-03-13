@@ -1,0 +1,48 @@
+---
+import CoverLayout from "../layouts/CoverLayout.astro";
+---
+
+<CoverLayout
+  title="404"
+  description="很抱歉，您访问的页面不存在或已被移除。"
+  pageKind="section"
+>
+  <Fragment slot="head">
+    <script is:inline>
+      (() => {
+        const path = window.location.pathname;
+        const isEnglishMissingPath = path.startsWith("/en/") && path !== "/en/404/" && path !== "/en/404";
+        if (isEnglishMissingPath) {
+          window.location.replace("/en/404/");
+        }
+      })();
+    </script>
+  </Fragment>
+  <article class="not-found">
+    <h1>404</h1>
+    <p>很抱歉，您访问的页面不存在或已被移除。</p>
+    <div class="not-found-image">
+      <img src="/images/404.png" alt="404 Not Found" loading="lazy" />
+    </div>
+  </article>
+</CoverLayout>
+
+<style>
+  .not-found {
+    max-width: 680px;
+  }
+
+  .not-found h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .not-found-image {
+    margin-top: 1.5rem;
+  }
+
+  .not-found-image img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+</style>

@@ -1,0 +1,59 @@
+---
+import CoverLayout from "../../layouts/CoverLayout.astro";
+import { getCollection } from "astro:content";
+import { getRelativeLocaleUrl } from "astro:i18n";
+
+// 获取当前语言
+const currentLang = Astro.currentLocale as "zh-cn" | "en" || "zh-cn";
+const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
+
+// 获取当前语言的文章
+const allPosts = await getCollection(collectionName);
+
+// 收集标签并记录每个标签的最新文章日期和数量
+const tagInfo = new Map<string, { count: number; latestDate: Date }>();
+
+allPosts.forEach((post) => {
+  const postDate = post.data.date;
+  post.data.tags?.forEach((tag) => {
+    const existing = tagInfo.get(tag);
+    if (!existing) {
+      tagInfo.set(tag, { count: 1, latestDate: postDate });
+    } else {
+      existing.count++;
+      if (postDate > existing.latestDate) {
+        existing.latestDate = postDate;
+      }
+    }
+  });
+});
+
+// 按最新文章日期从新到旧排序
+const sortedTags = Array.from(tagInfo.entries()).sort((a, b) =>
+  b[1].latestDate.getTime() - a[1].latestDate.getTime()
+);
+
+// 界面文本
+const pageTitle = currentLang === "en" ? "Tags" : "标签";
+const pageDescription = currentLang === "en" ? "All tags" : "所有标签";
+---
+
+<CoverLayout
+  title={pageTitle}
+  description={pageDescription}
+  pageKind="taxonomy"
+>
+  <h1>{pageTitle}</h1>
+
+  <div class="terms-list">
+    <ul>
+      {sortedTags.map(([tag, info]) => (
+        <li>
+          <a href={getRelativeLocaleUrl(currentLang, `/tags/${tag}/`)}>
+            {tag} ({info.count})
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</CoverLayout>

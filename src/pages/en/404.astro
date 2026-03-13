@@ -1,0 +1,38 @@
+---
+import CoverLayout from "../../layouts/CoverLayout.astro";
+---
+
+<CoverLayout
+  title="404"
+  description="Sorry, the page you requested does not exist or has been removed."
+  pageKind="section"
+  lang="en"
+>
+  <article class="not-found">
+    <h1>404</h1>
+    <p>Sorry, the page you requested does not exist or has been removed.</p>
+    <div class="not-found-image">
+      <img src="/images/404.png" alt="404 Not Found" loading="lazy" />
+    </div>
+  </article>
+</CoverLayout>
+
+<style>
+  .not-found {
+    max-width: 680px;
+  }
+
+  .not-found h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .not-found-image {
+    margin-top: 1.5rem;
+  }
+
+  .not-found-image img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+</style>

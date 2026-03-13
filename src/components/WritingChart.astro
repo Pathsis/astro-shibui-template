@@ -1,0 +1,535 @@
+---
+/**
+ * 写作统计图表组件
+ * 显示过去12个月的写作统计（柱状图+折线图）
+ */
+import { getCollection } from "astro:content";
+import { countWords } from "../lib/word-count";
+
+interface Props {
+  lang?: "zh-cn" | "en";
+}
+
+const { lang = "zh-cn" } = Astro.props;
+
+// 获取指定语言的文章
+const allPosts = lang === "zh-cn"
+  ? await getCollection("blog-zh")
+  : await getCollection("blog-en");
+
+// 过滤掉草稿和系统文件
+const posts = allPosts.filter(post => post.id && !post.id.startsWith("_"));
+
+// 计算过去12个月的统计数据
+const now = new Date();
+const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+
+// 按月份统计
+const monthlyStats: Record<string, { wordCount: number; postCount: number }> = {};
+
+// 初始化过去12个月
+for (let i = 0; i < 12; i++) {
+  const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+  const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  monthlyStats[key] = { wordCount: 0, postCount: 0 };
+}
+
+// 统计每篇文章
+posts.forEach(post => {
+  const postDate = new Date(post.data.date);
+  if (postDate >= twelveMonthsAgo && postDate <= now) {
+    const key = `${postDate.getFullYear()}-${String(postDate.getMonth() + 1).padStart(2, '0')}`;
+    if (monthlyStats[key]) {
+      monthlyStats[key].wordCount += countWords(post.body ?? "", lang);
+      monthlyStats[key].postCount += 1;
+    }
+  }
+});
+
+// 转换为数组格式（按时间正序）
+const statsArray = Object.entries(monthlyStats).map(([key, value]) => {
+  const [year, month] = key.split("-").map(Number);
+  return {
+    year,
+    month,
+    label: lang === "zh-cn" 
+      ? `${year}年${month}月` 
+      : new Date(year, month - 1).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+    wordCount: value.wordCount,
+    postCount: value.postCount
+  };
+}).sort((a, b) => {
+  if (a.year !== b.year) return a.year - b.year;
+  return a.month - b.month;
+});
+
+// 计算总计
+const totalWords = statsArray.reduce((sum, s) => sum + s.wordCount, 0);
+const totalPosts = statsArray.reduce((sum, s) => sum + s.postCount, 0);
+
+const stats = {
+  generatedAt: now.toISOString(),
+  stats: statsArray,
+  totalWords,
+  totalPosts
+};
+
+const isZhCn = lang === "zh-cn";
+
+// 计算最大值
+const maxWords = Math.max(...stats.stats.map((s: any) => s.wordCount), 1);
+const maxPosts = Math.max(...stats.stats.map((s: any) => s.postCount), 1);
+
+// 月份标签
+const monthLabelsZh = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+const monthLabelsEn = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const monthLabels = isZhCn ? monthLabelsZh : monthLabelsEn;
+
+// 格式化数字
+const formatNum = (n: number) => n.toLocaleString(lang === "zh-cn" ? "zh-CN" : "en-US");
+
+// 计算柱子高度
+const getBarHeight = (count: number) => Math.max((count / maxWords) * 240, 0);
+
+// 计算柱子Y坐标
+const getBarY = (count: number) => 270 - getBarHeight(count);
+
+// 计算折线点坐标
+const gap = 60;
+const getLineX = (index: number) => 60 + index * gap + gap / 2;
+const getLineY = (count: number) => 270 - ((count / (maxPosts + 1)) * 240);
+
+// 生成折线点
+const linePoints = stats.stats
+  .map((item: any, i: number) => `${getLineX(i)},${getLineY(item.postCount)}`)
+  .join(" ");
+
+// Y轴标签
+const yAxisLabels = [
+  { y: 270, label: "0" },
+  { y: 210, label: formatNum(Math.round(maxWords * 0.25)) },
+  { y: 150, label: formatNum(Math.round(maxWords * 0.5)) },
+  { y: 90, label: formatNum(Math.round(maxWords * 0.75)) },
+  { y: 30, label: formatNum(maxWords) },
+];
+
+// 摘要文本
+const summaryText = isZhCn
+  ? `过去 12 个月写了 <strong>${stats.totalPosts}</strong> 篇文章，约 <strong>${formatNum(stats.totalWords)}</strong> 字`
+  : `<strong>${stats.totalPosts}</strong> posts in the past 12 months, <strong>${formatNum(stats.totalWords)}</strong> words in total`;
+
+// 图例
+const wordsLegend = isZhCn ? "字数" : "Words";
+const postsLegend = isZhCn ? "文章数" : "Posts";
+const axisTitle = isZhCn ? "字数" : "Words";
+---
+
+<div class="writing-stats-section">
+  <div class="writing-chart">
+    <svg viewBox="0 0 800 300" class="chart-svg" preserveAspectRatio="xMidYMid meet">
+      <!-- 背景网格线 -->
+      <g class="grid-lines">
+        <line x1="60" y1="270" x2="780" y2="270" class="axis" />
+        <text x="50" y="274" class="grid-label" text-anchor="end">0</text>
+
+        <line x1="60" y1="210" x2="780" y2="210" class="grid-line" />
+        <text x="50" y="214" class="grid-label" text-anchor="end">{yAxisLabels[1].label}</text>
+
+        <line x1="60" y1="150" x2="780" y2="150" class="grid-line" />
+        <text x="50" y="154" class="grid-label" text-anchor="end">{yAxisLabels[2].label}</text>
+
+        <line x1="60" y1="90" x2="780" y2="90" class="grid-line" />
+        <text x="50" y="94" class="grid-label" text-anchor="end">{yAxisLabels[3].label}</text>
+
+        <line x1="60" y1="30" x2="780" y2="30" class="grid-line" />
+        <text x="50" y="34" class="grid-label" text-anchor="end">{yAxisLabels[4].label}</text>
+      </g>
+
+      <!-- Y轴 -->
+      <line x1="60" y1="30" x2="60" y2="270" class="axis" />
+
+      <!-- 柱状图 -->
+      <g class="bars">
+        {stats.stats.map((item: any, index: number) => {
+          const x = 60 + index * gap;
+          const barY = getBarY(item.wordCount);
+          const barHeight = getBarHeight(item.wordCount);
+          const showLabel = index === 0 || index === stats.stats.length - 1 || index % 2 === 0;
+          const monthLabel = monthLabels[item.month - 1];
+
+          return (
+            <>
+              <rect
+                x={x + (gap - 45) / 2}
+                y={barY}
+                width="45"
+                height={barHeight}
+                class:bar-empty={item.wordCount === 0}
+                class="bar"
+                data-count={item.wordCount}
+                data-month={JSON.stringify({ year: item.year, month: item.month })}
+                data-posts={item.postCount}
+              />
+              {showLabel && (
+                <text
+                  x={x + gap / 2}
+                  y="290"
+                  class="x-label"
+                  text-anchor="middle"
+                >
+                  {monthLabel}
+                </text>
+              )}
+            </>
+          );
+        })}
+      </g>
+
+      <!-- 折线图 -->
+      <g class="line-chart">
+        <polyline
+          id="line-path"
+          class="line-path"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          points={linePoints}
+        />
+        <g id="line-points-container">
+          {stats.stats.map((item: any, index: number) => {
+            if (item.postCount > 0) {
+              const x = getLineX(index);
+              const y = getLineY(item.postCount);
+              return (
+                <>
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r="5"
+                    class="line-point"
+                    data-posts={item.postCount}
+                    data-month={`${item.year}-${item.month}`}
+                  />
+                  <text
+                    x={x}
+                    y={y - 10}
+                    class="line-label"
+                    text-anchor="middle"
+                  >
+                    {item.postCount}
+                  </text>
+                </>
+              );
+            }
+            return null;
+          })}
+        </g>
+      </g>
+
+      <!-- 坐标轴标签 -->
+      <text x="25" y="20" class="axis-title" text-anchor="start">
+        {axisTitle}
+      </text>
+    </svg>
+
+    <!-- 图例 -->
+    <div class="chart-legend">
+      <div class="legend-item">
+        <div class="legend-color bar-legend"></div>
+        <span>{wordsLegend}</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color line-legend"></div>
+        <span>{postsLegend}</span>
+      </div>
+    </div>
+
+    <!-- 总体统计摘要 -->
+    <div class="chart-summary" set:html={summaryText} />
+
+    <!-- Tooltip -->
+    <div id="chart-tooltip" class="chart-tooltip" style="display: none;"></div>
+  </div>
+</div>
+
+<style>
+  .writing-stats-section {
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .writing-chart {
+    position: relative;
+    width: 100%;
+    margin: var(--spacing-md) 0;
+  }
+
+  .chart-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    font-family: var(--font-family-primary);
+  }
+
+  .grid-line {
+    stroke: var(--color-border);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+    opacity: 0.8;
+  }
+
+  .grid-label {
+    fill: var(--color-text-muted);
+    font-size: 14px;
+    font-family: var(--font-family-mono);
+  }
+
+  .axis {
+    stroke: var(--color-text-primary);
+    stroke-width: 1;
+    opacity: 0.3;
+  }
+
+  .axis-title {
+    fill: var(--color-text-muted);
+    font-size: 14px;
+    font-family: var(--font-family-sans);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .bar {
+    fill: var(--color-bg-secondary);
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .bar:not(.bar-empty):hover {
+    opacity: 0.95;
+    fill: var(--color-bg-secondary);
+  }
+
+  .bar-empty {
+    fill: transparent;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .line-chart {
+    color: var(--color-text-primary);
+  }
+
+  .line-path {
+    fill: none;
+    stroke: var(--color-text-primary);
+    stroke-width: 2;
+    opacity: 0.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .line-point {
+    fill: var(--color-bg-primary);
+    stroke: var(--color-text-primary);
+    stroke-width: 2;
+    opacity: 0.7;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .line-point:hover {
+    opacity: 1;
+    r: 7;
+  }
+
+  .line-label {
+    fill: var(--color-text-muted);
+    font-size: 14px;
+    font-family: var(--font-family-mono);
+    font-weight: bold;
+    opacity: 0.7;
+  }
+
+  .x-label {
+    fill: var(--color-text-muted);
+    font-size: 14px;
+    font-family: var(--font-family-mono);
+  }
+
+  .chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-sm);
+    font-size: var(--font-size-small);
+    color: var(--color-text-muted);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+
+  .bar-legend {
+    background: var(--color-text-primary);
+    opacity: 0.15;
+  }
+
+  .line-legend {
+    background: transparent;
+    border: 2px solid var(--color-text-primary);
+    opacity: 0.5;
+    position: relative;
+  }
+
+  .line-legend::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    background: var(--color-bg-primary);
+    border: 2px solid var(--color-text-primary);
+    border-radius: 50%;
+  }
+
+  .chart-summary {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm);
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-small);
+    line-height: 1.6;
+  }
+
+  .chart-summary strong {
+    color: var(--color-text-primary);
+    font-weight: bold;
+  }
+
+  .chart-tooltip {
+    position: absolute;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: calc(var(--border-radius) * 0.5);
+    font-size: var(--font-size-small);
+    color: var(--color-text-primary);
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+  }
+
+  @media (max-width: 689px) {
+    .writing-stats-section {
+      margin-left: calc(-1 * var(--spacing-sm));
+      margin-right: calc(-1 * var(--spacing-sm));
+      width: calc(100% + 2 * var(--spacing-sm));
+    }
+
+    .grid-label,
+    .x-label,
+    .line-label,
+    .axis-title {
+      font-size: 14px;
+    }
+
+    .chart-legend {
+      font-size: var(--font-size-small);
+    }
+  }
+</style>
+
+<script define:vars={{ isZhCn, stats }}>
+  (function() {
+    const tooltip = document.getElementById('chart-tooltip');
+    if (!tooltip) return;
+
+    const chartSvg = document.querySelector('.chart-svg');
+    if (!chartSvg) return;
+
+    // 月份名称映射
+    const monthNames = {
+      'zh-cn': ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+      'en': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    };
+
+    const langKey = isZhCn ? 'zh-cn' : 'en';
+
+    // 格式化月份标签
+    function formatMonthLabel(year, month) {
+      const monthName = monthNames[langKey][month - 1];
+      return isZhCn ? `${year}年${monthName}` : `${monthName} ${year}`;
+    }
+
+    // 处理柱状图悬停
+    const bars = document.querySelectorAll('.bar:not(.bar-empty)');
+    bars.forEach(bar => {
+      bar.addEventListener('mouseenter', function(e) {
+        const count = parseInt(this.dataset.count);
+        const posts = parseInt(this.dataset.posts);
+        const monthData = JSON.parse(this.dataset.month);
+        const month = formatMonthLabel(monthData.year, monthData.month);
+
+        const wordsLabel = isZhCn ? '字数' : 'Words';
+        const postsLabel = isZhCn ? '文章' : 'Posts';
+
+        tooltip.innerHTML = `
+          <strong>${month}</strong><br>
+          ${wordsLabel}: ${count.toLocaleString()}<br>
+          ${postsLabel}: ${posts}
+        `;
+
+        tooltip.style.display = 'block';
+
+        const rect = this.getBoundingClientRect();
+        const chartRect = chartSvg.getBoundingClientRect();
+
+        tooltip.style.left = (rect.left - chartRect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+        tooltip.style.top = (rect.top - chartRect.top - tooltip.offsetHeight - 8) + 'px';
+      });
+
+      bar.addEventListener('mouseleave', function() {
+        tooltip.style.display = 'none';
+      });
+    });
+
+    // 处理折线图点悬停
+    const points = document.querySelectorAll('.line-point');
+    points.forEach(point => {
+      point.addEventListener('mouseenter', function(e) {
+        const posts = parseInt(this.dataset.posts);
+        const [year, month] = this.dataset.month.split('-');
+        const monthLabel = formatMonthLabel(parseInt(year), parseInt(month));
+        const postsLabel = isZhCn ? '文章' : 'Posts';
+
+        tooltip.innerHTML = `
+          <strong>${monthLabel}</strong><br>
+          ${postsLabel}: ${posts}
+        `;
+
+        tooltip.style.display = 'block';
+
+        const rect = this.getBoundingClientRect();
+        const chartRect = chartSvg.getBoundingClientRect();
+
+        tooltip.style.left = (rect.left - chartRect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+        tooltip.style.top = (rect.top - chartRect.top - tooltip.offsetHeight - 8) + 'px';
+      });
+
+      point.addEventListener('mouseleave', function() {
+        tooltip.style.display = 'none';
+      });
+    });
+  })();
+</script>

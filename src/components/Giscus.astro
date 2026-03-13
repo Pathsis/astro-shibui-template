@@ -1,0 +1,56 @@
+---
+/**
+ * Giscus 评论组件
+ * 基于 GitHub Discussions 的评论系统
+ * https://giscus.app
+ * 
+ * 配置方法：
+ * 1. 访问 https://giscus.app 获取您的配置
+ * 2. 在 src/lib/config.ts 中填写 giscus 配置
+ */
+import { siteConfig } from "../lib/config";
+
+interface Props {
+  lang?: "zh-cn" | "en";
+}
+
+const { lang = "zh-cn" } = Astro.props;
+
+// Giscus 语言映射
+const giscusLang = lang === "zh-cn" ? "zh-CN" : "en";
+
+// @ts-ignore - giscus 配置可能未定义
+const giscusConfig = siteConfig.features.comments.giscus || {};
+const giscusRepo = giscusConfig.repo || "";
+const giscusRepoId = giscusConfig.repoId || "";
+---
+
+<!-- Giscus 评论容器 -->
+{giscusRepo && giscusRepoId && (
+  <div
+    class="giscus-container"
+    data-repo={giscusRepo}
+    data-repo-id={giscusRepoId}
+    data-category={giscusConfig.category || ""}
+    data-category-id={giscusConfig.categoryId || ""}
+    data-mapping="pathname"
+    data-strict="0"
+    data-reactions-enabled="1"
+    data-emit-metadata="0"
+    data-input-position="top"
+    data-theme="preferred_color_scheme"
+    data-lang={giscusLang}
+  ></div>
+)}
+
+<style>
+  .giscus-container {
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-md);
+  }
+
+  /* 确保深色主题下评论区域可见 */
+  :global(.giscus-frame) {
+    color-scheme: light dark;
+  }
+</style>

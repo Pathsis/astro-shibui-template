@@ -1,0 +1,81 @@
+---
+/**
+ * LanguageSwitcher 组件 - 多语言切换按钮
+ * 
+ * 逻辑：
+ * 1. 首页、Section页面、Taxonomy页面（标签列表）：始终显示
+ * 2. 文章页：仅在存在翻译版本时显示
+ * 3. Term页面（单个标签页）：不显示
+ * 
+ * 使用 Astro 原生 i18n API
+ */
+import { getRelativeLocaleUrl } from "astro:i18n";
+
+interface Props {
+  // 当前页面类型
+  pageKind: "home" | "section" | "taxonomy" | "term" | "article";
+  // 当前语言
+  lang: "zh-cn" | "en";
+  // 文章翻译信息（仅在 article 类型时需要）
+  hasTranslation?: boolean;
+  targetSlug?: string; // 目标语言版本的 slug
+}
+
+const { pageKind, lang, hasTranslation = false, targetSlug } = Astro.props;
+
+// 判断是否应该显示切换器
+let showSwitcher = false;
+
+if (pageKind === "home" || pageKind === "section" || pageKind === "taxonomy") {
+  // 首页、列表页、分类页：始终显示
+  showSwitcher = true;
+} else if (pageKind === "article" && hasTranslation) {
+  // 文章页：只在有翻译版本时显示
+  showSwitcher = true;
+}
+// term 页面（单个标签页）不显示
+
+// 目标语言
+const targetLang = lang === "zh-cn" ? "en" : "zh-cn";
+
+// 生成切换链接
+let switchLink = "";
+let switchText = "";
+let switchTitle = "";
+
+if (lang === "zh-cn") {
+  switchText = "English";
+  switchTitle = "Switch to English";
+} else {
+  switchText = "中文";
+  switchTitle = "切换到中文";
+}
+
+// 获取当前路径
+const pathname = Astro.url.pathname;
+
+if (pageKind === "home") {
+  // 首页：始终切换到目标语言首页
+  switchLink = getRelativeLocaleUrl(targetLang, "/");
+} else if (pageKind === "section") {
+  // Section页面（如 blog、about、search）：保留路径，切换语言前缀
+  // 仅移除语言前缀，不移除末尾斜杠，避免静态路径 404
+  const pathWithoutLang = pathname.replace(/^\/en(?=\/|$)/, "") || "/";
+  switchLink = getRelativeLocaleUrl(targetLang, pathWithoutLang);
+} else if (pageKind === "taxonomy") {
+  // Taxonomy页面（标签列表）：切换到 /tags/ 或 /en/tags/
+  switchLink = getRelativeLocaleUrl(targetLang, "/tags/");
+} else if (pageKind === "article" && hasTranslation && targetSlug) {
+  // 文章页且有翻译：切换到对应翻译文章的链接
+  const articlePath = `/blog/${targetSlug}/`;
+  switchLink = getRelativeLocaleUrl(targetLang, articlePath);
+}
+---
+
+{showSwitcher && (
+  <div class="language-switcher">
+    <a href={switchLink} class="lang-link" title={switchTitle} aria-label={switchTitle}>
+      {switchText}
+    </a>
+  </div>
+)}

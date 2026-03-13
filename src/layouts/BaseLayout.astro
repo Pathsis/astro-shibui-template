@@ -1,0 +1,264 @@
+---
+import "../styles/global.css";
+import "../styles/podcast-player.css";
+import { ClientRouter } from "astro:transitions";
+import { Font } from "astro:assets";
+import PodcastPlayerContainer from "../components/PodcastPlayerContainer.astro";
+import {
+  createSocialImageVersionToken,
+  getDefaultSocialImageVersionSeed,
+  resolveSocialImage,
+  type SocialImageSource,
+} from "../lib/social-image";
+import { siteConfig } from "../lib/config";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  socialImageSource?: SocialImageSource;
+  type?: "website" | "article";
+  lang?: string;
+  isHome?: boolean;
+  pageKind?: "home" | "section" | "taxonomy" | "term" | "article" | "page";
+}
+
+const {
+  title = siteConfig.name,
+  description = siteConfig.description,
+  image = "/images/og-image.png",
+  socialImageSource = "other",
+  type = "website",
+  lang = "zh-cn",
+  isHome = false,
+  pageKind = "page",
+} = Astro.props;
+
+const bodyClass = isHome ? "home" : "";
+const socialImageVersion =
+  import.meta.env.PUBLIC_SOCIAL_IMAGE_VERSION ||
+  getDefaultSocialImageVersionSeed();
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const socialImageVersionToken = createSocialImageVersionToken(socialImageVersion);
+const socialImage = resolveSocialImage(image, {
+  pageUrl: canonicalURL,
+  versionToken: socialImageVersionToken,
+  source: socialImageSource,
+});
+---
+
+<!DOCTYPE html>
+<html lang={lang} dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="canonical" href={canonicalURL} />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- General -->
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <!-- Favicon & Icons -->
+    <link rel="shortcut icon" href="/images/icons/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/icons/favicon-16x16.png">
+    <link rel="mask-icon" href="/images/icons/safari-pinned-tab.svg" color="#5bbad5">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#2d2520" media="(prefers-color-scheme: dark)">
+
+    <!-- Fonts: 使用 Astro 字体 API -->
+    <Font cssVariable="--font-noto-serif-sc" />
+
+    <!-- PWA -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/site.webmanifest">
+
+    <!-- Windows Tile -->
+    <meta name="msapplication-TileImage" content="/images/icons/mstile-150x150.png">
+    <meta name="msapplication-TileColor" content="#2d2d2d">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content={type} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={socialImage} />
+    <meta property="og:image:secure_url" content={socialImage} />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalURL} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage} />
+    <meta name="twitter:image:src" content={socialImage} />
+
+    <!-- JSON-LD Schema -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": type === "article" ? "BlogPosting" : "WebSite",
+        "headline": title,
+        "description": description,
+        "url": canonicalURL,
+        "image": socialImage
+      }
+    </script>
+
+    <!-- 额外的 head 内容（由子页面提供） -->
+    <slot name="head" />
+    <ClientRouter />
+  </head>
+  <body class={bodyClass} data-page-kind={pageKind}>
+    <slot />
+
+    <!-- 播客播放器容器 (使用 transition:persist 保持跨页面) -->
+    <PodcastPlayerContainer />
+
+    <!-- 全局快捷键：Cmd/Ctrl + K 跳转到归档页 -->
+    <script is:inline>
+      (() => {
+        if (typeof window === "undefined") return;
+        if (window.__pathosSearchShortcutInstalled) return;
+        window.__pathosSearchShortcutInstalled = true;
+
+        const FOCUS_KEY = "pathos-search-focus-once";
+        const normalizePath = (path) => (path.endsWith("/") ? path : `${path}/`);
+        const getBlogPath = () => (window.location.pathname.startsWith("/en/") ? "/en/blog/" : "/blog/");
+        const focusExistingInput = () => {
+          const input = document.querySelector("input[data-search-input='true']");
+          if (!(input instanceof HTMLInputElement)) return false;
+          input.focus();
+          return true;
+        };
+        const markPendingFocus = () => {
+          try {
+            window.sessionStorage.setItem(FOCUS_KEY, "1");
+          } catch {
+            // ignore storage errors
+          }
+        };
+        const consumePendingFocus = () => {
+          try {
+            if (window.sessionStorage.getItem(FOCUS_KEY) !== "1") return;
+            if (focusExistingInput()) {
+              window.sessionStorage.removeItem(FOCUS_KEY);
+              return;
+            }
+            // 搜索组件可能尚未挂载，短时重试几次，避免 race condition。
+            let retry = 0;
+            const maxRetry = 20;
+            const tick = () => {
+              if (focusExistingInput()) {
+                window.sessionStorage.removeItem(FOCUS_KEY);
+                return;
+              }
+              retry += 1;
+              if (retry < maxRetry) {
+                window.setTimeout(tick, 50);
+              }
+            };
+            window.setTimeout(tick, 50);
+          } catch {
+            // ignore storage errors
+          }
+        };
+
+        consumePendingFocus();
+        window.addEventListener("astro:page-load", consumePendingFocus);
+
+        document.addEventListener("keydown", (event) => {
+          const isK = String(event.key || "").toLowerCase() === "k";
+          if (!isK || !(event.metaKey || event.ctrlKey)) return;
+          if (event.isComposing) return;
+          event.preventDefault();
+
+          const target = normalizePath(getBlogPath());
+          const current = normalizePath(window.location.pathname);
+          if (current === target) {
+            if (!focusExistingInput()) {
+              markPendingFocus();
+              window.dispatchEvent(new CustomEvent("pathos:focus-search"));
+            }
+            return;
+          }
+          markPendingFocus();
+          window.location.href = target;
+        });
+      })();
+    </script>
+
+    <!-- 打印前临时移除文章正文链接，避免导出 PDF 时保留可点击超链接 -->
+    <script is:inline>
+      (() => {
+        if (typeof window === "undefined") return;
+        if (window.__pathosPrintLinkSanitizerInstalled) return;
+        window.__pathosPrintLinkSanitizerInstalled = true;
+
+        const ATTR = "data-print-href";
+
+        const shouldHandle = () => {
+          return document.body?.dataset?.pageKind === "article";
+        };
+
+        const stripLinksForPrint = () => {
+          if (!shouldHandle()) return;
+          const anchors = document.querySelectorAll(".gh-content a[href]");
+          anchors.forEach((anchor) => {
+            if (!(anchor instanceof HTMLAnchorElement)) return;
+            const href = anchor.getAttribute("href");
+            if (!href) return;
+            if (!anchor.hasAttribute(ATTR)) {
+              anchor.setAttribute(ATTR, href);
+            }
+            anchor.removeAttribute("href");
+          });
+        };
+
+        const restoreLinksAfterPrint = () => {
+          const anchors = document.querySelectorAll(`.gh-content a[${ATTR}]`);
+          anchors.forEach((anchor) => {
+            if (!(anchor instanceof HTMLAnchorElement)) return;
+            const href = anchor.getAttribute(ATTR);
+            if (href) {
+              anchor.setAttribute("href", href);
+            }
+            anchor.removeAttribute(ATTR);
+          });
+        };
+
+        window.addEventListener("beforeprint", stripLinksForPrint);
+        window.addEventListener("afterprint", restoreLinksAfterPrint);
+
+        const media = window.matchMedia?.("print");
+        if (media && typeof media.addEventListener === "function") {
+          media.addEventListener("change", (event) => {
+            if (event.matches) {
+              stripLinksForPrint();
+            } else {
+              restoreLinksAfterPrint();
+            }
+          });
+        } else if (media && typeof media.addListener === "function") {
+          media.addListener((event) => {
+            if (event.matches) {
+              stripLinksForPrint();
+            } else {
+              restoreLinksAfterPrint();
+            }
+          });
+        }
+      })();
+    </script>
+
+    <!-- 交互脚本 -->
+    <script src="/js/main.js" defer></script>
+  </body>
+</html>

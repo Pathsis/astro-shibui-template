@@ -1,0 +1,61 @@
+---
+import CoverLayout from "../layouts/CoverLayout.astro";
+import Stats from "../components/Stats.astro";
+import WritingChart from "../components/WritingChart.astro";
+import { siteConfig } from "../lib/config";
+
+const currentLang = "zh-cn";
+const siteName = siteConfig.name;
+const pageTitle = "关于";
+const pageDesc = `关于 ${siteConfig.name} 博客的介绍，包括博客主题、作者背景、友情链接以及订阅方式`;
+---
+
+<CoverLayout
+  title={pageTitle}
+  description={pageDesc}
+  pageKind="section"
+>
+  <h1>{pageTitle}</h1>
+
+  <h2>关于本站</h2>
+  <p>欢迎访问我的博客！这里是关于本站的介绍。</p>
+
+  <Stats lang="zh-cn" />
+  <WritingChart lang="zh-cn" />
+
+  <h2>关于我</h2>
+  <p>在这里介绍一下您自己...</p>
+
+  <h2 id="subscribe">订阅选项</h2>
+  <p>本站支持 RSS 订阅，您可以：</p>
+  <ol>
+    <li>订阅全站内容：<a href="/feed.xml">/feed.xml</a></li>
+    <li>按语言订阅：
+      <ul>
+        <li>中文：<a href="/feed.xml">/feed.xml</a></li>
+        <li>English：<a href="/en/feed.xml">/en/feed.xml</a></li>
+      </ul>
+    </li>
+  </ol>
+  <p>推荐使用 <a href="https://folo.is">Folo</a>、<a href="https://feedly.com">Feedly</a> 或 <a href="https://www.inoreader.com">Inoreader</a> 等 RSS 阅读器订阅。</p>
+
+</CoverLayout>
+
+<style>
+  strong {
+    font-weight: 600;
+  }
+
+  ol {
+    padding-left: var(--spacing-md);
+  }
+
+  ol li {
+    margin-bottom: var(--spacing-xs);
+  }
+
+  ol ul {
+    margin-top: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+  }
+</style>

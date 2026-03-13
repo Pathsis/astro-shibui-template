@@ -1,0 +1,54 @@
+{
+  "name": "astro-shibui-template",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "An elegant Astro blog template with multilingual support, podcast features, and search functionality.",
+  "keywords": [
+    "astro",
+    "blog",
+    "template",
+    "minimal",
+    "multilingual",
+    "podcast",
+    "search"
+  ],
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "dev": "astro dev",
+    "prebuild": "tsx scripts/generate-social-images.ts",
+    "build": "astro build",
+    "build-index": "node --import tsx scripts/build-search-index.ts",
+    "upload-index": "node --env-file-if-exists=.env --import tsx scripts/upload-search-index.ts",
+    "algolia": "node --env-file-if-exists=.env --import tsx scripts/build-search-index.ts && node --env-file-if-exists=.env --import tsx scripts/upload-search-index.ts",
+    "sync-index": "pnpm run algolia",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/preact": "^4.1.3",
+    "@astrojs/rss": "^4.0.17",
+    "algoliasearch": "^5.47.0",
+    "astro": "^6.0.3",
+    "gray-matter": "^4.0.3",
+    "katex": "^0.16.9",
+    "markdown-it": "^14.1.0",
+    "preact": "^10.25.1",
+    "rehype": "^13.0.2",
+    "rehype-autolink-headings": "^7.1.0",
+    "rehype-katex": "^6.0.3",
+    "rehype-slug": "^6.0.0",
+    "remark-math": "^6.0.0",
+    "remark-toc": "^9.0.0",
+    "sanitize-html": "^2.17.0",
+    "sharp": "^0.34.5",
+    "unist-util-visit": "^5.1.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.7",
+    "@types/algoliasearch": "^4.0.4",
+    "@types/node": "^25.1.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

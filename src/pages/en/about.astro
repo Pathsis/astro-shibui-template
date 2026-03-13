@@ -1,0 +1,60 @@
+---
+import CoverLayout from "../../layouts/CoverLayout.astro";
+import Stats from "../../components/Stats.astro";
+import WritingChart from "../../components/WritingChart.astro";
+import { siteConfig } from "../../lib/config";
+
+const siteName = siteConfig.name;
+const pageTitle = "About";
+const pageDesc = `About ${siteConfig.name} blog, including blog themes, author background, and subscription options`;
+---
+
+<CoverLayout
+  title={pageTitle}
+  description={pageDesc}
+  pageKind="section"
+>
+  <h1>{pageTitle}</h1>
+
+  <h2>About This Site</h2>
+  <p>Welcome to my blog! Here is an introduction to this site.</p>
+
+  <Stats lang="en" />
+  <WritingChart lang="en" />
+
+  <h2>About Me</h2>
+  <p>Tell readers about yourself here...</p>
+
+  <h2 id="subscribe">Subscribe Options</h2>
+  <p>This site supports RSS subscription:</p>
+  <ol>
+    <li>All content: <a href="/en/feed.xml">/en/feed.xml</a></li>
+    <li>By language:
+      <ul>
+        <li>Chinese: <a href="/feed.xml">/feed.xml</a></li>
+        <li>English: <a href="/en/feed.xml">/en/feed.xml</a></li>
+      </ul>
+    </li>
+  </ol>
+  <p>It is recommended to use RSS readers such as <a href="https://folo.is">Folo</a>, <a href="https://feedly.com">Feedly</a> or <a href="https://www.inoreader.com">Inoreader</a>.</p>
+
+</CoverLayout>
+
+<style>
+  strong {
+    font-weight: 600;
+  }
+
+  ol {
+    padding-left: var(--spacing-md);
+  }
+
+  ol li {
+    margin-bottom: var(--spacing-xs);
+  }
+
+  ol ul {
+    margin-top: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+  }
+</style>

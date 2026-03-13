@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- 背景圆形 -->
+  <circle cx="100" cy="100" r="90" fill="#f8f9fa" />
+  
+  <!-- 主要文字 2750，分段设计 -->
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+     font-weight="700" 
+     text-anchor="middle">
+    <!-- 27 上半部分 -->
+    <text x="85" y="90" font-size="48">27</text>
+    <!-- 50 下半部分，0 用红色突出 -->
+    <text x="115" y="130" font-size="48">5<tspan fill="#ff3b30">0</tspan></text>
+  </g>
+
+  <!-- 环绕的圆形文字路径 -->
+  <path id="circlePath"
+        d="M 35,100 A 65,65 0 1,1 165,100 A 65,65 0 1,1 35,100"
+        fill="none"/>
+  
+  <!-- 环绕文字，减少重复次数并调整间距 -->
+  <text font-family="DengXian, sans-serif" font-size="12" letter-spacing="1">
+    <textPath href="#circlePath" startOffset="5%">
+       2750 words • 一个法哲学研究者的博客 • https://pathos.page
+    </textPath>
+  </text>
+</svg>

@@ -1,0 +1,81 @@
+---
+import CoverLayout from "../../layouts/CoverLayout.astro";
+import { getCollection } from "astro:content";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import { getLocalizedBlogPathById } from "../../lib/post-url";
+import fs from "node:fs";
+import path from "node:path";
+
+export async function getStaticPaths() {
+  // 只从中文文章中获取标签（这是默认语言的页面）
+  const postsZh = await getCollection("blog-zh");
+
+  const tags = new Set<string>();
+  postsZh.forEach((post) => {
+    post.data.tags?.forEach((tag) => tags.add(tag));
+  });
+  return Array.from(tags).map((tag) => ({
+    params: { tag },
+    props: { tag },
+  }));
+}
+
+const { tag } = Astro.props;
+
+// 获取当前语言
+const currentLang = Astro.currentLocale as "zh-cn" | "en" || "zh-cn";
+const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
+
+// 获取当前语言下该标签的文章
+const posts = (await getCollection(collectionName))
+  .filter((post) => post.data.tags?.includes(tag))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+// 尝试加载标签封面图片
+function getTagImage(tagName: string): string | undefined {
+  const publicDir = path.join(process.cwd(), "public");
+  const extensions = ["jpg", "jpeg", "png", "webp"];
+  
+  for (const ext of extensions) {
+    const imagePath = path.join(publicDir, "images", "terms", `${tagName}.${ext}`);
+    if (fs.existsSync(imagePath)) {
+      return `/images/terms/${tagName}.${ext}`;
+    }
+  }
+  return undefined;
+}
+
+const featuredImage = getTagImage(tag);
+
+// 界面文本
+const tagLabel = currentLang === "en" ? "Tag" : "标签";
+const tagDescription = currentLang === "en" ? `All posts tagged with "${tag}"` : `标签 ${tag} 下的所有文章`;
+const podcastHint = currentLang === "en" ? " (Podcast available)" : "（可收听播客）";
+---
+
+<CoverLayout
+  title={`${tagLabel}: ${tag}`}
+  description={tagDescription}
+  pageKind="term"
+  featuredImage={featuredImage}
+>
+  <h1>{tagLabel}: {tag}</h1>
+
+  <div class="time-list">
+    <ul>
+      {posts.map((post) => (
+        <li>
+          <time datetime={post.data.date.toISOString()}>
+            {post.data.date.toISOString().split("T")[0]}
+          </time>
+          <div>
+            <a href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(post.id, currentLang))}>
+              {post.data.title}
+              {post.data.podcast && <span class="sr-only">{podcastHint}</span>}
+            </a>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </div>
+</CoverLayout>
