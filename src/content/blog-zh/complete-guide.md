@@ -428,6 +428,21 @@ categories: ["技术", "前端", "React"]
 - **分类**：层级结构，更正式
 - **标签**：扁平结构，更灵活
 
+#### 标签封面设置
+
+标签页面支持自定义封面图。将图片放在 `public/images/terms/` 目录下，文件名为 `{标签名}.{扩展名}`：
+
+```
+public/images/terms/
+├── 技术.jpg
+├── 哲学.png
+└── 生活.webp
+```
+
+支持的格式：`.jpg`、`.jpeg`、`.png`、`.webp`
+
+系统会自动查找并显示对应标签的封面图。
+
 ### 图片管理
 
 Astro Shibui 模板提供了完整的图片处理功能，包括封面图、文章内图片、社交分享图片等。
@@ -1180,7 +1195,7 @@ podcast: true  # 启用播客
 
 **Q: 播客播放器不显示？**
 A: 检查：
-1. `PUBLIC_PODCAST_ENABLED=true`
+1. 在 `config.ts` 中启用了播客功能：`features.podcast.enabled = true`
 2. 至少有一篇文章设置了 `podcast: true`
 3. 音频文件已上传并可访问
 

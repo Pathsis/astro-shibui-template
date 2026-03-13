@@ -171,13 +171,23 @@ Post content goes here...
 | `description` | string | ❌ | Post description |
 | `date` | Date | ✅ | Publish date |
 | `tags` | array | ❌ | Tags list |
-| `toc` | boolean | ❌ | Show TOC (default false) |
-| `images` | array | ❌ | Cover images |
-| `draft` | boolean | ❌ | Draft status (drafts won't be published) |
-| `categories` | array | ❌ | Categories |
-| `podcast` | boolean | ❌ | Has podcast (requires podcast enabled) |
 
 > **Tip**: When `toc: true` is enabled, the template automatically numbers your headings (e.g., 1.1, 1.2, 2.1) and generates a clickable table of contents.
+
+#### Tag Cover Images
+
+Tag pages support custom cover images. Place images in `public/images/terms/` directory, with filename format `{tag-name}.{extension}`:
+
+```
+public/images/terms/
+├── tech.jpg
+├── philosophy.png
+└── life.webp
+```
+
+Supported formats: `.jpg`, `.jpeg`, `.png`, `.webp`
+
+The system will automatically find and display the cover image for the corresponding tag.
 
 ### Image Management
 
