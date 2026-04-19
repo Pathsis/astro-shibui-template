@@ -19,6 +19,34 @@ pnpm dev
 3. `.env`：Algolia、Giscus、Umami、Clarity 等第三方服务
 4. `public/`：如果你想替换模板自带 branding，可在这里更换图标和分享图
 
+## Vercel 部署提醒
+
+如果你部署到 Vercel：
+
+- Vercel 不会读取你本机上的 `.env`
+- 你必须把需要的环境变量手动配置到 Vercel 项目的 Environment Variables 中
+
+至少应检查：
+
+- `PUBLIC_ALGOLIA_APP_ID`
+- `PUBLIC_ALGOLIA_SEARCH_KEY`
+- `PUBLIC_ALGOLIA_INDEX_NAME`
+- `PUBLIC_GISCUS_REPO`
+- `PUBLIC_GISCUS_REPO_ID`
+- `PUBLIC_GISCUS_CATEGORY`
+- `PUBLIC_GISCUS_CATEGORY_ID`
+- `PUBLIC_UMAMI_SCRIPT_SRC`
+- `PUBLIC_UMAMI_WEBSITE_ID`
+- `PUBLIC_UMAMI_HOSTS`
+- `PUBLIC_CLARITY_PROJECT_ID`
+- `PUBLIC_CLARITY_HOSTS`
+
+如果这些变量没有配置，线上可能出现以下现象：
+
+- 搜索框显示“搜索尚未配置”
+- 评论区不显示
+- Umami 或 Clarity 不工作
+
 ## 发布
 
 在私有主仓库根目录执行：
