@@ -16,6 +16,11 @@ interface UpdatePlayerStateOptions {
   silent?: boolean;
 }
 
+interface PlayerStateStore {
+  currentState: PlayerState;
+  listeners: Set<(state: PlayerState) => void>;
+}
+
 const STORAGE_KEY = 'podcast-player-state';
 const EPISODE_STORAGE_KEY = 'podcast-current-episode';
 const EPISODE_PROGRESS_KEY = 'podcast-episode-progress-';
@@ -95,11 +100,34 @@ function safeRemoveItem(key: string): boolean {
   }
 }
 
-// 当前状态
-let currentState: PlayerState = { ...defaultState };
+const PLAYER_STATE_STORE_KEY = '__pathosPlayerStateStore';
 
-// 监听器集合
-const listeners = new Set<(state: PlayerState) => void>();
+function getPlayerStateStore(): PlayerStateStore {
+  const scope = globalThis as typeof globalThis & {
+    [PLAYER_STATE_STORE_KEY]?: PlayerStateStore;
+  };
+
+  if (!scope[PLAYER_STATE_STORE_KEY]) {
+    scope[PLAYER_STATE_STORE_KEY] = {
+      currentState: { ...defaultState },
+      listeners: new Set(),
+    };
+  }
+
+  return scope[PLAYER_STATE_STORE_KEY];
+}
+
+function getCurrentState(): PlayerState {
+  return getPlayerStateStore().currentState;
+}
+
+function setCurrentState(state: PlayerState) {
+  getPlayerStateStore().currentState = state;
+}
+
+function getStateListeners() {
+  return getPlayerStateStore().listeners;
+}
 
 function resolveLangFromSlug(slug: string | null): PlayerLang {
   if (!slug) return 'zh-cn';
@@ -185,15 +213,16 @@ function broadcastState(state: PlayerState) {
  * 初始化播放器状态
  */
 export function initPlayerState(): PlayerState {
-  currentState = loadState();
-  return currentState;
+  const state = loadState();
+  setCurrentState(state);
+  return state;
 }
 
 /**
  * 获取当前状态
  */
 export function getPlayerState(): PlayerState {
-  return { ...currentState };
+  return { ...getCurrentState() };
 }
 
 /**
@@ -203,32 +232,34 @@ export function updatePlayerState(
   updates: Partial<PlayerState>,
   options: UpdatePlayerStateOptions = {}
 ) {
+  const currentState = getCurrentState();
   const hasChanges = (Object.keys(updates) as Array<keyof PlayerState>).some(
     (key) => currentState[key] !== updates[key]
   );
   if (!hasChanges) return;
 
-  currentState = { ...currentState, ...updates };
-  broadcastState(currentState);
+  const nextState = { ...currentState, ...updates };
+  setCurrentState(nextState);
+  broadcastState(nextState);
 
   if (options.silent) return;
 
   // 通知所有监听器
-  listeners.forEach(listener => listener(currentState));
+  getStateListeners().forEach(listener => listener(nextState));
 }
 
 /**
  * 订阅状态变化
  */
 export function subscribeToPlayerState(callback: (state: PlayerState) => void) {
-  listeners.add(callback);
+  getStateListeners().add(callback);
   
   // 立即返回当前状态
-  callback(currentState);
+  callback(getCurrentState());
   
   // 返回取消订阅函数
   return () => {
-    listeners.delete(callback);
+    getStateListeners().delete(callback);
   };
 }
 
@@ -244,6 +275,7 @@ export function saveProgress(currentTime: number, duration: number) {
   updatePlayerState(updates, { silent: true });
 
   // 同时保存当前 episode 的进度（用于切换后恢复）
+  const currentState = getCurrentState();
   if (currentState.currentSlug) {
     saveEpisodeProgress(currentState.currentSlug, currentTime, duration);
   }
@@ -388,22 +420,24 @@ export function clearPlayerState() {
     console.error('Failed to set dismissed flag:', e);
   }
 
+  const currentState = getCurrentState();
   // 只重置播放状态，保留 episode 和进度信息
   const previousSlug = currentState.currentSlug;
   const previousTime = currentState.currentTime;
   const previousRate = currentState.playbackRate;
 
-  currentState = {
+  const nextState: PlayerState = {
     ...defaultState,
     // 保留 episode 信息，以便恢复播放
     currentSlug: previousSlug,
     currentTime: previousTime,
     playbackRate: previousRate,
   };
+  setCurrentState(nextState);
   // 持久化最新状态，避免刷新后回退到旧状态
-  saveState(currentState);
+  saveState(nextState);
   // 广播状态更新（通知所有监听器）
-  listeners.forEach(listener => listener(currentState));
+  getStateListeners().forEach(listener => listener(nextState));
 }
 
 /**

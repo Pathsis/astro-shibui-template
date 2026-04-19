@@ -123,6 +123,14 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     stateRef.current = state;
   }, [state]);
 
+  const applyLocalPlayerState = useCallback((updates: Partial<PlayerState>) => {
+    setState((prev) => {
+      const next = { ...prev, ...updates };
+      stateRef.current = next;
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     return () => {
       const bannerUrl = mediaBannerArtworkUrlRef.current;
@@ -753,6 +761,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     });
     const unsubPlay = onPlay(() => {
       setIsBuffering(false);
+      applyLocalPlayerState({ isPlaying: true });
       if (!stateRef.current.isPlaying) {
         updatePlayerState({ isPlaying: true });
       }
@@ -761,6 +770,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       const audio = getGlobalAudio();
       // ended 会伴随 pause 事件；这里跳过，避免把自动循环回写成暂停。
       if (audio.ended) return;
+      applyLocalPlayerState({ isPlaying: false });
       if (stateRef.current.isPlaying && !scrubbingRef.current) {
         persistProgressSnapshot();
         updatePlayerState({ isPlaying: false });
@@ -1043,16 +1053,39 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   }, [isExpanded]);
   
   const togglePlay = useCallback(() => {
-    if (state.isPlaying) {
+    const nextIsPlaying = !stateRef.current.isPlaying;
+
+    if (!nextIsPlaying) {
       persistProgressSnapshot();
+      setPlayIntent(false);
+      setIsBuffering(false);
+      pauseAudio();
+    } else {
+      setPlayIntent(true);
+      setHasEnded(false);
+      setPlaybackRate(stateRef.current.playbackRate);
+      if (currentEpisode) {
+        setAudioSrc(currentEpisode.url);
+      }
+      if (!isPlaying()) {
+        setIsBuffering(true);
+        playAudio().catch(() => {
+          setIsBuffering(false);
+          applyLocalPlayerState({ isPlaying: false });
+          updatePlayerState({ isPlaying: false });
+          setPlayIntent(false);
+        });
+      }
     }
-    updatePlayerState({ isPlaying: !state.isPlaying });
-    trackUmami(state.isPlaying ? 'podcast-pause' : 'podcast-play', {
+
+    applyLocalPlayerState({ isPlaying: nextIsPlaying });
+    updatePlayerState({ isPlaying: nextIsPlaying });
+    trackUmami(nextIsPlaying ? 'podcast-play' : 'podcast-pause', {
       source: 'player',
       slug: currentEpisode?.slug ?? '',
       lang: currentEpisode?.lang ?? '',
     });
-  }, [state.isPlaying, currentEpisode?.slug, currentEpisode?.lang, persistProgressSnapshot]);
+  }, [currentEpisode?.slug, currentEpisode?.lang, currentEpisode?.url, persistProgressSnapshot, applyLocalPlayerState]);
 
   const seekToTime = useCallback((rawValue: number) => {
     if (!Number.isFinite(rawValue)) return;
