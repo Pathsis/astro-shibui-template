@@ -1,0 +1,359 @@
+/* Print Layer */
+/* ===== 打印样式（文章页） ===== */
+@page {
+  size: A4 portrait;
+  margin: 14mm 16mm 18mm;
+}
+
+@media print {
+  body[data-page-kind="article"] {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 10.5pt;
+    line-height: 1.7;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body[data-page-kind="article"] * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  body[data-page-kind="article"] .gh-head,
+  body[data-page-kind="article"] .site-mobile-menu,
+  body[data-page-kind="article"] .gh-foot,
+  body[data-page-kind="article"] .cover-left,
+  body[data-page-kind="article"] .sidebar-right,
+  body[data-page-kind="article"] .toc-desktop,
+  body[data-page-kind="article"] .giscus-container,
+  body[data-page-kind="article"] .related-read-section,
+  body[data-page-kind="article"] .article-suggest,
+  body[data-page-kind="article"] #podcast-player-container,
+  body[data-page-kind="article"] .podcast-player,
+  body[data-page-kind="article"] .podcast-play-button,
+  body[data-page-kind="article"] .inline-footnote,
+  body[data-page-kind="article"] .mobile-hanging-figures,
+  body[data-page-kind="article"] .tldr-box {
+    display: none !important;
+  }
+
+  body[data-page-kind="article"] .main-layout,
+  body[data-page-kind="article"] .main-content,
+  body[data-page-kind="article"] .gh-content {
+    display: block !important;
+    min-height: 0 !important;
+    height: auto !important;
+    width: auto !important;
+    max-width: 42rem !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  body[data-page-kind="article"] .gh-content {
+    font-size: 1em;
+  }
+
+  body[data-page-kind="article"] .gh-content time:first-child {
+    display: block;
+    margin-bottom: 0.8rem;
+    color: #000 !important;
+    font-size: 0.92em;
+  }
+
+  body[data-page-kind="article"] .gh-content .article-title-heading {
+    margin: 0 0 1.3rem 0 !important;
+    padding-right: 0 !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .article-title-heading.has-podcast {
+    padding-right: 0 !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .article-tags {
+    margin: 0 0 1.1rem 0 !important;
+    padding: 0 !important;
+    clear: none !important;
+  }
+
+  body[data-page-kind="article"] .gh-content.has-inline-footnotes .footnotes,
+  body[data-page-kind="article"] .gh-content .footnotes {
+    display: block !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .footnotes {
+    margin-top: 2.2rem !important;
+    padding-top: 1rem !important;
+    border-top: 1px solid #000;
+    font-size: 0.92em;
+  }
+
+  body[data-page-kind="article"] .gh-content .footnotes h2,
+  body[data-page-kind="article"] .gh-content .print-article-section-title {
+    margin: 0 0 0.9rem 0 !important;
+    font-size: 1em !important;
+    font-weight: 700;
+    color: #000 !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .footnotes h2.sr-only {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 0 0.9rem 0 !important;
+    overflow: visible !important;
+    clip: auto !important;
+    clip-path: none !important;
+    white-space: normal !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .footnote-backref,
+  body[data-page-kind="article"] .gh-content [data-footnote-backref] {
+    display: none !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .footnotes ol {
+    margin: 0 !important;
+    padding-left: 1.8em !important;
+    list-style-position: outside;
+  }
+
+  body[data-page-kind="article"] .gh-content .footnotes li {
+    margin: 0 0 0.6rem 0 !important;
+    padding-left: 0.3em;
+  }
+
+  body[data-page-kind="article"] .gh-content .footnotes li:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .footnotes li > p,
+  body[data-page-kind="article"] .gh-content .footnotes li > p:first-child {
+    margin: 0 !important;
+    text-indent: 0 !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .toc-inline {
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 0 1.8rem 0 !important;
+    padding: 0.9rem 0 0.7rem 0 !important;
+    background: transparent !important;
+    border-top: 1px solid #000;
+    border-bottom: 1px solid #000;
+    overflow: visible !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .toc-inline::before,
+  body[data-page-kind="article"] .gh-content .toc-inline::after {
+    display: none !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .toc-inline .toc-title {
+    margin: 0 0 0.7rem 0 !important;
+    color: #000 !important;
+    font-size: 0.95em !important;
+    opacity: 1 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .toc-inline .toc-list {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .toc-inline .toc-list li {
+    margin: 0 0 0.42rem 0 !important;
+    padding: 0 !important;
+    break-inside: auto;
+  }
+
+  body[data-page-kind="article"] .gh-content .toc-inline .toc-list a {
+    display: inline !important;
+    padding: 0 !important;
+    color: #000 !important;
+    opacity: 1 !important;
+    text-decoration: none !important;
+    transform: none !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .toc-inline .toc-list a::before {
+    content: attr(data-toc-number) " " !important;
+    position: static !important;
+    display: inline !important;
+    margin-right: 0.25rem !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .toc-inline .toc-list li.toc-item-unnumbered > a::before {
+    content: none !important;
+    margin-right: 0 !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .toc-inline .toc-list a::after {
+    display: none !important;
+  }
+
+  body[data-page-kind="article"] .gh-content a {
+    border-bottom: none !important;
+    text-decoration: none !important;
+    color: inherit !important;
+    pointer-events: none !important;
+    cursor: text !important;
+  }
+
+  body[data-page-kind="article"] .gh-content p {
+    margin: 0 !important;
+  }
+
+  html[lang^="zh"] body[data-page-kind="article"] .gh-content > p {
+    text-indent: 2em;
+  }
+
+  html[lang^="en"] body[data-page-kind="article"] .gh-content > p {
+    text-indent: 1.6em;
+  }
+
+  html[lang^="en"] body[data-page-kind="article"] .gh-content > h2 + p,
+  html[lang^="en"] body[data-page-kind="article"] .gh-content > h3 + p,
+  html[lang^="en"] body[data-page-kind="article"] .gh-content > h4 + p,
+  html[lang^="en"] body[data-page-kind="article"] .gh-content > h5 + p {
+    text-indent: 0 !important;
+  }
+
+  body[data-page-kind="article"] .gh-content h2 > .heading-anchor,
+  body[data-page-kind="article"] .gh-content h3 > .heading-anchor,
+  body[data-page-kind="article"] .gh-content h4 > .heading-anchor,
+  body[data-page-kind="article"] .gh-content h5 > .heading-anchor {
+    display: inline !important;
+    opacity: 1 !important;
+    margin-left: 0 !important;
+    border-bottom: none !important;
+    text-decoration: none !important;
+    color: inherit !important;
+    pointer-events: none !important;
+    cursor: text !important;
+  }
+
+  body[data-page-kind="article"] .gh-content h1,
+  body[data-page-kind="article"] .gh-content h2,
+  body[data-page-kind="article"] .gh-content h3,
+  body[data-page-kind="article"] .gh-content h4 {
+    break-after: avoid-page;
+    break-inside: avoid-page;
+  }
+
+  body[data-page-kind="article"] .gh-content p,
+  body[data-page-kind="article"] .gh-content blockquote,
+  body[data-page-kind="article"] .gh-content pre,
+  body[data-page-kind="article"] .gh-content table {
+    break-inside: auto;
+  }
+
+  body[data-page-kind="article"] .gh-content blockquote {
+    margin: 1.7em 0 !important;
+    padding: 0 0 0 2em !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: inherit !important;
+    font-family: inherit !important;
+    font-size: 0.92em !important;
+  }
+
+  body[data-page-kind="article"] .gh-content blockquote p {
+    margin: 0 !important;
+    text-indent: 2em !important;
+  }
+
+  body[data-page-kind="article"] .gh-content blockquote p + p {
+    margin-top: 0 !important;
+  }
+
+  body[data-page-kind="article"] .gh-content p:has(+ ul),
+  body[data-page-kind="article"] .gh-content p:has(+ ol) {
+    break-after: avoid-page;
+  }
+
+  body[data-page-kind="article"] .gh-content ul,
+  body[data-page-kind="article"] .gh-content ol {
+    break-inside: auto;
+  }
+
+  body[data-page-kind="article"] .gh-content li {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  body[data-page-kind="article"] .gh-content figure {
+    display: block !important;
+    float: none !important;
+    clear: both !important;
+    width: 50% !important;
+    max-width: 50% !important;
+    margin: 1.1rem auto 1.35rem !important;
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+    break-before: auto;
+  }
+
+  body[data-page-kind="article"] .gh-content img {
+    display: block;
+    width: auto !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 0 auto;
+    break-inside: avoid-page;
+  }
+
+  body[data-page-kind="article"] .gh-content > img {
+    width: 50% !important;
+    max-width: 50% !important;
+    margin: 1.1rem auto 1.35rem !important;
+  }
+
+  body[data-page-kind="article"] .gh-content p > img:only-child {
+    width: 50% !important;
+    max-width: 50% !important;
+    margin: 1.1rem auto 1.35rem !important;
+  }
+
+  body[data-page-kind="article"] .gh-content figure img {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  body[data-page-kind="article"] .gh-content figcaption {
+    display: block !important;
+    margin-top: 0.45rem;
+    font-size: 0.9em;
+    line-height: 1.55;
+    color: #000 !important;
+  }
+
+  body[data-page-kind="article"] .gh-content .print-figure-label {
+    font-weight: 700;
+  }
+
+  body[data-page-kind="article"] .gh-content .hanging-figure-ref,
+  body[data-page-kind="article"] .gh-content .hanging-figure-label a,
+  body[data-page-kind="article"] .gh-content .footnote-ref,
+  body[data-page-kind="article"] .gh-content sup[id^="fnref:"],
+  body[data-page-kind="article"] .gh-content sup[id^="user-content-fnref-"] {
+    display: none !important;
+  }
+}

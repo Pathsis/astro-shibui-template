@@ -1,0 +1,91 @@
+{
+  "generatedAt": "2026-01-01T00:00:00.000Z",
+  "stats": [
+    {
+      "year": 2025,
+      "month": 1,
+      "label": "2025年1月",
+      "wordCount": 0,
+      "postCount": 0
+    },
+    {
+      "year": 2025,
+      "month": 2,
+      "label": "2025年2月",
+      "wordCount": 0,
+      "postCount": 0
+    },
+    {
+      "year": 2025,
+      "month": 3,
+      "label": "2025年3月",
+      "wordCount": 0,
+      "postCount": 0
+    },
+    {
+      "year": 2025,
+      "month": 4,
+      "label": "2025年4月",
+      "wordCount": 0,
+      "postCount": 0
+    },
+    {
+      "year": 2025,
+      "month": 5,
+      "label": "2025年5月",
+      "wordCount": 0,
+      "postCount": 0
+    },
+    {
+      "year": 2025,
+      "month": 6,
+      "label": "2025年6月",
+      "wordCount": 0,
+      "postCount": 0
+    },
+    {
+      "year": 2025,
+      "month": 7,
+      "label": "2025年7月",
+      "wordCount": 0,
+      "postCount": 0
+    },
+    {
+      "year": 2025,
+      "month": 8,
+      "label": "2025年8月",
+      "wordCount": 0,
+      "postCount": 0
+    },
+    {
+      "year": 2025,
+      "month": 9,
+      "label": "2025年9月",
+      "wordCount": 0,
+      "postCount": 0
+    },
+    {
+      "year": 2025,
+      "month": 10,
+      "label": "2025年10月",
+      "wordCount": 0,
+      "postCount": 0
+    },
+    {
+      "year": 2025,
+      "month": 11,
+      "label": "2025年11月",
+      "wordCount": 4200,
+      "postCount": 1
+    },
+    {
+      "year": 2026,
+      "month": 12,
+      "label": "2025年12月",
+      "wordCount": 0,
+      "postCount": 0
+    }
+  ],
+  "totalWords": 4200,
+  "totalPosts": 1
+}

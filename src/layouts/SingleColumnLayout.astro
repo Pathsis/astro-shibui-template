@@ -1,0 +1,163 @@
+---
+/**
+ * SingleColumnLayout - 单栏布局（替代 CoverLayout）
+ *
+ * 布局结构：
+ * 1. Header - 顶部导航栏（Ghost Journal 风格）
+ * 2. Main Layout - 主内容区域（626px 宽，居中）
+ * 3. Footer - 页脚（版权 + 统计 + 构建信息）
+ *
+ * 特点：
+ * - 全站单栏设计
+ * - 内容区居中显示（最大宽度 626px）
+ * - 图片可悬挂到视口边缘
+ * - 移动端全屏菜单（顶层覆盖层）
+ */
+import BaseLayout from "./BaseLayout.astro";
+import Header from "../components/Header.astro";
+import MobileMenu from "../components/MobileMenu.astro";
+import Footer from "../components/Footer.astro";
+import type { SocialImageSource } from "../lib/social-image";
+import { siteConfig } from "@site-config";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  socialImageSource?: SocialImageSource;
+  type?: "website" | "article";
+  lang?: "zh-cn" | "en";
+  isHome?: boolean;
+  pageKind?: "home" | "section" | "taxonomy" | "term" | "article";
+  publishDate?: Date;
+  author?: string;
+  tags?: string[];
+  categories?: string[];
+  hasTranslation?: boolean;
+  targetSlug?: string;
+}
+
+const {
+  title = siteConfig.title,
+  description,
+  image = siteConfig.images.defaultOg,
+  socialImageSource = "other",
+  type = "website",
+  lang,
+  isHome = false,
+  pageKind = "home",
+  publishDate,
+  author,
+  tags = [],
+  categories = [],
+  hasTranslation = false,
+  targetSlug,
+} = Astro.props;
+
+// 使用 Astro.currentLocale 获取当前语言
+const currentLang = lang || (Astro.currentLocale as "zh-cn" | "en") || "zh-cn";
+
+// 封面图：保留用于社交媒体图片
+const socialImage = image;
+
+// 构建信息
+const buildTime = (process.env.BUILD_TIME as string | undefined) ?? new Date().toLocaleString('zh-CN', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+  timeZone: 'Asia/Shanghai'
+}).replace(/\//g, '/');
+
+const buildInfoText = currentLang === "en"
+  ? `Built at ${buildTime}`
+  : `构建于 ${buildTime}`;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  image={socialImage}
+  socialImageSource={socialImageSource}
+  type={type}
+  lang={currentLang}
+  isHome={isHome}
+  pageKind={pageKind}
+  publishDate={publishDate}
+  author={author}
+  tags={tags}
+  categories={categories}
+  hasTranslation={hasTranslation}
+  targetSlug={targetSlug}
+>
+  <Fragment slot="head">
+    <slot name="head" />
+  </Fragment>
+
+  <!-- 顶部导航栏 -->
+  <Header
+    currentLang={currentLang}
+    pageKind={pageKind}
+    hasTranslation={hasTranslation}
+    targetSlug={targetSlug}
+  />
+
+  <MobileMenu
+    currentLang={currentLang}
+    pageKind={pageKind}
+    hasTranslation={hasTranslation}
+    targetSlug={targetSlug}
+  />
+
+  <!-- 主内容区域（单栏，626px 宽，居中） -->
+  <div class="main-layout">
+    <main class="main-content" id="main-content" role="main">
+      <slot />
+    </main>
+  </div>
+
+  <!-- 页脚 -->
+  <Footer
+    currentLang={currentLang}
+    buildInfoText={buildInfoText}
+  />
+</BaseLayout>
+
+<style>
+  /* ===== 主布局容器 ===== */
+  .main-layout {
+    margin-top: var(--spacing-lg);
+    margin-left: auto;
+    margin-right: auto;
+    max-width: none; /* 移除宽度限制，让 .main-content 控制宽度 */
+    width: 100%;
+  }
+
+  /* ===== 正文内容区域（单栏容器）===== */
+  .main-content {
+    max-width: 626px; /* 固定宽度，与之前版本一致 */
+    margin: 0 auto;
+    padding: 0 var(--spacing-lg);
+    /* 允许内部元素浮动 */
+    overflow: visible;
+    /* 确保使用 content-box，让 padding 不计入 max-width */
+    box-sizing: content-box;
+  }
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 768px) {
+    .main-layout {
+      margin-top: var(--spacing-md);
+    }
+
+    .main-content {
+      width: 100%;
+      max-width: 100%;
+      padding: 0 var(--spacing-md);
+      box-sizing: border-box;
+    }
+  }
+</style>

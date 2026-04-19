@@ -1,0 +1,228 @@
+---
+import "../styles/global.css";
+import { ClientRouter } from "astro:transitions";
+import { Font } from "astro:assets";
+import PodcastPlayerContainer from "../components/PodcastPlayerContainer.astro";
+import {
+  createSocialImageVersionToken,
+  getDefaultSocialImageVersionSeed,
+  resolveSocialImage,
+  type SocialImageSource,
+} from "../lib/social-image";
+import {
+  getLanguageSwitchHref,
+  getTargetLang,
+  type SwitchablePageKind,
+} from "../lib/language-switch";
+import { siteConfig } from "@site-config";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  socialImageSource?: SocialImageSource;
+  type?: "website" | "article";
+  lang?: "zh-cn" | "en";
+  isHome?: boolean;
+  pageKind?: "home" | "section" | "taxonomy" | "term" | "article" | "page";
+  publishDate?: Date;
+  author?: string;
+  tags?: string[];
+  categories?: string[];
+  hasTranslation?: boolean;
+  targetSlug?: string;
+}
+
+const {
+  title = siteConfig.title,
+  description = siteConfig.descriptions.zh,
+  image = siteConfig.images.defaultOg,
+  socialImageSource = "other",
+  type = "website",
+  lang = "zh-cn",
+  isHome = false,
+  pageKind = "page",
+  publishDate,
+  author = siteConfig.authorName,
+  tags = [],
+  categories = [],
+  hasTranslation = false,
+  targetSlug,
+} = Astro.props;
+
+const bodyClass = isHome ? "home" : "";
+const socialImageVersion =
+  import.meta.env.PUBLIC_SOCIAL_IMAGE_VERSION ||
+  getDefaultSocialImageVersionSeed();
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const sitemapURL = new URL("/sitemap-index.xml", Astro.site);
+const socialImageVersionToken = createSocialImageVersionToken(socialImageVersion);
+const socialImage = resolveSocialImage(image, {
+  pageUrl: canonicalURL,
+  versionToken: socialImageVersionToken,
+  source: socialImageSource,
+});
+const umamiScriptSrc = (import.meta.env.PUBLIC_UMAMI_SCRIPT_SRC || "").trim();
+const umamiWebsiteId = (import.meta.env.PUBLIC_UMAMI_WEBSITE_ID || "").trim();
+const umamiHosts = (import.meta.env.PUBLIC_UMAMI_HOSTS || "")
+  .split(",")
+  .map((item: string) => item.trim())
+  .filter(Boolean);
+const clarityProjectId = (import.meta.env.PUBLIC_CLARITY_PROJECT_ID || "").trim();
+const clarityHosts = (import.meta.env.PUBLIC_CLARITY_HOSTS || "")
+  .split(",")
+  .map((item: string) => item.trim())
+  .filter(Boolean);
+const enableClientRouter = (import.meta.env.PUBLIC_ENABLE_CLIENT_ROUTER || "true").toLowerCase() !== "false";
+const currentHrefLang = lang === "en" ? "en" : "zh-CN";
+const alternatePath = pageKind === "page"
+  ? undefined
+  : getLanguageSwitchHref({
+      pageKind: pageKind as SwitchablePageKind,
+      lang,
+      pathname: Astro.url.pathname,
+      hasTranslation,
+      targetSlug,
+    });
+const alternateHrefLang = alternatePath
+  ? (getTargetLang(lang) === "en" ? "en" : "zh-CN")
+  : undefined;
+const alternateLinks = alternatePath
+  ? [
+      { hreflang: currentHrefLang, href: canonicalURL.href },
+      { hreflang: alternateHrefLang, href: new URL(alternatePath, Astro.site).href },
+      {
+        hreflang: "x-default",
+        href: lang === "zh-cn" ? canonicalURL.href : new URL(alternatePath, Astro.site).href,
+      },
+    ]
+  : [];
+
+// 字体优化：通过环境变量控制（Vercel 等平台可设置为 true）
+const enableGoogleFonts = import.meta.env.PUBLIC_ENABLE_GOOGLE_FONTS === "true";
+---
+
+<!DOCTYPE html>
+<html lang={lang} dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="canonical" href={canonicalURL} />
+    <link rel="sitemap" href={sitemapURL.pathname} />
+    {alternateLinks.map((link) => (
+      <link rel="alternate" hreflang={link.hreflang} href={link.href} />
+    ))}
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- General -->
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <!-- Favicon & Icons -->
+    <link rel="shortcut icon" href="/images/icons/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/icons/favicon-16x16.png">
+    <link rel="mask-icon" href="/images/icons/safari-pinned-tab.svg" color="#5bbad5">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#2d2520" media="(prefers-color-scheme: dark)">
+
+    <!-- Fonts: 使用 Astro 字体 API -->
+    {
+      enableGoogleFonts && (
+        // @ts-expect-error - Astro Font component type inference issue
+        <Font cssVariable={"--font-noto-serif-sc" as any} />
+      )
+    }
+
+    <!-- PWA -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/site.webmanifest">
+
+    <!-- Windows Tile -->
+    <meta name="msapplication-TileImage" content="/images/icons/mstile-150x150.png">
+    <meta name="msapplication-TileColor" content="#2d2d2d">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content={type} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={socialImage} />
+    <meta property="og:image:secure_url" content={socialImage} />
+    {type === "article" && publishDate && (
+      <meta property="article:published_time" content={publishDate.toISOString()} />
+    )}
+    {type === "article" && author && (
+      <meta property="article:author" content={author} />
+    )}
+    {type === "article" && categories && categories.length > 0 && (
+      <meta property="article:section" content={categories[0]} />
+    )}
+    {type === "article" && tags && tags.length > 0 && tags.map((tag) => (
+      <meta property="article:tag" content={tag} />
+    ))}
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalURL} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage} />
+    <meta name="twitter:image:src" content={socialImage} />
+
+    <!-- JSON-LD Schema -->
+    <script is:inline type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": type === "article" ? "BlogPosting" : "WebSite",
+      "headline": title,
+      "description": description,
+      "url": canonicalURL,
+      "image": socialImage,
+      ...(type === "article" && publishDate && {
+        "datePublished": publishDate.toISOString()
+      }),
+      ...(type === "article" && author && {
+        "author": {
+          "@type": "Person",
+          "name": author
+        }
+      }),
+      ...(type === "article" && tags && tags.length > 0 && {
+        "keywords": tags.join(", ")
+      })
+    })} />
+
+    <!-- 额外的 head 内容（由子页面提供） -->
+    <slot name="head" />
+    {enableClientRouter && <ClientRouter />}
+  </head>
+  <body
+    class={bodyClass}
+    data-page-kind={pageKind}
+    data-umami-script-src={umamiScriptSrc}
+    data-umami-website-id={umamiWebsiteId}
+    data-umami-hosts={umamiHosts.join(",")}
+    data-clarity-project-id={clarityProjectId}
+    data-clarity-hosts={clarityHosts.join(",")}
+  >
+    <!-- Skip to main content link for accessibility -->
+    <a href="#main-content" class="skip-link">
+      {lang === "en" ? "Skip to main content" : "跳到主要内容"}
+    </a>
+    <slot />
+
+    <!-- 播客播放器容器 (使用 transition:persist 保持跨页面) -->
+    <PodcastPlayerContainer />
+
+    <!-- 交互脚本（ES Module，按需动态加载子运行时） -->
+    <script>
+      import "../client/main.js";
+    </script>
+  </body>
+</html>

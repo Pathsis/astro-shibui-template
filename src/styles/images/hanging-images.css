@@ -1,0 +1,291 @@
+/**
+ * WordPress Gutenberg 式图片悬挂效果
+ *
+ * 核心原理：使用负边距 calc(50% - 50vw) 让图片突破内容区边界，
+ * 悬挂到视口边缘。
+ *
+ * 三阶段响应式：
+ * - 大屏幕（>1400px）：完全悬挂，不与文字在同一列
+ * - 中等屏幕（768px-1400px）：部分包裹，文字开始包裹图片
+ * - 小屏幕（<768px）：全宽，文字在图片上下
+ */
+
+/* ===== CSS 变量定义 ===== */
+:root {
+  --content-size: 56ch;      /* 内容区最大宽度，与全局设计保持一致 */
+  --content-gap: 2rem;       /* 图片与文字的间距 */
+  --hanging-image-edge-gap: 2rem;
+  --hanging-image-text-gap: 2rem;
+  --hanging-image-max-medium: 20rem;
+  --hanging-image-max-large: 28rem;
+}
+
+/* ===== 图片悬挂核心样式 ===== */
+figure.align-left {
+  float: left !important;
+  display: block !important;  /* 覆盖全局 figure 样式 */
+  /* 负边距让图片悬挂，但保留 2rem 距离屏幕边缘 */
+  margin-left: calc(50% - 50vw + var(--hanging-image-edge-gap)) !important;
+  margin-right: var(--hanging-image-text-gap) !important;
+  margin-top: .5rem;
+  margin-bottom: .5rem;
+  max-width: min(100%, var(--hanging-image-max-large)) !important;
+  clear: left;
+}
+
+figure.align-right {
+  float: right !important;
+  display: block !important;  /* 覆盖全局 figure 样式 */
+  /* 负边距让图片悬挂，但保留 2rem 距离屏幕边缘 */
+  margin-right: calc(50% - 50vw + var(--hanging-image-edge-gap)) !important;
+  margin-left: var(--hanging-image-text-gap) !important;
+  margin-top: .5rem;
+  margin-bottom: .5rem;
+  max-width: min(100%, var(--hanging-image-max-large)) !important;
+  clear: right;
+}
+
+figure.align-center {
+  float: none !important;
+  display: block !important;
+  margin: 2rem auto !important;
+  max-width: 100% !important;
+  clear: both;
+}
+
+figure.full-bleed,
+figure.mermaid-figure.full-bleed {
+  float: none !important;
+  display: block !important;
+  clear: both;
+  --full-bleed-edge-gap: clamp(1rem, 2.5vw, 2rem);
+  margin-top: 2rem !important;
+  margin-bottom: 2rem !important;
+  margin-left: calc(50% - 50vw + var(--full-bleed-edge-gap)) !important;
+  margin-right: calc(50% - 50vw + var(--full-bleed-edge-gap)) !important;
+  width: calc(100vw - (var(--full-bleed-edge-gap) * 2)) !important;
+  max-width: calc(100vw - (var(--full-bleed-edge-gap) * 2)) !important;
+}
+
+figure.mermaid-figure.align-center {
+  float: none !important;
+  display: block !important;
+  margin: 2rem auto !important;
+  max-width: min(100%, 42rem) !important;
+  clear: both;
+}
+
+/* ===== 确保 figure 内的图片正确显示 ===== */
+figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--border-radius);
+}
+
+figure.mermaid-figure .mermaid {
+  display: block;
+  width: 100%;
+}
+
+figure.mermaid-figure .mermaid svg {
+  display: block;
+  width: 100% !important;
+  height: auto !important;
+}
+
+/* ===== 图片说明文字样式 ===== */
+figure figcaption {
+  margin-top: calc(var(--spacing-base) / 2);
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  text-align: left;
+}
+
+/* ===== 清除浮动（关键！）===== */
+/* 确保每个对齐的 figure 清除自身浮动，不影响后续内容 */
+.gh-content::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* ===== 响应式三阶段 ===== */
+
+/* 阶段 1：超大屏幕（>=1600px）- 恢复完全悬挂 */
+@media (min-width: 1600px) {
+  figure.align-left,
+  figure.align-right {
+    max-width: 100% !important;  /* 图片 100% 宽度 */
+  }
+}
+
+/* 阶段 2：普通桌面（1401px-1599px）- 保持悬挂，但限制最大尺寸 */
+@media (min-width: 1401px) and (max-width: 1599px) {
+  figure.align-left,
+  figure.align-right {
+    max-width: min(100%, 32rem) !important;
+  }
+}
+
+/* 阶段 3：中等屏幕（769px-1400px）- 部分包裹并等比例缩小 */
+@media (min-width: 769px) and (max-width: 1400px) {
+  figure.align-left {
+    margin-left: calc(50% - 50vw + 3rem) !important;  /* 中屏保留安全边距，但避免过度内缩 */
+    max-width: min(100%, var(--hanging-image-max-medium)) !important;
+  }
+
+  figure.align-right {
+    margin-right: calc(50% - 50vw + 3rem) !important;  /* 中屏保留安全边距，但避免过度内缩 */
+    max-width: min(100%, var(--hanging-image-max-medium)) !important;
+  }
+}
+
+/* 阶段 4：小屏幕（<768px）- 全宽 */
+@media (max-width: 768px) {
+  figure.align-left,
+  figure.align-right,
+  figure.align-center,
+  figure.mermaid-figure {
+    float: none !important;
+    display: block !important;
+    margin: 1rem auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    clear: both;
+  }
+
+  figure figcaption {
+    font-size: 0.9em;  /* 稍微减小字体 */
+  }
+
+  figure.full-bleed,
+  figure.mermaid-figure.full-bleed {
+    margin-top: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+}
+
+body[data-page-kind="article"] .mobile-article-section-title {
+  font-size: var(--font-size-base);
+}
+
+body[data-page-kind="article"] .hanging-figure-ref {
+  color: var(--color-text-primary);
+  font-size: var(--inline-footnote-ref-size, 0.84em);
+  font-weight: 700;
+  line-height: 1;
+  position: relative;
+  top: -0.45em;
+  margin-left: 0.25em;
+}
+
+body[data-page-kind="article"] .hanging-figure-ref a {
+  border-bottom: none;
+  color: inherit;
+  font-weight: inherit;
+  text-decoration: none;
+}
+
+body[data-page-kind="article"] .mobile-hanging-figures {
+  display: none;
+}
+
+body[data-page-kind="article"] .hanging-figure-label {
+  margin-right: 0.5em;
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+body[data-page-kind="article"] .hanging-figure-label a {
+  border-bottom: none;
+  color: inherit;
+  font-weight: inherit;
+  text-decoration: none;
+}
+
+@media (max-width: 768px) {
+  body[data-page-kind="article"] .footnotes:has(> .mobile-article-section-title) {
+    margin-top: 0;
+    padding-top: 0;
+  }
+
+  body[data-page-kind="article"] .mobile-hanging-figures {
+    display: block;
+    margin-top: 0;
+    padding-top: 0;
+  }
+
+  body[data-page-kind="article"] .mobile-hanging-figures figure {
+    margin: var(--spacing-md) auto !important;
+  }
+
+  body[data-page-kind="article"] .hanging-figure-ref a,
+  body[data-page-kind="article"] .mobile-hanging-figures .hanging-figure-label a {
+    border-bottom: 1px dotted currentColor;
+  }
+}
+
+/* ===== 附加优化 ===== */
+
+/* 防止图片溢出视口 */
+figure {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 确保长标题换行 */
+figure figcaption {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* ===== 默认图片样式（未指定对齐）===== */
+figure:not(.align-left):not(.align-right):not(.align-center):not(.full-bleed) {
+  margin: var(--spacing-base) auto;
+  text-align: center;
+  display: block;
+  float: none;
+}
+
+@media print {
+  body[data-page-kind="article"] .gh-content figure,
+  body[data-page-kind="article"] .gh-content figure.align-left,
+  body[data-page-kind="article"] .gh-content figure.align-right,
+  body[data-page-kind="article"] .gh-content figure.align-center,
+  body[data-page-kind="article"] .gh-content figure.full-bleed,
+  body[data-page-kind="article"] .gh-content figure.mermaid-figure,
+  body[data-page-kind="article"] .gh-content figure.mermaid-figure.full-bleed {
+    display: block !important;
+    float: none !important;
+    clear: both !important;
+    width: 50% !important;
+    max-width: 50% !important;
+    margin: 1.1rem auto 1.35rem !important;
+  }
+
+  body[data-page-kind="article"] .gh-content > img,
+  body[data-page-kind="article"] .gh-content p > img:only-child {
+    display: block !important;
+    width: 50% !important;
+    max-width: 50% !important;
+    height: auto !important;
+    margin: 1.1rem auto 1.35rem !important;
+  }
+
+  body[data-page-kind="article"] .gh-content figure img {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 0 auto !important;
+  }
+
+  body[data-page-kind="article"] .gh-content figcaption {
+    display: block !important;
+    margin-top: 0.45rem;
+    font-size: 0.9em;
+    line-height: 1.55;
+    color: #000 !important;
+  }
+}

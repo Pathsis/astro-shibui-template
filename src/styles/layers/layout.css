@@ -1,0 +1,188 @@
+/* Layout Layer */
+/* Layout containers */
+.site-container {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+  max-width: calc(var(--container-width) + 2 * var(--sidebar-width) + 4 * var(--spacing-lg));
+  margin: 0 auto;
+  padding: var(--spacing-lg) 0;
+  gap: var(--spacing-lg);
+}
+
+.content-wrapper {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) var(--container-width) var(--sidebar-width);
+  gap: var(--spacing-lg);
+  align-items: start;
+  justify-content: center;
+}
+
+/* 旧的 Grid 布局代码已被 SingleColumnLayout 替代，注释掉避免冲突 */
+/*
+.main-content {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.sidebar-right {
+  grid-column: 3;
+}
+*/
+
+.sidebar-right {
+  position: sticky;
+  top: var(--spacing-lg);
+  height: fit-content;
+}
+
+/* Ensure the primary header is centered */
+.gh-head {
+  justify-self: center;
+  width: 100%;
+  max-width: var(--container-width);
+}
+
+/* Tablet and small desktop */
+@media screen and (max-width: 1366px) {
+  .content-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100% ;
+    max-width: var(--container-width);
+    gap: 0;
+    margin: 0 auto;
+  }
+
+  .main-content,
+  .sidebar-left,
+  .sidebar-right {
+    display: block;
+    position: static;
+    width: 100% ;
+    margin-bottom: 0;
+  }
+
+  .main-content {
+    order: 1;
+  }
+  .sidebar-right {
+    order: 2;
+  }
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+  /* 仅在 iOS 设备上使用网络字体（解决 iOS Safari 强制使用苹方的问题） */
+  @supports (-webkit-touch-callout: default) {
+    :root {
+      --font-family-primary: var(--font-noto-serif-sc);
+    }
+  }
+
+  /* Android 和其他移动设备使用系统衬线字体 */
+  @supports not (-webkit-touch-callout: default) {
+    :root {
+      --font-family-primary: Georgia, serif;
+    }
+  }
+
+  html, body {
+    overflow-x: hidden;
+  }
+
+  /* 菜单打开时隐藏主内容区域（Ghost Journal 风格） */
+  body.menu-open .main-layout {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .site-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  .main-content {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .content-wrapper {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* 移动端代码块优化 */
+  pre {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    font-size: var(--code-font-size-mobile);
+    line-height: 1.4;
+    white-space: pre;
+    word-wrap: break-word;
+    contain: layout;
+    box-sizing: border-box;
+    margin: var(--spacing-base) 0;
+  }
+
+  p > code {
+    font-size: var(--code-font-size-mobile);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .sidebar-right {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .gh-head,
+  .gh-foot,
+  .terminal-nav,
+  nav {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  p, h1, h2, h3, h4, h5, h6 {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+}
+
+/* TOC visibility defaults */
+.toc-inline {
+  display: none;
+}
+
+.toc-desktop {
+  display: block;
+}
+
+@media (max-width: 1500px) {
+  .toc-desktop {
+    display: none;
+  }
+
+  .toc-inline {
+    display: block;
+  }
+
+}
+
+@media (max-width: 768px) {
+  .toc-desktop {
+    display: none;
+  }
+}

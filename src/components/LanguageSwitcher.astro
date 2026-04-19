@@ -1,0 +1,53 @@
+---
+/**
+ * LanguageSwitcher 组件 - 多语言切换按钮
+ * 
+ * 逻辑：
+ * 1. 首页、Section页面、Taxonomy页面（标签列表）：始终显示
+ * 2. 文章页：仅在存在翻译版本时显示
+ * 3. Term页面（单个标签页）：不显示
+ * 
+ * 使用 Astro 原生 i18n API
+ */
+import { getLanguageSwitchHref } from "../lib/language-switch";
+
+interface Props {
+  // 当前页面类型
+  pageKind: "home" | "section" | "taxonomy" | "term" | "article";
+  // 当前语言
+  lang: "zh-cn" | "en";
+  // 文章翻译信息（仅在 article 类型时需要）
+  hasTranslation?: boolean;
+  targetSlug?: string; // 目标语言版本的 slug
+}
+
+const { pageKind, lang, hasTranslation = false, targetSlug } = Astro.props;
+
+// 生成切换链接
+const switchLink = getLanguageSwitchHref({
+  pageKind,
+  lang,
+  pathname: Astro.url.pathname,
+  hasTranslation,
+  targetSlug,
+});
+const showSwitcher = !!switchLink;
+let switchText = "";
+let switchTitle = "";
+
+if (lang === "zh-cn") {
+  switchText = "English";
+  switchTitle = "Switch to English";
+} else {
+  switchText = "中文";
+  switchTitle = "切换到中文";
+}
+---
+
+{showSwitcher && (
+  <div class="language-switcher">
+    <a href={switchLink} class="lang-link" title={switchTitle} aria-label={switchTitle}>
+      {switchText}
+    </a>
+  </div>
+)}

@@ -1,0 +1,63 @@
+/* About Page Local Styles */
+.about-page-content {
+  counter-reset: h2;
+}
+
+.about-page-content h2 {
+  counter-increment: h2;
+  counter-reset: h3;
+}
+
+.about-page-content h3 {
+  counter-increment: h3;
+  counter-reset: h4;
+}
+
+.about-page-content h4 {
+  counter-increment: h4;
+  counter-reset: h5;
+}
+
+.about-page-content h5 {
+  counter-increment: h5;
+}
+
+.about-page-content h2::before {
+  content: counter(h2) ". ";
+}
+
+.about-page-content h3::before {
+  content: counter(h2) "." counter(h3) ". ";
+}
+
+.about-page-content h4::before {
+  content: counter(h2) "." counter(h3) "." counter(h4) ". ";
+}
+
+.about-page-content h5::before {
+  content: counter(h2) "." counter(h3) "." counter(h4) "." counter(h5) ". ";
+}
+
+/* Markdown 标题文本会包在 .heading-anchor 中，必须可见 */
+.about-page-content .heading-anchor {
+  opacity: 1;
+  margin-left: 0;
+  text-decoration: none;
+}
+
+.about-page-content strong {
+  font-weight: 600;
+}
+
+.about-page-content ol {
+  padding-left: var(--spacing-md);
+}
+
+.about-page-content ol li {
+  margin-bottom: var(--spacing-xs);
+}
+
+.about-page-content ol ul {
+  margin-top: var(--spacing-xs);
+  margin-bottom: var(--spacing-xs);
+}

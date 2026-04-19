@@ -1,0 +1,34 @@
+---
+import { getCollection, render } from "astro:content";
+import ArticlePage from "../../../components/ArticlePage.astro";
+import { getPairedTranslationIdByConvention } from "../../../lib/post-url";
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const posts = await getCollection("blog-en");
+  return posts.map((post) => ({
+    params: { id: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content, headings } = await render(post);
+
+const zhPosts = await getCollection("blog-zh");
+const expectedZhId = getPairedTranslationIdByConvention(post.id, "en");
+const originalPost = expectedZhId
+  ? zhPosts.find((zhPost) => zhPost.id === expectedZhId)
+  : undefined;
+---
+
+<ArticlePage
+  post={post}
+  Content={Content}
+  headings={headings}
+  currentLang="en"
+  hasTranslation={!!originalPost}
+  translationSlug={originalPost?.id}
+  podcastLang="en"
+/>

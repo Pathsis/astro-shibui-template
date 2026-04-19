@@ -1,0 +1,19 @@
+{
+  "name": "Astro Hang",
+  "short_name": "AHang",
+  "icons": [
+    {
+      "src": "/images/icons/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/icons/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#faf9f5",
+  "background_color": "#faf9f5",
+  "display": "standalone"
+}

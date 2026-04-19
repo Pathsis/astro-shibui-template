@@ -1,0 +1,311 @@
+/* TOC Module (Content Layer) */
+
+.toc {
+  background: var(--color-bg-tertiary);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.toc-title {
+  font-weight: bold;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-small);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: toc-h2;
+}
+
+.toc-list li {
+  margin: 0;
+  padding: 0;
+  line-height: 1.4;
+}
+
+.toc-list a {
+  display: block;
+  padding: 0.25em 0;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  border-bottom: none;
+  font-size: var(--font-size-small);
+  transition: color 0.2s ease;
+}
+
+.toc-list a:hover,
+.toc-list a.active {
+  color: var(--color-text-primary);
+}
+
+.toc-list .toc-h2 {
+  padding-left: 0;
+  counter-increment: toc-h2;
+  counter-reset: toc-h3;
+}
+
+.toc-list .toc-h3 {
+  padding-left: 1em;
+  counter-increment: toc-h3;
+  counter-reset: toc-h4;
+}
+
+.toc-list .toc-h4 {
+  padding-left: 2em;
+  counter-increment: toc-h4;
+  counter-reset: toc-h5;
+}
+
+.toc-list .toc-h5 {
+  padding-left: 3em;
+  counter-increment: toc-h5;
+}
+
+.toc-list .toc-h6 {
+  padding-left: 4em;
+}
+
+.toc-list .toc-h2 a::before {
+  content: counter(toc-h2) ". ";
+  color: var(--color-text-muted);
+}
+
+.toc-list .toc-h3 a::before {
+  content: counter(toc-h2) "." counter(toc-h3) " ";
+  color: var(--color-text-muted);
+}
+
+.toc-list .toc-h4 a::before {
+  content: counter(toc-h2) "." counter(toc-h3) "." counter(toc-h4) " ";
+  color: var(--color-text-muted);
+}
+
+.toc-list .toc-h5 a::before {
+  content: counter(toc-h2) "." counter(toc-h3) "." counter(toc-h4) "." counter(toc-h5) " ";
+  color: var(--color-text-muted);
+}
+
+.toc-list li.toc-item-unnumbered {
+  counter-increment: none;
+}
+
+.toc-list li.toc-item-unnumbered > a::before {
+  content: none !important;
+}
+
+body[data-page-kind="article"] .gh-content h2.mobile-heading-unnumbered::before {
+  content: none !important;
+}
+
+body[data-page-kind="article"] .toc-inline {
+  display: block;
+}
+
+body[data-page-kind="article"] .toc-desktop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  body[data-page-kind="article"] .toc-inline {
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    padding: 0.75rem var(--spacing-md) 0.9rem;
+    border-radius: 0;
+  }
+}
+
+@media (min-width: 769px) {
+  body[data-page-kind="article"] .toc-inline {
+    --toc-rail-height: clamp(11rem, 40vh, 24rem);
+    --toc-hit-width: min(16rem, calc(100vw - 3rem));
+    position: fixed;
+    top: 50%;
+    left: max(0.85rem, env(safe-area-inset-left));
+    z-index: 35;
+    box-sizing: border-box;
+    width: var(--toc-hit-width);
+    height: var(--toc-rail-height);
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    transform: translateY(-50%);
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    pointer-events: auto;
+    user-select: none;
+    transition: transform 180ms ease;
+  }
+
+  body[data-page-kind="article"] .toc-inline::before,
+  body[data-page-kind="article"] .toc-inline::after {
+    content: none;
+  }
+
+  body[data-page-kind="article"] .toc-inline:hover,
+  body[data-page-kind="article"] .toc-inline:focus-within {
+    transform: translateY(-50%);
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-title {
+    display: none;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.85rem;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list li {
+    width: 100%;
+    min-height: 1rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list a {
+    position: relative;
+    display: block;
+    min-height: 1rem;
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    border-bottom: none;
+    color: transparent;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-indent: 0;
+    transform: translateX(0.16rem);
+    letter-spacing: 0.01em;
+    pointer-events: auto;
+    transition:
+      color 220ms ease,
+      transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+      letter-spacing 220ms ease;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list a::before {
+    content: attr(data-toc-number) " ";
+    color: transparent;
+    transition:
+      color 220ms ease,
+      opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list li.toc-item-unnumbered > a::before {
+    content: none !important;
+    margin-right: 0 !important;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: var(--toc-line-width, 1rem);
+    height: 1.5px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-text-muted) 66%, transparent);
+    transform: translateY(-50%) scaleX(1);
+    transform-origin: left center;
+    transition:
+      width 200ms ease,
+      height 200ms ease,
+      background-color 180ms ease,
+      opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list a.active::before {
+    color: transparent;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list a.active::after {
+    width: calc(var(--toc-line-width, 1rem) + 0.3rem);
+    height: 2px;
+    background: var(--color-text-primary);
+  }
+
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a {
+    color: color-mix(in srgb, var(--color-text-muted) 84%, var(--color-text-primary) 16%);
+    transform: translateX(0);
+    letter-spacing: 0;
+  }
+
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a::before,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a::before,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a::before {
+    color: color-mix(in srgb, var(--color-text-muted) 84%, var(--color-text-primary) 16%);
+  }
+
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a.active,
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a:hover,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a.active,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a:hover,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a.active,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a:hover {
+    color: var(--color-text-primary);
+  }
+
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a.active::before,
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a:hover::before,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a.active::before,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a:hover::before,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a.active::before,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a:hover::before {
+    color: var(--color-text-primary);
+  }
+
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a::before,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a::before,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a::before {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a::after,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a::after,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a::after {
+    opacity: 0;
+    transform: translateY(-50%) scaleX(0.72);
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list .toc-h3 {
+    margin-left: 0.9rem;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list .toc-h4,
+  body[data-page-kind="article"] .toc-inline .toc-list .toc-h5,
+  body[data-page-kind="article"] .toc-inline .toc-list .toc-h6 {
+    margin-left: 0.6rem;
+  }
+}

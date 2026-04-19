@@ -1,0 +1,30 @@
+---
+import SingleColumnLayout from "../../layouts/SingleColumnLayout.astro";
+import Stats from "../../components/Stats.astro";
+import WritingChart from "../../components/WritingChart.astro";
+import AboutContent from "@content-pages/about-en.md";
+import aboutPageCssUrl from "../../styles/pages/about-page.css?url";
+import { siteConfig } from "@site-config";
+
+const pageTitle = "About";
+const pageDesc = siteConfig.descriptions.aboutEn;
+---
+
+<SingleColumnLayout
+  title={pageTitle}
+  description={pageDesc}
+  pageKind="section"
+>
+  <Fragment slot="head">
+    <link rel="stylesheet" href={aboutPageCssUrl} />
+  </Fragment>
+
+  <h1>{pageTitle}</h1>
+
+  <Stats lang="en" />
+  <WritingChart lang="en" />
+  <article class="gh-content about-page-content">
+    <AboutContent />
+  </article>
+
+</SingleColumnLayout>

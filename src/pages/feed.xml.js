@@ -1,0 +1,91 @@
+import rss from '@astrojs/rss';
+import { getCollection } from 'astro:content';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+import sanitizeHtml from 'sanitize-html';
+import MarkdownIt from 'markdown-it';
+import { getLocalizedBlogPathById } from '../lib/post-url';
+import { extractFirstImageFromMarkdown, normalizeImagePath } from '../lib/image-path';
+import {
+  createSocialImageVersionToken,
+  getDefaultSocialImageVersionSeed,
+  resolveSocialImage,
+} from '../lib/social-image';
+import { siteConfig } from '@site-config';
+
+const parser = new MarkdownIt();
+const socialImageVersionToken = createSocialImageVersionToken(getDefaultSocialImageVersionSeed());
+
+export async function GET(context) {
+  const currentLang = 'zh-cn';
+  const posts = await getCollection('blog-zh');
+  
+  // 按日期排序，最新的在前
+  const sortedPosts = posts.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+  
+  // 限制为 10 篇
+  const recentPosts = sortedPosts.slice(0, 10);
+
+  return rss({
+    title: siteConfig.title,
+    description: siteConfig.descriptions.zh,
+    site: context.site,
+    xmlns: {
+      atom: 'http://www.w3.org/2005/Atom',
+    },
+    items: recentPosts.map((post) => {
+      const link = getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(post.id, currentLang));
+      const pageUrl = new URL(link, context.site);
+
+      // 获取封面图片 URL（与页面 OG/Twitter 使用同一套裁切逻辑）
+      let coverUrl = '';
+      let coverSource = 'other';
+      if (post.data.images && post.data.images.length > 0) {
+        coverUrl = normalizeImagePath(post.data.images[0]) || '';
+        coverSource = 'images';
+      } else {
+        coverUrl = extractFirstImageFromMarkdown(post.body) || '';
+      }
+      if (coverUrl) {
+        coverUrl = resolveSocialImage(coverUrl, {
+          pageUrl,
+          versionToken: socialImageVersionToken,
+          source: coverSource,
+        });
+      }
+
+      // 渲染 Markdown 为 HTML
+      const htmlContent = parser.render(post.body || '');
+      
+      // 清洗 HTML
+      const sanitizedContent = sanitizeHtml(htmlContent, {
+        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img']),
+        allowedAttributes: {
+          ...sanitizeHtml.defaults.allowedAttributes,
+          img: ['src', 'alt', 'title']
+        }
+      });
+
+      // 如果有封面图，将其添加到内容最前面
+      const finalContent = coverUrl 
+        ? `<img src="${coverUrl}" alt="${post.data.title}" /><br/>${sanitizedContent}`
+        : sanitizedContent;
+
+      return {
+        title: post.data.title,
+        pubDate: post.data.date,
+        description: post.data.description,
+        link,
+        content: finalContent,
+        customData: coverUrl ? `<enclosure url="${coverUrl}" type="image/jpeg" length="0" />` : '',
+      };
+    }),
+    customData: `<language>zh-CN</language>
+<atom:link href="${new URL('/feed.xml', context.site)}" rel="self" type="application/rss+xml" />
+<lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+<managingEditor>${siteConfig.rss.managingEditor}</managingEditor>
+<webMaster>${siteConfig.rss.webMaster}</webMaster>
+<ttl>60</ttl>
+<generator>Astro</generator>
+<copyright>Copyright ${new Date().getFullYear()} ${siteConfig.title}</copyright>`,
+  });
+}

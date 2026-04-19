@@ -1,0 +1,220 @@
+---
+import { getRelativeLocaleUrl } from "astro:i18n";
+import { getLanguageSwitchHref } from "../lib/language-switch";
+
+interface Props {
+  currentLang: "zh-cn" | "en";
+  pageKind: "home" | "section" | "taxonomy" | "term" | "article";
+  hasTranslation?: boolean;
+  targetSlug?: string;
+}
+
+const { currentLang, pageKind, hasTranslation = false, targetSlug } = Astro.props;
+
+const navLinks = {
+  home: getRelativeLocaleUrl(currentLang, "/"),
+  archive: getRelativeLocaleUrl(currentLang, "/blog/"),
+  about: getRelativeLocaleUrl(currentLang, "/about/"),
+  tags: getRelativeLocaleUrl(currentLang, "/tags/"),
+  feed: getRelativeLocaleUrl(currentLang, "/about/") + "#subscribe",
+};
+
+const navText = currentLang === "en"
+  ? { home: "Home", archive: "Archive", about: "About", tags: "Tags", feed: "Feed" }
+  : { home: "首页", archive: "归档", about: "关于", tags: "标签", feed: "订阅" };
+
+const switchLink = getLanguageSwitchHref({
+  pageKind,
+  lang: currentLang,
+  pathname: Astro.url.pathname,
+  hasTranslation,
+  targetSlug,
+});
+const switchText = currentLang === "en" ? "中文" : "En";
+const switchTitle = currentLang === "en" ? "切换到中文" : "Switch to English";
+
+const navigationLabel = currentLang === "en" ? "Mobile navigation" : "移动端导航";
+---
+
+<div id="site-mobile-menu" class="site-mobile-menu" aria-hidden="true" inert>
+  <nav class="site-mobile-menu-nav" aria-label={navigationLabel}>
+    <ul class="site-mobile-menu-list">
+      <li class="site-mobile-menu-item">
+        <a href={navLinks.home} class="site-mobile-menu-link js-home-link">
+          {navText.home}
+        </a>
+      </li>
+      <li class="site-mobile-menu-item">
+        <a href={navLinks.archive} class="site-mobile-menu-link">
+          {navText.archive}
+        </a>
+      </li>
+      <li class="site-mobile-menu-item">
+        <a href={navLinks.about} class="site-mobile-menu-link">
+          {navText.about}
+        </a>
+      </li>
+      <li class="site-mobile-menu-item">
+        <a href={navLinks.tags} class="site-mobile-menu-link">
+          {navText.tags}
+        </a>
+      </li>
+      <li class="site-mobile-menu-item">
+        <a href={navLinks.feed} class="site-mobile-menu-link">
+          {navText.feed}
+        </a>
+      </li>
+      {switchLink && (
+        <li class="site-mobile-menu-item">
+          <div class="site-mobile-menu-link site-mobile-menu-language">
+            <a href={switchLink} class="site-mobile-menu-language-link" title={switchTitle} aria-label={switchTitle}>
+              {switchText}
+            </a>
+          </div>
+        </li>
+      )}
+    </ul>
+  </nav>
+</div>
+
+<style>
+  .site-mobile-menu {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .site-mobile-menu {
+      --mobile-menu-safe-top: max(calc(env(safe-area-inset-top) + 1.75rem), 1.75rem);
+      --mobile-menu-safe-bottom: max(calc(env(safe-area-inset-bottom) + 1.75rem), 1.75rem);
+      position: fixed;
+      inset: 0;
+      z-index: 450;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding:
+        var(--mobile-menu-safe-top)
+        var(--spacing-md)
+        var(--mobile-menu-safe-bottom);
+      background: var(--color-bg-primary);
+      box-sizing: border-box;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition:
+        opacity 0.22s ease,
+        visibility 0.22s ease;
+      overscroll-behavior: none;
+      touch-action: none;
+    }
+
+    body.menu-open .site-mobile-menu,
+    body[data-header-menu-navigating="1"] .site-mobile-menu {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .site-mobile-menu-nav {
+      width: min(100%, 34rem);
+      height: min(28rem, calc(100dvh - var(--mobile-menu-safe-top) - var(--mobile-menu-safe-bottom)));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .site-mobile-menu-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-evenly;
+      width: 100%;
+      height: 100%;
+    }
+
+    .site-mobile-menu-item {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .site-mobile-menu-link {
+      display: block;
+      width: fit-content;
+      max-width: 100%;
+      padding: 0.5rem 0;
+      color: var(--color-text-primary);
+      text-decoration: none !important;
+      border: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      outline: none !important;
+      font-family: var(--font-family-sans);
+      font-size: clamp(1.15rem, 4.8vw, 1.55rem);
+      font-weight: 500;
+      line-height: 1.35;
+      letter-spacing: -0.02em;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+	    .site-mobile-menu-link:hover,
+	    .site-mobile-menu-link:focus,
+	    .site-mobile-menu-link:focus-visible,
+	    .site-mobile-menu-link:active {
+      color: var(--color-text-primary);
+      text-decoration: none !important;
+      border: 0 !important;
+      background: transparent !important;
+	      box-shadow: none !important;
+	      outline: none !important;
+	      opacity: 0.72;
+	      transform: translateX(0.28rem);
+	    }
+
+    .site-mobile-menu-language {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-right: 0;
+    }
+
+    .site-mobile-menu-language-link {
+      display: block;
+      width: fit-content;
+      max-width: 100%;
+      color: var(--color-text-primary);
+      text-decoration: none !important;
+      border: 0 !important;
+      font-family: var(--font-family-sans);
+      font-size: clamp(1.15rem, 4.8vw, 1.55rem);
+      font-weight: 500;
+      line-height: 1.35;
+      letter-spacing: -0.02em;
+      background: transparent !important;
+      box-shadow: none !important;
+      outline: none !important;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+	    .site-mobile-menu-language-link:hover,
+	    .site-mobile-menu-language-link:focus,
+	    .site-mobile-menu-language-link:focus-visible,
+	    .site-mobile-menu-language-link:active {
+      color: var(--color-text-primary);
+      text-decoration: none !important;
+      border: 0 !important;
+      background: transparent !important;
+	      box-shadow: none !important;
+	      outline: none !important;
+	      opacity: 0.72;
+	      transform: translateX(0.28rem);
+	    }
+  }
+</style>

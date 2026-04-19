@@ -1,0 +1,56 @@
+---
+interface RecommendedPostItem {
+  href: string;
+  title: string;
+  date: Date;
+  podcast?: boolean;
+}
+
+interface Props {
+  label: string;
+  posts: RecommendedPostItem[];
+  podcastHint?: string;
+  ariaLabel?: string;
+  labelHref?: string;
+  labelPrefix?: string;
+}
+
+const {
+  label,
+  posts,
+  podcastHint = "",
+  ariaLabel = label,
+  labelHref,
+  labelPrefix,
+} = Astro.props as Props;
+
+const formatDate = (date: Date) => date.toISOString().split("T")[0];
+---
+
+{posts.length > 0 && (
+  <aside class="article-suggest-side" aria-label={ariaLabel}>
+    <p class="article-suggest-label">
+      {labelHref ? (
+        <>
+          {labelPrefix && <span>{labelPrefix}</span>}
+          <a href={labelHref}>{label}</a>
+        </>
+      ) : label}
+    </p>
+    <div class="article-suggest-list">
+      {posts.map((post) => (
+        <article class="article-suggest-list-item">
+          <time class="article-suggest-time" datetime={post.date.toISOString()}>
+            {formatDate(post.date)}
+          </time>
+          <h3 class="article-suggest-list-title">
+            <a href={post.href}>
+              {post.title}
+              {post.podcast && <span class="sr-only">{podcastHint}</span>}
+            </a>
+          </h3>
+        </article>
+      ))}
+    </div>
+  </aside>
+)}

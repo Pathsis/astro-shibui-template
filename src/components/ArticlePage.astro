@@ -1,0 +1,214 @@
+---
+import SingleColumnLayout from "../layouts/SingleColumnLayout.astro";
+import Giscus from "./Giscus.astro";
+import RecommendedPosts from "./RecommendedPosts.astro";
+import { PodcastPlayButton } from "./PodcastPlayButton";
+import tocCssUrl from "../styles/content/toc.css?url";
+import articleSuggestCssUrl from "../styles/content/article-suggest.css?url";
+import articlePageCssUrl from "../styles/pages/article-page.css?url";
+import giscusCssUrl from "../styles/components/giscus.css?url";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import { getLocalizedBlogPathById } from "../lib/post-url";
+import { getPodcastEpisodeSlug, getPodcastUrl } from "../lib/podcast";
+import { hasFootnotesInMarkdown, hasHangingFiguresInMarkdown, hasMermaidInMarkdown } from "../lib/article-structure";
+import { buildArticleToc } from "../lib/toc";
+import {
+  formatDate,
+  getRecommendedLabelPrefix,
+  getRelatedAriaLabel,
+  buildRelatedPosts,
+  getPostCover,
+  resolveSocialImage,
+} from "../lib/article-page";
+import type { CollectionEntry } from "astro:content";
+import type { AstroComponentFactory } from "astro/runtime/server/index.js";
+import { siteConfig } from "@site-config";
+
+interface Props {
+  post: CollectionEntry<"blog-zh"> | CollectionEntry<"blog-en">;
+  Content: AstroComponentFactory;
+  headings: Array<{ depth: number; slug: string; text: string }>;
+  currentLang: "zh-cn" | "en";
+  hasTranslation: boolean;
+  translationSlug?: string;
+  podcastLang: "zh-cn" | "en";
+}
+
+const {
+  post,
+  Content,
+  headings,
+  currentLang,
+  hasTranslation,
+  translationSlug,
+  podcastLang,
+} = Astro.props;
+
+const toc = post.data.toc === true;
+const tocItems = buildArticleToc(headings);
+const tocH2Count = tocItems.filter((item) => item.level === "h2").length;
+const hasFootnotes = hasFootnotesInMarkdown(post.body ?? "");
+const hasHangingFigures = hasHangingFiguresInMarkdown(post.body ?? "");
+const hasMermaid = hasMermaidInMarkdown(post.body ?? "");
+const shouldNumberNotes = tocH2Count > 0 || hasHangingFigures;
+const tldr = post.data.tldr;
+
+const isEn = currentLang === "en";
+const podcastHint = isEn ? " (Podcast available)" : "（可收听播客）";
+const tocText = isEn ? "Table of Contents" : "目录";
+const moreFromText = isEn ? "More on" : "阅读更多";
+const nextReadText = isEn ? "Related" : "相关阅读";
+const relatedSectionText = isEn ? "Related reading" : "相关阅读";
+const recommendedText = isEn ? "Selected Articles" : "精选文章";
+const primaryTag = post.data.tags?.[0];
+const primaryTagHref = primaryTag
+  ? getRelativeLocaleUrl(currentLang, `/tags/${primaryTag}/`)
+  : undefined;
+const relatedAriaLabel = getRelatedAriaLabel(primaryTag, moreFromText, nextReadText, currentLang);
+const relatedSectionId = `related-reading-${post.id.replace(/[^a-z0-9_-]/gi, "-")}`;
+const recommendedHref = getRelativeLocaleUrl(currentLang, "/featured/");
+
+const { relatedPosts, recommendedPosts, recommendedItems } = await buildRelatedPosts(post, currentLang);
+
+const { socialImage, socialImageSource } = resolveSocialImage(post);
+---
+
+<SingleColumnLayout
+  title={post.data.title}
+  description={post.data.description}
+  image={socialImage}
+  socialImageSource={socialImageSource}
+  type="article"
+  pageKind="article"
+  hasTranslation={hasTranslation}
+  targetSlug={translationSlug}
+  publishDate={post.data.date}
+  author={siteConfig.authorName}
+  tags={post.data.tags}
+  categories={post.data.categories}
+>
+  <Fragment slot="head">
+    {toc && <link rel="stylesheet" href={tocCssUrl} />}
+    {relatedPosts.length > 0 && <link rel="stylesheet" href={articleSuggestCssUrl} />}
+    <link rel="stylesheet" href={articlePageCssUrl} />
+    <link rel="stylesheet" href={giscusCssUrl} />
+  </Fragment>
+
+  <article
+    class="gh-content"
+    data-has-footnotes={hasFootnotes ? "1" : "0"}
+    data-has-hanging-figures={hasHangingFigures ? "1" : "0"}
+    data-has-mermaid={hasMermaid ? "1" : "0"}
+    data-notes-numbered={shouldNumberNotes ? "1" : "0"}
+  >
+    <time datetime={post.data.date.toISOString()}>
+      {formatDate(post.data.date)}
+    </time>
+    <h1 class={`article-title-heading ${post.data.podcast ? "has-podcast" : ""}`}>
+      {post.data.title}
+      {post.data.podcast && <span class="sr-only">{podcastHint}</span>}
+      {post.data.podcast && (
+        <PodcastPlayButton
+          episode={{
+            slug: getPodcastEpisodeSlug(post.id, podcastLang),
+            title: post.data.title,
+            url: getPodcastUrl(post.id, podcastLang),
+            articleUrl: getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(post.id, currentLang)),
+            date: post.data.date,
+            lang: currentLang,
+            description: post.data.description,
+          }}
+          client:load
+        />
+      )}
+    </h1>
+
+    {toc && (
+      <div class="toc toc-inline" role="navigation" aria-label={tocText} tabindex="0">
+        <div class="toc-title">{tocText}</div>
+        <ul class="toc-list">
+          {tocItems.map((item) => (
+            <li class={`toc-${item.level}`} style={`--toc-line-width: ${item.lineWidth};`}>
+              <a href={`#${item.slug}`} class="toc-link" data-toc-number={item.tocNumber}>
+                {item.text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {tldr && tldr.length > 0 && (
+      <div class="tldr-box">
+        <div class="tldr-title">TL;DR</div>
+        <ul class="tldr-list">
+          {tldr.map((item: string) => <li>{item}</li>)}
+        </ul>
+      </div>
+    )}
+
+    <Content />
+
+  </article>
+
+  {relatedPosts.length > 0 && (
+    <section
+      class="related-read-section article-suggest"
+      aria-labelledby={relatedSectionId}
+      style={`--article-featured-count: ${recommendedPosts.length};`}
+    >
+      <h2 id={relatedSectionId} class="sr-only">{relatedSectionText}</h2>
+      <div class="article-suggest-grid">
+        <section class="article-suggest-main" aria-label={relatedAriaLabel}>
+          <p class="article-suggest-label">
+            {primaryTagHref ? (
+              <>
+                <span>{moreFromText}</span>
+                <a href={primaryTagHref}>{primaryTag}</a>
+              </>
+            ) : (
+              nextReadText
+            )}
+          </p>
+          <div class="article-suggest-cards">
+            {relatedPosts.slice(0, 6).map((entry) => (
+              <article class="article-suggest-card">
+                <a
+                  href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(entry.id, currentLang))}
+                  class="article-suggest-cover-link"
+                  aria-hidden="true"
+                  tabindex="-1"
+                >
+                  <img
+                    class="article-suggest-cover"
+                    src={getPostCover(entry)}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </a>
+                <h3 class="article-suggest-card-title">
+                  <a href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(entry.id, currentLang))}>
+                    {entry.data.title}
+                    {entry.data.podcast && <span class="sr-only">{podcastHint}</span>}
+                  </a>
+                </h3>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <RecommendedPosts
+          label={recommendedText}
+          labelPrefix={getRecommendedLabelPrefix(currentLang)}
+          ariaLabel={`${getRecommendedLabelPrefix(currentLang)}${recommendedText}`}
+          labelHref={recommendedHref}
+          posts={recommendedItems}
+          podcastHint={podcastHint}
+        />
+      </div>
+    </section>
+  )}
+
+  <Giscus lang={currentLang} />
+</SingleColumnLayout>

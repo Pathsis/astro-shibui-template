@@ -1,0 +1,91 @@
+---
+import { PodcastPlayButton } from "./PodcastPlayButton";
+import type { PodcastEpisode } from "../lib/podcast";
+
+interface FeaturedCardItem {
+  href: string;
+  title: string;
+  date: Date;
+  excerpt?: string;
+  coverImage?: string;
+  cardClass?: string;
+  episode?: PodcastEpisode;
+}
+
+interface Props {
+  items: FeaturedCardItem[];
+  sectionAriaLabel: string;
+  paginationSignature: string;
+  paginationVersion: string;
+  loadMoreText: string;
+  completeText?: string;
+  nextUrl?: string;
+  podcastHint?: string;
+  paginationKey: string;
+  resetOnReload?: boolean;
+}
+
+const {
+  items,
+  sectionAriaLabel,
+  paginationSignature,
+  paginationVersion,
+  loadMoreText,
+  completeText,
+  nextUrl,
+  podcastHint = "",
+  paginationKey,
+  resetOnReload = true,
+} = Astro.props as Props;
+
+---
+
+<section class="featured-card-section" aria-label={sectionAriaLabel}>
+  <div
+    class="featured-card-wall shibui-feed"
+    data-pagination-signature={paginationSignature}
+    data-pagination-version={paginationVersion}
+    data-pagination-key={paginationKey}
+    data-pagination-reset-on-reload={resetOnReload ? "true" : "false"}
+  >
+    {items.map((item) => (
+      <article class={`featured-card ${item.cardClass ?? "featured-card--square"}`}>
+        <a class="featured-card-link" href={item.href} aria-label={item.title}>
+          <span class="sr-only">{item.title}</span>
+        </a>
+        {item.coverImage ? (
+          <img class="featured-card-image" src={item.coverImage} alt="" loading="lazy" />
+        ) : (
+          <div class="featured-card-image featured-card-image--fallback" aria-hidden="true"></div>
+        )}
+        <div class="featured-card-scrim" aria-hidden="true"></div>
+        <div class="featured-card-body">
+          <time class="featured-card-date" datetime={item.date.toISOString()}>
+            {item.date.toISOString().split("T")[0]}
+          </time>
+          <h2 class="featured-card-title">
+            {item.title}
+            {item.episode && podcastHint && <span class="sr-only">{podcastHint}</span>}
+          </h2>
+          {item.excerpt && <p class="featured-card-excerpt">{item.excerpt}</p>}
+        </div>
+        {item.episode && (
+          <div class="featured-card-action">
+            <PodcastPlayButton episode={item.episode} client:load />
+          </div>
+        )}
+      </article>
+    ))}
+  </div>
+
+  {nextUrl && (
+    <button
+      class="shibui-loadmore home-loadmore featured-card-loadmore"
+      type="button"
+      data-next-url={nextUrl}
+      data-complete-text={completeText}
+    >
+      {loadMoreText}
+    </button>
+  )}
+</section>

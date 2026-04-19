@@ -1,0 +1,15 @@
+---
+import { getAllPodcastEpisodes } from "../lib/podcast";
+
+const episodes = await getAllPodcastEpisodes();
+---
+
+{episodes.length > 0 && (
+  <div 
+    id="podcast-player-container" 
+    data-episodes={JSON.stringify(episodes)}
+    transition:persist="podcast-player-container"
+    style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 900; pointer-events: none; display: none;"
+  >
+  </div>
+)}

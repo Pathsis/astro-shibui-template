@@ -1,0 +1,45 @@
+---
+import SearchWidget from "./SearchWidget";
+
+interface Props {
+  lang?: "zh-cn" | "en";
+}
+
+const { lang = "zh-cn" } = Astro.props;
+
+const ALGOLIA_APP_ID = (import.meta.env.PUBLIC_ALGOLIA_APP_ID || import.meta.env.ALGOLIA_APP_ID || "").trim();
+const ALGOLIA_SEARCH_KEY = (import.meta.env.PUBLIC_ALGOLIA_SEARCH_KEY || import.meta.env.ALGOLIA_SEARCH_KEY || "").trim();
+const ALGOLIA_INDEX_NAME = (import.meta.env.PUBLIC_ALGOLIA_INDEX_NAME || import.meta.env.ALGOLIA_INDEX_NAME || "").trim();
+const hasSearchConfig = Boolean(ALGOLIA_APP_ID && ALGOLIA_SEARCH_KEY && ALGOLIA_INDEX_NAME);
+const unavailablePlaceholder = lang === "en" ? "Search is not configured" : "搜索尚未配置";
+---
+
+{hasSearchConfig ? (
+  <SearchWidget
+    client:load
+    lang={lang}
+    appId={ALGOLIA_APP_ID}
+    searchKey={ALGOLIA_SEARCH_KEY}
+    indexName={ALGOLIA_INDEX_NAME}
+  />
+) : (
+  <div class="searchWidget">
+    <div class="searchBox">
+      <label for="search-disabled-input" class="sr-only">{unavailablePlaceholder}</label>
+      <input
+        id="search-disabled-input"
+        class="searchInput"
+        type="text"
+        value=""
+        placeholder={unavailablePlaceholder}
+        disabled
+      />
+      <span class="searchIcon" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </span>
+    </div>
+  </div>
+)}

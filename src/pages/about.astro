@@ -1,0 +1,50 @@
+---
+import SingleColumnLayout from "../layouts/SingleColumnLayout.astro";
+import Stats from "../components/Stats.astro";
+import WritingChart from "../components/WritingChart.astro";
+import AboutContent from "@content-pages/about-zh.md";
+import aboutPageCssUrl from "../styles/pages/about-page.css?url";
+import { siteConfig } from "@site-config";
+
+const pageTitle = "关于";
+const pageDesc = siteConfig.descriptions.aboutZh;
+/* const writingPlanMermaid = `%%{init: {
+    "themeVariables": {"quadrant1TextFill": "#008000","quadrant2TextFill": "#0066ffff","quadrant3TextFill": "#FF0000","quadrant4TextFill": "#FF8C00"}
+}}%%
+quadrantChart
+    x-axis "不重要" --> "重要"
+    y-axis "不成熟" --> "成熟"
+    quadrant-1 "即将着手"
+    quadrant-2 "有待思考"
+    quadrant-3 "可能废弃"
+    quadrant-4 "长期评估"
+    "德国教义学中的裁判规范概念": [0.3, 0.6]
+    "中国法律解释问题": [0.15, 0.88]
+    "修改法律的渊源的概念的问题": [0.65, 0.65]
+    "经典文献中有关法律实证主义的表述": [0.55, 0.25]
+    "从奥斯丁到哈特": [0.75, 0.35]
+    "给大学生的政治哲学导论": [0.15, 0.82]
+    "修改哈特对奥斯丁批评的文章": [0.75, 0.82]
+    "法律规范的逻辑、法律体系的逻辑": [0.65, 0.72]
+    "▶️对错误的礼赞": [0.55, 0.95]
+    "✅哲学家如何度过一生": [0.45, 0.85]`; */
+---
+
+<SingleColumnLayout
+  title={pageTitle}
+  description={pageDesc}
+  pageKind="section"
+>
+  <Fragment slot="head">
+    <link rel="stylesheet" href={aboutPageCssUrl} />
+  </Fragment>
+
+  <h1>{pageTitle}</h1>
+
+  <Stats lang="zh-cn" />
+  <WritingChart lang="zh-cn" />
+  <article class="gh-content about-page-content">
+    <AboutContent />
+  </article>
+
+</SingleColumnLayout>

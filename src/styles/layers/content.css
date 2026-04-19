@@ -1,0 +1,191 @@
+/* Content Layer */
+/* Footnotes */
+.footnotes {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-md);
+  font-size: var(--font-size-small);
+}
+
+.footnotes-title {
+  font-size: var(--font-size-base);
+  font-weight: bold;
+  margin-bottom: var(--spacing-md);
+}
+
+.footnotes ol {
+  padding-left: 1.5em;
+  list-style-type: decimal;
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.footnotes li {
+  margin-bottom: var(--spacing-sm);
+  line-height: var(--spacing-base);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.footnotes li p,
+.footnotes li a,
+.footnotes li code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.footnote-backref,
+a[data-footnote-backref] {
+  margin-left: var(--spacing-sm);
+  text-decoration: none;
+  color: var(--color-text-muted);
+  font-weight: bold;
+}
+
+.footnote-ref a,
+a[data-footnote-ref] {
+  display: inline;
+  text-decoration: none;
+  color: var(--color-text-primary);
+  font-weight: bold;
+  font-size: var(--inline-footnote-ref-size, 0.84em);
+  line-height: 0;
+  vertical-align: super;
+  margin: 0 0 0 0.08em;
+  white-space: nowrap;
+}
+
+.footnote-ref a:hover,
+a[data-footnote-ref]:hover {
+  text-decoration: underline;
+  color: var(--color-text-primary);
+}
+
+/* Inline footnote references */
+.footnote-ref,
+sup:has(> a[data-footnote-ref]),
+sup[id^="fnref:"],
+sup[id^="user-content-fnref-"] {
+  vertical-align: baseline;
+  line-height: 0;
+  white-space: nowrap;
+}
+
+sup[id^="fnref:"] {
+  vertical-align: baseline;
+}
+
+sup[id^="user-content-fnref-"] {
+  vertical-align: baseline;
+}
+
+body[data-page-kind="article"] .gh-content .article-tags {
+  clear: both;
+}
+
+@media (min-width: 769px) and (max-width: 1280px) {
+  body[data-page-kind="article"] {
+    --inline-footnote-ref-size: 0.82em;
+  }
+
+  body[data-page-kind="article"] .gh-content.has-inline-footnotes .footnotes {
+    display: none;
+  }
+
+  body[data-page-kind="article"] .gh-content .inline-footnote {
+    float: right;
+    clear: right;
+    display: block;
+    width: min(100%, var(--inline-footnote-width-medium));
+    margin-top: 0.5rem;
+    margin-right: calc(50% - 50vw + calc(var(--inline-footnote-edge-gap) * 1.5));
+    margin-left: var(--inline-footnote-text-gap);
+    margin-bottom: 0.5rem;
+    font-size: 0.82em;
+    line-height: 1.55;
+    color: var(--color-text-muted);
+    text-wrap: pretty;
+  }
+}
+
+@media (min-width: 1281px) {
+  body[data-page-kind="article"] {
+    --inline-footnote-ref-size: 0.84em;
+  }
+
+  body[data-page-kind="article"] .gh-content.has-inline-footnotes .footnotes {
+    display: none;
+  }
+
+  body[data-page-kind="article"] .gh-content .inline-footnote {
+    float: right;
+    clear: right;
+    display: block;
+    width: min(100%, var(--inline-footnote-width-large));
+    margin-top: 0.5rem;
+    margin-right: calc(50% - 50vw + var(--inline-footnote-edge-gap));
+    margin-left: var(--inline-footnote-text-gap);
+    margin-bottom: 0.5rem;
+    font-size: 0.84em;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    text-wrap: pretty;
+  }
+}
+
+@media (max-width: 768px) {
+  body[data-page-kind="article"] .gh-content .inline-footnote {
+    display: none;
+  }
+
+  body[data-page-kind="article"] .gh-content .footnotes {
+    font-size: var(--font-size-small);
+    color: var(--color-text-muted);
+  }
+
+  /* 注意：这里故意不包含 `.footnotes li a` / `li > p > a`，让注释里
+   * 的链接继续走全局 `a { color: var(--color-text-primary) }` 规则，
+   * 和桌面视图下 inline-footnote 的视觉保持一致：正文 muted、链接
+   * primary + 点状下划线，而不是整段全被压成 muted 一团。*/
+  body[data-page-kind="article"] .gh-content .footnotes li,
+  body[data-page-kind="article"] .gh-content .footnotes li > p,
+  body[data-page-kind="article"] .gh-content .footnotes li > p:first-child,
+  body[data-page-kind="article"] .gh-content .footnotes li code {
+    color: var(--color-text-muted);
+  }
+}
+
+body[data-page-kind="article"] .gh-content .inline-footnote-number {
+  display: inline;
+  margin-right: 0.35rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+body[data-page-kind="article"] .gh-content .inline-footnote-body {
+  display: inline;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+body[data-page-kind="article"] .gh-content .inline-footnote-body p,
+body[data-page-kind="article"] .gh-content .inline-footnote-body li {
+  margin: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+body[data-page-kind="article"] .gh-content .inline-footnote-body a,
+body[data-page-kind="article"] .gh-content .inline-footnote-body code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+body[data-page-kind="article"] .gh-content .inline-footnote-body ol,
+body[data-page-kind="article"] .gh-content .inline-footnote-body ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+body[data-page-kind="article"] .gh-content .inline-footnote-body .footnote-backref,
+body[data-page-kind="article"] .gh-content .inline-footnote-body [data-footnote-backref] {
+  display: none;
+}

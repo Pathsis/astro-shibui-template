@@ -1,0 +1,24 @@
+---
+import SingleColumnLayout from "../layouts/SingleColumnLayout.astro";
+import SearchComponent from "../components/Search.astro";
+import searchWidgetCssUrl from "../styles/components/search-widget.css?url";
+import { siteConfig } from "@site-config";
+
+const description = siteConfig.descriptions.searchZh;
+---
+
+<SingleColumnLayout
+  title="搜索"
+  description={description}
+  isHome={false}
+  pageKind="section"
+>
+  <Fragment slot="head">
+    <link rel="stylesheet" href={searchWidgetCssUrl} />
+  </Fragment>
+
+  <article class="gh-content">
+    <h1>搜索</h1>
+    <SearchComponent lang="zh-cn" />
+  </article>
+</SingleColumnLayout>

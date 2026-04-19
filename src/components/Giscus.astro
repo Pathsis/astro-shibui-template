@@ -1,0 +1,129 @@
+---
+/**
+ * Giscus 评论组件
+ * 基于 GitHub Discussions 的评论系统
+ * https://giscus.app
+ */
+interface Props {
+  lang?: "zh-cn" | "en";
+}
+
+const { lang = "zh-cn" } = Astro.props;
+
+// Giscus 语言映射
+const giscusLang = lang === "zh-cn" ? "zh-CN" : "en";
+const giscusRepo = (import.meta.env.PUBLIC_GISCUS_REPO || "").trim();
+const giscusRepoId = (import.meta.env.PUBLIC_GISCUS_REPO_ID || "").trim();
+const giscusCategory = (import.meta.env.PUBLIC_GISCUS_CATEGORY || "").trim();
+const giscusCategoryId = (import.meta.env.PUBLIC_GISCUS_CATEGORY_ID || "").trim();
+const giscusMapping = (import.meta.env.PUBLIC_GISCUS_MAPPING || "pathname").trim();
+const giscusStrict = (import.meta.env.PUBLIC_GISCUS_STRICT || "0").trim();
+const giscusReactionsEnabled = (import.meta.env.PUBLIC_GISCUS_REACTIONS_ENABLED || "1").trim();
+const giscusEmitMetadata = (import.meta.env.PUBLIC_GISCUS_EMIT_METADATA || "0").trim();
+const giscusInputPosition = (import.meta.env.PUBLIC_GISCUS_INPUT_POSITION || "top").trim();
+const giscusTheme = (import.meta.env.PUBLIC_GISCUS_THEME || "preferred_color_scheme").trim();
+const hasGiscusConfig = Boolean(
+  giscusRepo &&
+  giscusRepoId &&
+  giscusCategory &&
+  giscusCategoryId
+);
+---
+
+{hasGiscusConfig && (
+  <>
+    <!-- Giscus 评论容器 -->
+    <div
+      class="giscus-container"
+      data-repo={giscusRepo}
+      data-repo-id={giscusRepoId}
+      data-category={giscusCategory}
+      data-category-id={giscusCategoryId}
+      data-mapping={giscusMapping}
+      data-strict={giscusStrict}
+      data-reactions-enabled={giscusReactionsEnabled}
+      data-emit-metadata={giscusEmitMetadata}
+      data-input-position={giscusInputPosition}
+      data-theme={giscusTheme}
+      data-lang={giscusLang}
+    ></div>
+
+    <script is:inline>
+      (() => {
+        if (typeof window === "undefined") return;
+
+        const initGiscus = () => {
+          const container = document.querySelector(".giscus-container");
+          if (!(container instanceof HTMLElement)) return;
+
+          const currentPath = window.location.pathname;
+          const pageLang = (document.documentElement.lang || "").toLowerCase();
+          const resolvedLang = pageLang.startsWith("en") ? "en" : "zh-CN";
+          const currentKey = `${resolvedLang}:${currentPath}`;
+
+          if (container.dataset.giscusLoaded === currentKey && container.querySelector("iframe.giscus-frame")) {
+            return;
+          }
+
+          const getValue = (key, fallback) => container.dataset[key] || fallback;
+          const config = {
+            repo: getValue("repo", ""),
+            repoId: getValue("repoId", ""),
+            category: getValue("category", ""),
+            categoryId: getValue("categoryId", ""),
+            mapping: getValue("mapping", "pathname"),
+            term: currentPath,
+            strict: getValue("strict", "0"),
+            reactionsEnabled: getValue("reactionsEnabled", "1"),
+            emitMetadata: getValue("emitMetadata", "0"),
+            inputPosition: getValue("inputPosition", "top"),
+            theme: getValue("theme", "preferred_color_scheme"),
+            lang: resolvedLang,
+          };
+
+          const iframe = container.querySelector("iframe.giscus-frame");
+          const currentScript = container.querySelector('script[src*="giscus.app/client.js"]');
+          if (iframe || currentScript) {
+            container.innerHTML = "";
+          }
+
+          container.dataset.lang = resolvedLang;
+          container.dataset.giscusLoaded = currentKey;
+
+          const script = document.createElement("script");
+          script.src = "https://giscus.app/client.js";
+          script.async = true;
+          script.crossOrigin = "anonymous";
+          script.setAttribute("data-repo", config.repo);
+          script.setAttribute("data-repo-id", config.repoId);
+          script.setAttribute("data-category", config.category);
+          script.setAttribute("data-category-id", config.categoryId);
+          script.setAttribute("data-mapping", config.mapping);
+          script.setAttribute("data-term", config.term);
+          script.setAttribute("data-strict", config.strict);
+          script.setAttribute("data-reactions-enabled", config.reactionsEnabled);
+          script.setAttribute("data-emit-metadata", config.emitMetadata);
+          script.setAttribute("data-input-position", config.inputPosition);
+          script.setAttribute("data-theme", config.theme);
+          script.setAttribute("data-lang", config.lang);
+          script.addEventListener("error", () => {
+            delete container.dataset.giscusLoaded;
+          }, { once: true });
+
+          container.appendChild(script);
+        };
+
+        if (!window.__pathosGiscusComponentBound) {
+          window.__pathosGiscusComponentBound = true;
+          document.addEventListener("astro:page-load", initGiscus);
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", initGiscus, { once: true });
+        } else {
+          initGiscus();
+        }
+      })();
+    </script>
+  </>
+)}
