@@ -37,6 +37,7 @@ export const registerArticleRuntime = function(runtimeInput) {
   const runtime = ensureArticleRuntime(runtimeInput);
   const articleApi = runtime.apis.article;
   const runtimeFlags = runtime.flags;
+  const trackUmami = runtime.shared.trackUmami || function() {};
   const isArticlePage = function() {
     return document.body?.dataset?.pageKind === 'article';
   };
@@ -45,6 +46,7 @@ export const registerArticleRuntime = function(runtimeInput) {
   let tocScrollHandler = null;
   let tocOutsideHandler = null;
   let tocResizeHandler = null;
+  let selectionTimer = null;
   let mermaidThemeListener = false;
   let mermaidLoading = false;
 
@@ -619,6 +621,63 @@ export const registerArticleRuntime = function(runtimeInput) {
       if (articleApi.initMermaid) {
         articleApi.initMermaid();
       }
+    });
+  }
+
+  const isSelectionInArticle = function(selection) {
+    if (!isArticlePage() || !selection || selection.rangeCount === 0) return false;
+    const range = selection.getRangeAt(0);
+    let container = range.commonAncestorContainer;
+    if (container && container.nodeType === Node.TEXT_NODE) {
+      container = container.parentElement;
+    }
+    if (!container || !container.closest) return false;
+    return !!container.closest('.gh-content');
+  };
+
+  if (!runtimeFlags.articleSelectionBound) {
+    runtimeFlags.articleSelectionBound = true;
+    let lastSelection = '';
+
+    document.addEventListener('selectionchange', function() {
+      const selection = window.getSelection();
+      if (!selection || !isSelectionInArticle(selection)) return;
+      const text = selection.toString().trim();
+
+      if (text.length >= 5 && text !== lastSelection) {
+        lastSelection = text;
+
+        clearTimeout(selectionTimer);
+        selectionTimer = setTimeout(function() {
+          const currentSelection = window.getSelection();
+          if (isSelectionInArticle(currentSelection) &&
+              currentSelection.toString().trim() === text) {
+            trackUmami('text-select', {
+              text: text.substring(0, 100),
+              length: text.length,
+            });
+          }
+        }, 500);
+      }
+    });
+
+    document.addEventListener('copy', function() {
+      const selection = window.getSelection();
+      if (!selection || !isSelectionInArticle(selection)) return;
+      const text = selection.toString().trim();
+      if (text.length === 0) return;
+
+      const anchorNode = selection.anchorNode;
+      const anchorElement = anchorNode && anchorNode.nodeType === Node.ELEMENT_NODE
+        ? anchorNode
+        : anchorNode && anchorNode.parentElement;
+      const isCodeBlock = !!(anchorElement && anchorElement.closest('pre, code'));
+
+      trackUmami('text-copy', {
+        text: text.substring(0, 100),
+        length: text.length,
+        type: isCodeBlock ? 'code' : 'text',
+      });
     });
   }
 

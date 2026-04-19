@@ -413,6 +413,7 @@ export const registerPaginationRuntime = function(runtimeInput) {
 
     if (loadMoreBtn) {
       loadMoreBtn.addEventListener('click', async function() {
+        trackUmami('home-loadmore-click');
         await loadNextPage();
       });
     }
