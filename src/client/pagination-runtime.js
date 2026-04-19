@@ -50,6 +50,7 @@ export const registerPaginationRuntime = function(runtimeInput) {
       try { layout(); } catch (e) {}
     }
   };
+  const trackUmami = runtimeShared.trackUmami || function() {};
   const syncIosShellSpaGuard = function() {
     const sync = runtimeShared.syncIosShellSpaGuard;
     if (typeof sync === 'function') {
