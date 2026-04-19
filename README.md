@@ -1,10 +1,16 @@
 # Astro Hang
 
-一个可直接发布的 Astro 双语博客模板目录。
+A bilingual Astro blog template with hanging media, elegant typography, built-in search hooks, and optional comment / analytics integrations.
 
-这个目录本身就是公开边界，可直接作为 Git Subtree 推送到模板仓库。
+## Highlights
 
-## 开发
+- Chinese and English content structure out of the box
+- Refined article layout with TOC, hanging media, archive pages, and responsive reading experience
+- Built-in hooks for Algolia search, Giscus comments, Umami analytics, and Microsoft Clarity
+- Default branding assets included so the theme looks complete before customization
+- Ready for local development and straightforward Vercel deployment
+
+## Quick Start
 
 ```sh
 pnpm install
@@ -12,21 +18,82 @@ cp .env.example .env
 pnpm dev
 ```
 
-## 你最需要改的地方
+Then open:
 
-1. `site.config.js`：站点标题、描述、作者名、播客域名、RSS 联系信息
-2. `content/`：文章和 About 页面正文
-3. `.env`：Algolia、Giscus、Umami、Clarity 等第三方服务
-4. `public/`：如果你想替换模板自带 branding，可在这里更换图标和分享图
+- `http://localhost:4321`
 
-## Vercel 部署提醒
+## First Things To Customize
 
-如果你部署到 Vercel：
+### 1. Site Settings
 
-- Vercel 不会读取你本机上的 `.env`
-- 你必须把需要的环境变量手动配置到 Vercel 项目的 Environment Variables 中
+Edit `site.config.js` to set your:
 
-至少应检查：
+- site title
+- site description
+- author name
+- site URL
+- RSS / contact information
+- podcast-related settings if needed
+
+### 2. Content
+
+Replace the sample content with your own:
+
+- `content/blog-zh/` for Chinese posts
+- `content/blog-en/` for English posts
+- `content/pages/` for About and other standalone pages
+
+### 3. Branding
+
+If you want to use your own visual identity, replace assets in:
+
+- `public/images/icons/`
+- `public/images/`
+
+The bundled branding is only a default preview layer and can be swapped freely.
+
+### 4. Environment Variables
+
+Copy `.env.example` to `.env` and fill in the services you want to enable.
+
+Common options:
+
+- Algolia search
+- Giscus comments
+- Umami analytics
+- Microsoft Clarity
+
+If you leave them empty, the blog still works, but related features will stay disabled.
+
+## Configuration Notes
+
+### Search
+
+Archive and search-related UI can connect to Algolia through:
+
+- `PUBLIC_ALGOLIA_APP_ID`
+- `PUBLIC_ALGOLIA_SEARCH_KEY`
+- `PUBLIC_ALGOLIA_INDEX_NAME`
+
+If these are missing, search UI will fall back to an unconfigured state.
+
+### Comments
+
+Article comments use Giscus when the required `PUBLIC_GISCUS_*` variables are provided.
+
+### Analytics
+
+Umami and Clarity are optional and controlled via environment variables.
+
+## Deploying To Vercel
+
+Vercel does not read your local `.env` file automatically.
+
+Before deploying, add your real environment variables in:
+
+`Project Settings -> Environment Variables`
+
+At minimum, check the variables for any feature you want enabled, such as:
 
 - `PUBLIC_ALGOLIA_APP_ID`
 - `PUBLIC_ALGOLIA_SEARCH_KEY`
@@ -41,24 +108,15 @@ pnpm dev
 - `PUBLIC_CLARITY_PROJECT_ID`
 - `PUBLIC_CLARITY_HOSTS`
 
-如果这些变量没有配置，线上可能出现以下现象：
+If these variables are absent in production, related features will not load online even if they work locally.
 
-- 搜索框显示“搜索尚未配置”
-- 评论区不显示
-- Umami 或 Clarity 不工作
+## Tech Stack
 
-## 发布
+- Astro
+- Preact
+- TypeScript
+- MD / MDX-style content collections
 
-在私有主仓库根目录执行：
+## License
 
-```sh
-pnpm export:template
-git subtree push --prefix template <public-remote> <branch>
-```
-
-## 说明
-
-- 模板不包含你的私有文章
-- 模板不包含你的文章配图
-- 模板不包含你的真实 Discuss、Umami、Clarity、Algolia 配置
-- 模板会保留可替换的预览 branding 资源，方便用户开箱预览
+Customize it for your own project and replace content, branding, and third-party service settings as needed.
