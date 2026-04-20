@@ -320,6 +320,17 @@ const homeAriaLabel = currentLang === "en" ? "Back to home" : "返回首页";
       z-index: 520;
     }
 
+    @supports (-webkit-touch-callout: default) {
+      /*
+       * iOS Safari 上保留 fixed/sticky 的汉堡按钮体验，
+       * 但让 header 本体退出贴顶状态，避免 iOS 26 将其当作顶部栏取色来源。
+       */
+      .gh-head {
+        position: relative;
+        top: auto;
+      }
+    }
+
     .gh-head-inner {
       /* 移动视图下取消 --container-width (626px) 的最大宽度约束：
        * 否则在 iPad mini 等 626px < viewport ≤ 768px 的设备上，
@@ -370,6 +381,12 @@ const homeAriaLabel = currentLang === "en" ? "Back to home" : "返回首页";
 
     body.menu-open .gh-head {
       background: var(--color-bg-primary);
+    }
+
+    @supports (-webkit-touch-callout: default) {
+      body.menu-open .gh-head {
+        background: transparent;
+      }
     }
 
     body.menu-open .gh-head-brand {
