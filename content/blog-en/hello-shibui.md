@@ -1,5 +1,5 @@
 ---
-title: "Hello, Astro Hang"
+title: "Hello, Astro Shibui"
 description: "This is the English sample post included in the template."
 date: 2026-01-01
 tags: ["sample", "template"]

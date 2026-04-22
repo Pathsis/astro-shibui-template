@@ -1,5 +1,5 @@
 ---
-title: "你好，Astro Hang"
+title: "你好，Astro Shibui"
 description: "这是模板中的中文示例文章。"
 date: 2026-01-01
 tags: ["示例", "模板"]

@@ -1,4 +1,4 @@
-# Astro Hang
+# Astro Shibui
 
 一个带有悬挂式媒体布局、双语内容结构与完整主题骨架的 Astro 博客模板。
 
