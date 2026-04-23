@@ -96,6 +96,7 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
 
   <article
     class="gh-content"
+    data-clarity-region="article"
     data-has-footnotes={hasFootnotes ? "1" : "0"}
     data-has-hanging-figures={hasHangingFigures ? "1" : "0"}
     data-has-mermaid={hasMermaid ? "1" : "0"}
@@ -176,7 +177,6 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
                 <a
                   href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(entry.id, currentLang))}
                   class="article-suggest-cover-link"
-                  aria-hidden="true"
                   tabindex="-1"
                 >
                   <img
