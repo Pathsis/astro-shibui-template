@@ -86,6 +86,7 @@ const homeAriaLabel = currentLang === "en" ? "Back to home" : "返回首页";
   /* CSS 变量 */
   :root {
     --head-nav-gap: 2.8rem;
+    --head-nav-content-max: 52rem;
   }
 
   /* Header 基础样式 - 全幅 */
@@ -185,6 +186,9 @@ const homeAriaLabel = currentLang === "en" ? "Back to home" : "返回首页";
     border-bottom: none !important;
     transition: opacity 0.2s ease;
     font-size: var(--font-size-small);
+    white-space: nowrap;
+    word-break: keep-all;
+    overflow-wrap: normal;
   }
 
   .gh-head-menu a:hover,
@@ -213,6 +217,9 @@ const homeAriaLabel = currentLang === "en" ? "Back to home" : "返回首页";
     border-bottom: none !important;
     font-size: var(--font-size-small);
     transition: opacity 0.2s ease;
+    white-space: nowrap;
+    word-break: keep-all;
+    overflow-wrap: normal;
   }
 
   .gh-head-lang-switcher :global(.lang-link:hover),
@@ -250,15 +257,26 @@ const homeAriaLabel = currentLang === "en" ? "Back to home" : "返回首页";
     text-transform: none;
   }
 
-  /* 导航菜单内部容器（限制宽度） */
+  /* 导航菜单内部容器（独立中宽栅格） */
   .gh-head-menu .gh-head-inner {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: var(--head-nav-gap);
+    width: min(100%, var(--head-nav-content-max));
+    margin: 0;
+    padding: 0 clamp(0.9rem, 2.2vw, 1.8rem);
+    box-sizing: border-box;
+    flex-wrap: nowrap;
     height: 100%;
     position: relative;
     z-index: 10; /* 确保导航链接可点击 */
+  }
+
+  .gh-head-menu .gh-head-inner > a,
+  .gh-head-lang-switcher {
+    flex: 0 0 auto;
+    min-width: max-content;
   }
 
 
