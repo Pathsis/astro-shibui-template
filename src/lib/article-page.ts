@@ -46,6 +46,8 @@ export async function buildRelatedPosts(
   const currentPostId = post.id;
   const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
   const allPosts = await getCollection(collectionName);
+  const compareByDateDesc = (a: BlogEntry, b: BlogEntry) =>
+    new Date(b.data.date).getTime() - new Date(a.data.date).getTime();
 
   const pushUniquePost = (list: BlogEntry[], entry?: BlogEntry) => {
     if (!entry || entry.id === currentPostId) return;
@@ -53,7 +55,11 @@ export async function buildRelatedPosts(
     list.push(entry);
   };
 
-  const relatedFromFrontmatter = getExplicitRelatedPosts(allPosts, currentPostId, post.data.related);
+  const relatedFromFrontmatter = getExplicitRelatedPosts(
+    allPosts,
+    currentPostId,
+    post.data.related
+  ).sort(compareByDateDesc);
 
   const relatedPosts: BlogEntry[] = [];
   for (const entry of relatedFromFrontmatter) {
@@ -61,16 +67,36 @@ export async function buildRelatedPosts(
   }
 
   if (post.data.tags?.length) {
-    const tagMatchedPosts = allPosts
-      .filter((entry) =>
-        entry.id !== currentPostId &&
-        entry.data.tags?.some((tag) => post.data.tags?.includes(tag))
-      )
-      .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+    const [primaryTag, ...otherTags] = post.data.tags;
+    const otherTagSet = new Set(otherTags);
 
-    for (const entry of tagMatchedPosts) {
+    const primaryTagPosts = allPosts
+      .filter(
+        (entry) =>
+          entry.id !== currentPostId &&
+          !!primaryTag &&
+          entry.data.tags?.includes(primaryTag)
+      )
+      .sort(compareByDateDesc);
+
+    for (const entry of primaryTagPosts) {
       pushUniquePost(relatedPosts, entry);
       if (relatedPosts.length >= relatedCount) break;
+    }
+
+    if (relatedPosts.length < relatedCount && otherTagSet.size > 0) {
+      const otherTagPosts = allPosts
+        .filter(
+          (entry) =>
+            entry.id !== currentPostId &&
+            entry.data.tags?.some((tag) => otherTagSet.has(tag))
+        )
+        .sort(compareByDateDesc);
+
+      for (const entry of otherTagPosts) {
+        pushUniquePost(relatedPosts, entry);
+        if (relatedPosts.length >= relatedCount) break;
+      }
     }
   }
 
@@ -81,7 +107,7 @@ export async function buildRelatedPosts(
         entry.data.feature &&
         !relatedPosts.some((item) => item.id === entry.id)
     )
-    .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime())
+    .sort(compareByDateDesc)
     .slice(0, recommendedCount);
 
   const recommendedPosts =
@@ -93,7 +119,7 @@ export async function buildRelatedPosts(
               entry.id !== currentPostId &&
               !relatedPosts.some((item) => item.id === entry.id)
           )
-          .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime())
+          .sort(compareByDateDesc)
           .slice(0, recommendedCount);
 
   const recommendedItems = recommendedPosts.map((entry) => ({
