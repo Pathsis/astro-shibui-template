@@ -45,6 +45,7 @@ export async function GET(context) {
     .filter((post) => post.data.categories?.includes(category))
     .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
     .slice(0, 10); // 限制 10 篇
+  const lastBuildDate = categoryPosts[0]?.data.date ?? new Date();
 
   return rss({
     title: `${siteConfig.title} - ${category}`,
@@ -95,6 +96,7 @@ export async function GET(context) {
         customData: itemCustomData,
       };
     }),
-    customData: `<language>zh-CN</language>`,
+    customData: `<language>zh-CN</language>
+<lastBuildDate>${formatRssDate(lastBuildDate)}</lastBuildDate>`,
   });
 }

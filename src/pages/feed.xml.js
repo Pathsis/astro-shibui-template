@@ -25,6 +25,7 @@ export async function GET(context) {
   
   // 限制为 10 篇
   const recentPosts = sortedPosts.slice(0, 10);
+  const lastBuildDate = recentPosts[0]?.data.date ?? new Date();
 
   return rss({
     title: siteConfig.title,
@@ -85,7 +86,7 @@ export async function GET(context) {
     }),
     customData: `<language>zh-CN</language>
 <atom:link href="${new URL('/feed.xml', context.site)}" rel="self" type="application/rss+xml" />
-<lastBuildDate>${formatRssDate(new Date())}</lastBuildDate>
+<lastBuildDate>${formatRssDate(lastBuildDate)}</lastBuildDate>
 <managingEditor>${siteConfig.rss.managingEditor}</managingEditor>
 <webMaster>${siteConfig.rss.webMaster}</webMaster>
 <ttl>60</ttl>
