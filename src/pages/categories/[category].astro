@@ -3,6 +3,7 @@ import SingleColumnLayout from "../../layouts/SingleColumnLayout.astro";
 import { getCollection } from "astro:content";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import { getLocalizedBlogPathById } from "../../lib/post-url";
+import { formatDate } from "../../lib/date";
 
 export async function getStaticPaths() {
   // 获取所有文章（中英文混合）来收集所有分类
@@ -57,7 +58,7 @@ const podcastHint = currentLang === "en" ? " (Podcast available)" : "（可收�
       {posts.map((post) => (
         <li>
           <time datetime={post.data.date.toISOString()}>
-            {post.data.date.toISOString().split("T")[0]}
+            {formatDate(post.data.date)}
           </time>
           <div>
             <a href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(post.id, currentLang))}>

@@ -10,6 +10,7 @@ import {
   getDefaultSocialImageVersionSeed,
   resolveSocialImage,
 } from '../lib/social-image';
+import { formatRssDate } from '../lib/date';
 import { siteConfig } from '@site-config';
 
 const parser = new MarkdownIt();
@@ -69,19 +70,22 @@ export async function GET(context) {
       const finalContent = coverUrl 
         ? `<img src="${coverUrl}" alt="${post.data.title}" /><br/>${sanitizedContent}`
         : sanitizedContent;
+      const itemCustomData = [
+        `<pubDate>${formatRssDate(post.data.date)}</pubDate>`,
+        coverUrl ? `<enclosure url="${coverUrl}" type="image/jpeg" length="0" />` : '',
+      ].join('');
 
       return {
         title: post.data.title,
-        pubDate: post.data.date,
         description: post.data.description,
         link,
         content: finalContent,
-        customData: coverUrl ? `<enclosure url="${coverUrl}" type="image/jpeg" length="0" />` : '',
+        customData: itemCustomData,
       };
     }),
     customData: `<language>zh-CN</language>
 <atom:link href="${new URL('/feed.xml', context.site)}" rel="self" type="application/rss+xml" />
-<lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+<lastBuildDate>${formatRssDate(new Date())}</lastBuildDate>
 <managingEditor>${siteConfig.rss.managingEditor}</managingEditor>
 <webMaster>${siteConfig.rss.webMaster}</webMaster>
 <ttl>60</ttl>

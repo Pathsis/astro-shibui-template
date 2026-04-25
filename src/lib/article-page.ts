@@ -6,12 +6,9 @@ import { getExplicitRelatedPosts } from "./related-posts";
 import type { CollectionEntry } from "astro:content";
 import type { SocialImageSource } from "./social-image";
 import { siteConfig } from "@site-config";
+export { formatDate } from "./date";
 
 type BlogEntry = CollectionEntry<"blog-zh"> | CollectionEntry<"blog-en">;
-
-export function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
-}
 
 export function getRecommendedLabelPrefix(currentLang: "zh-cn" | "en"): string {
   return currentLang === "en" ? "Read more " : "阅读更多 ";

@@ -5,6 +5,7 @@ import searchWidgetCssUrl from "../../../styles/components/search-widget.css?url
 import { getCollection } from "astro:content";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import { getLocalizedBlogPathById } from "../../../lib/post-url";
+import { formatMonthDay, getDateYear } from "../../../lib/date";
 
 // 获取当前语言
 const currentLang = Astro.currentLocale as "zh-cn" | "en" || "en";
@@ -16,7 +17,7 @@ const allPosts = (await getCollection(collectionName))
 
 // 按年份分组
 const postsByYear = allPosts.reduce((acc, post) => {
-  const year = post.data.date.getFullYear();
+  const year = getDateYear(post.data.date);
   if (!acc[year]) {
     acc[year] = [];
   }
@@ -28,13 +29,6 @@ const postsByYear = allPosts.reduce((acc, post) => {
 function getZodiac(year: number): string {
   const zodiacs = ["🐭", "🐮", "🐯", "🐰", "🐲", "🐍", "🐴", "🐑", "🐵", "🐔", "🐶", "🐷"];
   return zodiacs[(year + 8) % 12];
-}
-
-// 格式化月份日期
-function formatDate(date: Date): string {
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  return `${month}/${day}`;
 }
 
 // 界面文本
@@ -65,7 +59,7 @@ const podcastHint = currentLang === "en" ? " (Podcast available)" : "（可收�
           <ul>
             {posts.map((post) => (
               <li>
-                <span>{formatDate(post.data.date)}</span>
+                <span>{formatMonthDay(post.data.date)}</span>
                 <div>
                   <a href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(post.id, "en"))}>
                     {post.data.title}

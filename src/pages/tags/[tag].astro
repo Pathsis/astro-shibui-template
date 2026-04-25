@@ -6,6 +6,7 @@ import { getLocalizedBlogPathById } from "../../lib/post-url";
 import fs from "node:fs";
 import path from "node:path";
 import { resolvePublicRoot } from "../../lib/public-root";
+import { formatMonthDay, getDateYear } from "../../lib/date";
 
 export async function getStaticPaths() {
   // 只从中文文章中获取标签（这是默认语言的页面）
@@ -34,7 +35,7 @@ const posts = (await getCollection(collectionName))
 
 // 按年份分组
 const postsByYear = posts.reduce((acc, post) => {
-  const year = post.data.date.getFullYear();
+  const year = getDateYear(post.data.date);
   if (!acc[year]) {
     acc[year] = [];
   }
@@ -63,12 +64,6 @@ function getZodiac(year: number): string {
   return zodiacs[(year + 8) % 12];
 }
 
-function formatDate(date: Date): string {
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  return `${month}/${day}`;
-}
-
 // 界面文本
 const tagLabel = currentLang === "en" ? "Tag" : "标签";
 const tagDescription = currentLang === "en" ? `All posts tagged with "${tag}"` : `标签 ${tag} 下的所有文章`;
@@ -93,7 +88,7 @@ const podcastHint = currentLang === "en" ? " (Podcast available)" : "（可收�
           <ul>
             {yearPosts.map((post) => (
               <li>
-                <span>{formatDate(post.data.date)}</span>
+                <span>{formatMonthDay(post.data.date)}</span>
                 <div>
                   <a href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(post.id, currentLang))}>
                     {post.data.title}

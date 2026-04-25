@@ -1,4 +1,6 @@
 ---
+import { formatDate } from "../lib/date";
+
 interface RecommendedPostItem {
   href: string;
   title: string;
@@ -23,8 +25,6 @@ const {
   labelHref,
   labelPrefix,
 } = Astro.props as Props;
-
-const formatDate = (date: Date) => date.toISOString().split("T")[0];
 ---
 
 {posts.length > 0 && (
