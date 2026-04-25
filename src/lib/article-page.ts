@@ -6,7 +6,7 @@ import { getExplicitRelatedPosts } from "./related-posts";
 import type { CollectionEntry } from "astro:content";
 import type { SocialImageSource } from "./social-image";
 import { siteConfig } from "@site-config";
-export { formatDate } from "./date";
+export { formatDate, formatDateTimeMinute } from "./date";
 
 type BlogEntry = CollectionEntry<"blog-zh"> | CollectionEntry<"blog-en">;
 

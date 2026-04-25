@@ -1,8 +1,10 @@
 export const SITE_TIME_ZONE = "Asia/Shanghai";
 
 type DatePart = "year" | "month" | "day";
+type DateTimePart = DatePart | "hour" | "minute";
 
 const datePartFormatters = new Map<string, Intl.DateTimeFormat>();
+const dateTimeMinuteFormatters = new Map<string, Intl.DateTimeFormat>();
 const rssDateFormatters = new Map<string, Intl.DateTimeFormat>();
 
 function getDatePartFormatter(timeZone: string): Intl.DateTimeFormat {
@@ -29,6 +31,39 @@ function getDateParts(date: Date, timeZone = SITE_TIME_ZONE): Record<DatePart, s
   }, {} as Record<DatePart, string>);
 }
 
+function getDateTimeMinuteFormatter(timeZone: string): Intl.DateTimeFormat {
+  const existing = dateTimeMinuteFormatters.get(timeZone);
+  if (existing) return existing;
+
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+  dateTimeMinuteFormatters.set(timeZone, formatter);
+  return formatter;
+}
+
+function getDateTimeMinuteParts(date: Date, timeZone = SITE_TIME_ZONE): Record<DateTimePart, string> {
+  const parts = getDateTimeMinuteFormatter(timeZone).formatToParts(date);
+  return parts.reduce((acc, part) => {
+    if (
+      part.type === "year" ||
+      part.type === "month" ||
+      part.type === "day" ||
+      part.type === "hour" ||
+      part.type === "minute"
+    ) {
+      acc[part.type] = part.value;
+    }
+    return acc;
+  }, {} as Record<DateTimePart, string>);
+}
+
 function getRssDateFormatter(timeZone: string): Intl.DateTimeFormat {
   const existing = rssDateFormatters.get(timeZone);
   if (existing) return existing;
@@ -51,6 +86,11 @@ function getRssDateFormatter(timeZone: string): Intl.DateTimeFormat {
 export function formatDate(date: Date, timeZone = SITE_TIME_ZONE): string {
   const { year, month, day } = getDateParts(date, timeZone);
   return `${year}-${month}-${day}`;
+}
+
+export function formatDateTimeMinute(date: Date, timeZone = SITE_TIME_ZONE): string {
+  const { year, month, day, hour, minute } = getDateTimeMinuteParts(date, timeZone);
+  return `${year}-${month}-${day} ${hour}:${minute}`;
 }
 
 export function formatMonthDay(date: Date, timeZone = SITE_TIME_ZONE): string {
