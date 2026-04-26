@@ -78,6 +78,38 @@ pnpm dev
 
 如果这些变量缺失，搜索 UI 会回退到“未配置”状态。
 
+### Podcast
+
+在文章 frontmatter 中设置：
+
+```yaml
+podcast: true
+```
+
+即可让文章标题旁出现播放按钮，并把文章加入全局 Podcast 播放列表。
+
+音频文件不会由模板生成。模板会根据文章 id 和 `site.config.js` 中的 `podcast.audioBaseUrl` 自动推导音频地址：
+
+- 中文文章：`<audioBaseUrl>/<post-id>.m4a`
+- 英文文章：`<audioBaseUrl>/<post-id>.en.m4a`
+
+例如：
+
+```js
+podcast: {
+  audioBaseUrl: "https://cdn.example.com/podcast",
+}
+```
+
+如果文章文件是 `content/blog-zh/my-first-note.md` 和 `content/blog-en/my-first-note.md`，则应上传：
+
+```text
+https://cdn.example.com/podcast/my-first-note.m4a
+https://cdn.example.com/podcast/my-first-note.en.m4a
+```
+
+中英文文章互相匹配依赖相同文章 id。不要给英文文件随手加 `-en` 后缀，除非你希望公开 URL 和音频文件名也包含这个后缀。
+
 ### 评论
 
 文章评论区使用 Giscus。

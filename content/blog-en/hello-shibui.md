@@ -1,6 +1,6 @@
 ---
 title: "Writing a Quiet, Complete Blog with Astro Shibui"
-description: "A sample English post for the Astro Shibui template, showing the content structure, hanging images, frontmatter, bilingual routing, RSS, search, and draft behavior."
+description: "A sample English post for the Astro Shibui template, showing the content structure, hanging images, frontmatter, bilingual routing, Podcast, RSS, search, and draft behavior."
 date: 2026-01-01
 tags: ["sample", "template", "Astro"]
 categories: ["Sample", "Writing Workflow"]
@@ -12,7 +12,7 @@ podcast: false
 tldr:
   - "Put posts in content/blog-zh or content/blog-en."
   - "Use image titles such as align-left or align-right to create hanging images."
-  - "Use frontmatter to control titles, dates, tags, categories, related reading, featured posts, and drafts."
+  - "Use frontmatter to control titles, dates, tags, categories, related reading, Podcast, featured posts, and drafts."
   - "Configure site.config.js and environment variables to enable search, comments, analytics, and RSS metadata."
 ---
 
@@ -52,7 +52,9 @@ content/blog-zh/my-first-note.md
 content/blog-en/my-first-note.md
 ```
 
-If you want the language switcher to connect two translations, the easiest approach is to use the same base file name for both posts. A Chinese post named `my-first-note.md` can pair with an English post named `my-first-note.md`. If you prefer an English suffix, the template also understands a name like `my-first-note-en.md`.
+If you want the language switcher to connect two translations, both posts must use the same post id. In this template, the post id is the file name without `.md` or `.mdx`, so `content/blog-zh/my-first-note.md` should pair with `content/blog-en/my-first-note.md`.
+
+Do not name the English file `my-first-note-en.md` unless you really want the post id, public URL, and podcast file name to include `-en`. The current template does not strip that suffix automatically.
 
 ## Frontmatter Controls Publication
 
@@ -97,6 +99,67 @@ related:
 The template normalizes these values, so you can use a post id, a file name with `.md`, or a public URL. Chinese posts are matched inside the Chinese collection, and English posts are matched inside the English collection.
 
 One useful detail: related reading is detected in both directions. If post A lists post B in `related`, then A will show B; when B is opened, the template also knows that A points to B and can include A in B's related reading candidates. Draft posts are still excluded.
+
+## Podcast Metadata and Audio File Names
+
+Podcast support is controlled by one frontmatter field:
+
+```yaml
+podcast: true
+```
+
+When it is set to `true`, several things happen:
+
+- A play button appears beside the article title.
+- The post is added to the global Podcast player playlist.
+- Lists, featured cards, and related reading links include an accessible "Podcast available" hint.
+- If the post is also a draft, it is still excluded from the Podcast list.
+
+Important: `podcast: true` does not generate audio, and it does not let you set an arbitrary audio URL. The current template derives the audio URL from a fixed rule:
+
+```js
+siteConfig.podcast.audioBaseUrl + "/" + audioKey + ".m4a"
+```
+
+First configure the audio base URL in `site.config.js`. In normal use, do not add a trailing slash:
+
+```js
+podcast: {
+  audioBaseUrl: "https://cdn.example.com/podcast",
+}
+```
+
+Then upload your audio files under that path. Suppose your posts are:
+
+```text
+content/blog-zh/my-first-note.md
+content/blog-en/my-first-note.md
+```
+
+Both post ids are `my-first-note`, so the mapping is:
+
+```text
+Chinese article URL: /blog/my-first-note/
+English article URL: /en/blog/my-first-note/
+
+Chinese audio file: https://cdn.example.com/podcast/my-first-note.m4a
+English audio file: https://cdn.example.com/podcast/my-first-note.en.m4a
+```
+
+In other words, Chinese audio uses `<post id>.m4a`, and English audio uses `<post id>.en.m4a`. Internally, the player keys English episodes as `<post id>__en`, but that `__en` suffix is only a browser-side playback state key. It is not a file name and not a public URL.
+
+If your English file is named `my-first-note-en.md`, its post id becomes `my-first-note-en`, the article URL becomes `/en/blog/my-first-note-en/`, and the audio URL becomes `my-first-note-en.en.m4a`. That is usually not what you want.
+
+The Podcast cover image comes from the first item in the post's `images` frontmatter:
+
+```yaml
+images:
+  - /images/my-first-note/cover.webp
+```
+
+If the post has no `images`, the player falls back to `images.podcastDefaultCover` in `site.config.js`. If your audio is hosted on a CDN, R2, or object storage, make sure the file is public and served with a browser-playable audio type. This template expects `.m4a` files by default.
+
+If you need every post to use a completely custom audio URL, the current template does not provide a frontmatter field for that. The safer option is to redirect the expected CDN path to the real file, or change `getPodcastUrl` in `src/lib/podcast.ts`.
 
 ## Where Site Configuration Lives
 
