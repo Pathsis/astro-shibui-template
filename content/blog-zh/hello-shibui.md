@@ -1,6 +1,6 @@
 ---
 title: "用 Astro Shibui 写一个安静、完整的博客"
-description: "一篇随模板附带的中文示例文章，展示 Astro Shibui 的内容结构、文章元数据、双语路径、目录、图片、RSS、搜索和草稿机制。"
+description: "一篇随模板附带的中文示例文章，展示 Astro Shibui 的内容结构、悬挂图片、文章元数据、双语路径、RSS、搜索和草稿机制。"
 date: 2026-01-01
 tags: ["示例", "模板", "Astro"]
 categories: ["示例", "写作工作流"]
@@ -11,6 +11,7 @@ lang: "zh-cn"
 podcast: false
 tldr:
   - "把自己的文章放进 content/blog-zh 或 content/blog-en。"
+  - "用图片标题 align-left 或 align-right 创建悬挂图片。"
   - "用 frontmatter 控制标题、日期、标签、分类、精选和草稿状态。"
   - "配置 site.config.js 和 .env 后，就可以接入搜索、评论、统计和 RSS。"
 ---
@@ -18,6 +19,29 @@ tldr:
 欢迎使用 Astro Shibui。这篇文章不是一段占位文字，而是一份可以直接打开、复制、修改的写作示例。它展示了这个模板最重要的使用方式：你只需要写 Markdown，模板会负责把文章组织成首页、归档、标签、分类、RSS、搜索索引和双语页面。
 
 ![Astro Shibui 默认站点图](/images/site-feature-image.svg "align-right")
+
+## 悬挂图片是这个模板的重点
+
+Astro Shibui 的文章页支持悬挂图片。它适合长文章中的材料、截图、书影和旁注式图片：图片不会粗暴地打断正文，而是像边注一样悬挂在正文左侧或右侧。
+
+最简单的写法是在 Markdown 图片的 title 里写 `align-left` 或 `align-right`：
+
+```md
+![这段 alt 文本会变成图片说明](/images/site-feature-image.svg "align-right")
+```
+
+这里有两个细节值得记住。第一，方括号里的 alt 文本会被转换成图片说明。第二，引号里的 `align-right` 不是图片说明，而是布局指令；构建时它会变成 `figure.align-right`，不会作为浏览器 tooltip 显示。
+
+在桌面端，悬挂图片会停在正文旁边，并在附近文字处生成 `图 1` 这样的引用标记。在移动端，模板会把悬挂图片移动到文章后面的“资料”区域，同时在正文中保留可点击的图号引用。这样图片不会挤压手机屏幕上的正文，也不会丢失它和上下文之间的关系。
+
+如果你需要更精细的控制，也可以直接写 HTML：
+
+```html
+<figure class="align-left">
+  <img src="/images/site-feature-image.svg" alt="一张用于说明模板视觉风格的示例图">
+  <figcaption>一张用于说明模板视觉风格的示例图</figcaption>
+</figure>
+```
 
 ## 从一篇 Markdown 开始
 

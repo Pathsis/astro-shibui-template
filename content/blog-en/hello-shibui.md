@@ -1,6 +1,6 @@
 ---
 title: "Writing a Quiet, Complete Blog with Astro Shibui"
-description: "A sample English post for the Astro Shibui template, showing the content structure, frontmatter, bilingual routing, table of contents, images, RSS, search, and draft behavior."
+description: "A sample English post for the Astro Shibui template, showing the content structure, hanging images, frontmatter, bilingual routing, RSS, search, and draft behavior."
 date: 2026-01-01
 tags: ["sample", "template", "Astro"]
 categories: ["Sample", "Writing Workflow"]
@@ -11,6 +11,7 @@ lang: "en"
 podcast: false
 tldr:
   - "Put posts in content/blog-zh or content/blog-en."
+  - "Use image titles such as align-left or align-right to create hanging images."
   - "Use frontmatter to control titles, dates, tags, categories, featured posts, and drafts."
   - "Configure site.config.js and environment variables to enable search, comments, analytics, and RSS metadata."
 ---
@@ -18,6 +19,29 @@ tldr:
 Welcome to Astro Shibui. This post is not just filler text. It is a practical sample you can open, copy, and reshape while learning how the template works. The core idea is simple: you write Markdown, and the template turns it into a homepage, archive pages, tag pages, category pages, RSS feeds, a search index, and bilingual article routes.
 
 ![Astro Shibui default site image](/images/site-feature-image.svg "align-right")
+
+## Hanging Images Are a Core Feature
+
+Astro Shibui supports hanging images on article pages. They are useful for long essays with screenshots, book covers, diagrams, or side-note-like visual material. Instead of interrupting the reading flow, the image can sit beside the text.
+
+The easiest syntax is to put `align-left` or `align-right` in the Markdown image title:
+
+```md
+![This alt text becomes the image caption](/images/site-feature-image.svg "align-right")
+```
+
+There are two details to remember. First, the alt text inside the square brackets becomes the caption. Second, `align-right` is not a caption; it is a layout instruction. During build, it becomes `figure.align-right` and is removed from the browser tooltip.
+
+On desktop, the image hangs beside the article body, and the text near it receives a reference such as `Fig. 1`. On mobile, the template moves hanging images into a "Materials" section near the end of the article while leaving a clickable figure reference in the text. That keeps the reading column clean without losing the connection between the image and its context.
+
+For finer control, you can also write HTML directly:
+
+```html
+<figure class="align-left">
+  <img src="/images/site-feature-image.svg" alt="A sample image showing the template's visual style">
+  <figcaption>A sample image showing the template's visual style</figcaption>
+</figure>
+```
 
 ## Start with a Markdown File
 
