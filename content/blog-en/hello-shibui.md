@@ -12,7 +12,7 @@ podcast: false
 tldr:
   - "Put posts in content/blog-zh or content/blog-en."
   - "Use image titles such as align-left or align-right to create hanging images."
-  - "Use frontmatter to control titles, dates, tags, categories, featured posts, and drafts."
+  - "Use frontmatter to control titles, dates, tags, categories, related reading, featured posts, and drafts."
   - "Configure site.config.js and environment variables to enable search, comments, analytics, and RSS metadata."
 ---
 
@@ -68,11 +68,35 @@ toc: true
 draft: false
 feature: true
 podcast: false
+related:
+  - "another-post"
+  - "/blog/a-useful-note/"
 ```
 
 `date` is displayed in the site timezone, and article pages show it down to the minute. `tags` and `categories` create their own index pages. `feature: true` includes the post in the featured section. `toc: true` enables the in-article table of contents.
 
 The most important field is `draft`. When `draft: true`, the post is excluded from public pages, RSS feeds, search indexing, related posts, podcast lists, and writing statistics. That lets you keep unfinished writing in the repository without publishing it by accident.
+
+## How Related Reading Works
+
+The "Related reading" area at the bottom of an article has two sources. The first source is the `related` field you explicitly write in frontmatter. The second source is the template's automatic tag-based fallback. Explicit related posts appear first; tag matches fill the remaining slots.
+
+`related` can be a single string or an array:
+
+```yaml
+related: "another-post"
+```
+
+```yaml
+related:
+  - "another-post"
+  - "notes/about-writing.md"
+  - "/blog/a-useful-note/"
+```
+
+The template normalizes these values, so you can use a post id, a file name with `.md`, or a public URL. Chinese posts are matched inside the Chinese collection, and English posts are matched inside the English collection.
+
+One useful detail: related reading is detected in both directions. If post A lists post B in `related`, then A will show B; when B is opened, the template also knows that A points to B and can include A in B's related reading candidates. Draft posts are still excluded.
 
 ## Where Site Configuration Lives
 

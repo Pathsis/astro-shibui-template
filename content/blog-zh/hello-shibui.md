@@ -12,7 +12,7 @@ podcast: false
 tldr:
   - "把自己的文章放进 content/blog-zh 或 content/blog-en。"
   - "用图片标题 align-left 或 align-right 创建悬挂图片。"
-  - "用 frontmatter 控制标题、日期、标签、分类、精选和草稿状态。"
+  - "用 frontmatter 控制标题、日期、标签、分类、相关阅读、精选和草稿状态。"
   - "配置 site.config.js 和 .env 后，就可以接入搜索、评论、统计和 RSS。"
 ---
 
@@ -68,11 +68,35 @@ toc: true
 draft: false
 feature: true
 podcast: false
+related:
+  - "another-post"
+  - "/blog/a-useful-note/"
 ```
 
 `date` 会按站点时区显示，并且文章页会精确到分钟。`tags` 和 `categories` 会生成对应页面。`feature: true` 会把文章放入精选列表。`toc: true` 会启用正文目录。
 
 最重要的是 `draft`：如果你把它设为 `true`，这篇文章就不会出现在公开页面、RSS、搜索索引、推荐文章、播客列表和写作统计里。这让你可以把未完成的草稿留在仓库中，而不必担心构建时泄漏。
+
+## 相关阅读如何指定
+
+文章页底部的“相关阅读”有两层来源。第一层是你在 frontmatter 中显式写出的 `related`。第二层是模板根据标签自动补充的文章。显式指定的文章会优先出现，标签匹配用于补齐列表。
+
+`related` 可以写成一个字符串，也可以写成数组：
+
+```yaml
+related: "another-post"
+```
+
+```yaml
+related:
+  - "another-post"
+  - "notes/about-writing.md"
+  - "/blog/a-useful-note/"
+```
+
+模板会把这些值规范化，所以你可以写文章 id、带 `.md` 的文件名，或者公开 URL。中文文章会在中文集合里查找，英文文章会在英文集合里查找。
+
+还有一个方便的细节：相关阅读是双向识别的。如果 A 的 `related` 写了 B，那么打开 A 会看到 B；打开 B 时，模板也会知道 A 指向了 B，并把 A 纳入 B 的相关阅读候选。草稿文章依然会被排除。
 
 ## 站点配置放在哪里
 
