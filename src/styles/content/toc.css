@@ -120,6 +120,11 @@ body[data-page-kind="article"] .toc-desktop {
     padding: 0.75rem var(--spacing-md) 0.9rem;
     border-radius: 0;
   }
+
+  body[data-page-kind="article"] .toc-inline .toc-list a,
+  body[data-page-kind="article"] .toc-inline .toc-list a::before {
+    color: var(--color-text-primary);
+  }
 }
 
 @media (min-width: 769px) {
