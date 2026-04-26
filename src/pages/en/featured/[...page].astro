@@ -15,7 +15,7 @@ import { getBuildVersionToken } from "../../../lib/build-version";
 const currentLang = "en" as const;
 
 export const getStaticPaths: GetStaticPaths = async ({ paginate }) => {
-  const featuredPosts = await getCollection("blog-en")
+  const featuredPosts = await getCollection("blog-en", ({ data }) => !data.draft)
     .then((posts) => posts
       .filter((post) => post.data.feature)
       .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()));

@@ -14,8 +14,8 @@ const { lang = "zh-cn" } = Astro.props;
 
 // 获取指定语言的文章并计算总字数
 const allPosts = lang === "zh-cn"
-  ? await getCollection("blog-zh")
-  : await getCollection("blog-en");
+  ? await getCollection("blog-zh", ({ data }) => !data.draft)
+  : await getCollection("blog-en", ({ data }) => !data.draft);
 
 // 与 CoverLayout 统计口径保持一致
 const posts = allPosts.filter(post => post.id && !post.id.startsWith("_"));

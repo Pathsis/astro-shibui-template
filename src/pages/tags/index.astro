@@ -8,7 +8,7 @@ const currentLang = Astro.currentLocale as "zh-cn" | "en" || "zh-cn";
 const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
 
 // 获取当前语言的文章
-const allPosts = await getCollection(collectionName);
+const allPosts = await getCollection(collectionName, ({ data }) => !data.draft);
 
 // 收集标签并记录每个标签的最新文章日期和数量
 const tagInfo = new Map<string, { count: number; latestDate: Date }>();

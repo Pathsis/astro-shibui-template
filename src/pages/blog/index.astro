@@ -12,7 +12,7 @@ const currentLang = Astro.currentLocale as "zh-cn" | "en" || "zh-cn";
 const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
 
 // 获取所有博客文章，按日期倒序
-const allPosts = (await getCollection(collectionName))
+const allPosts = (await getCollection(collectionName, ({ data }) => !data.draft))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 
 // 按年份分组

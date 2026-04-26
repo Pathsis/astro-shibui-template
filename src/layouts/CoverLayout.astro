@@ -79,7 +79,7 @@ const navLinks = {
 
 // 获取当前语言的文章统计信息
 const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
-const allPosts = await getCollection(collectionName);
+const allPosts = await getCollection(collectionName, ({ data }) => !data.draft);
 
 // 过滤掉非文章页面
 const posts = allPosts.filter(post => post.id && !post.id.startsWith("_"));

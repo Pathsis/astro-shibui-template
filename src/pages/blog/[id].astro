@@ -6,7 +6,7 @@ import { getPairedTranslationIdByConvention } from "../../lib/post-url";
 export const prerender = true;
 
 export async function getStaticPaths() {
-  const posts = await getCollection("blog-zh");
+  const posts = await getCollection("blog-zh", ({ data }) => !data.draft);
   return posts.map((post) => ({
     params: { id: post.id },
     props: { post },
@@ -16,7 +16,7 @@ export async function getStaticPaths() {
 const { post } = Astro.props;
 const { Content, headings } = await render(post);
 
-const enPosts = await getCollection("blog-en");
+const enPosts = await getCollection("blog-en", ({ data }) => !data.draft);
 const expectedEnId = getPairedTranslationIdByConvention(post.id, "zh-cn");
 const translation = expectedEnId
   ? enPosts.find((enPost) => enPost.id === expectedEnId)

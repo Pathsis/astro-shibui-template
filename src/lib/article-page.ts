@@ -42,7 +42,7 @@ export async function buildRelatedPosts(
 }> {
   const currentPostId = post.id;
   const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
-  const allPosts = await getCollection(collectionName);
+  const allPosts = await getCollection(collectionName, ({ data }) => !data.draft);
   const compareByDateDesc = (a: BlogEntry, b: BlogEntry) =>
     new Date(b.data.date).getTime() - new Date(a.data.date).getTime();
 

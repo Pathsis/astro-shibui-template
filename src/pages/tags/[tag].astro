@@ -10,7 +10,7 @@ import { formatMonthDay, getDateYear } from "../../lib/date";
 
 export async function getStaticPaths() {
   // 只从中文文章中获取标签（这是默认语言的页面）
-  const postsZh = await getCollection("blog-zh");
+  const postsZh = await getCollection("blog-zh", ({ data }) => !data.draft);
 
   const tags = new Set<string>();
   postsZh.forEach((post) => {
@@ -29,7 +29,7 @@ const currentLang = Astro.currentLocale as "zh-cn" | "en" || "zh-cn";
 const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
 
 // 获取当前语言下该标签的文章
-const posts = (await getCollection(collectionName))
+const posts = (await getCollection(collectionName, ({ data }) => !data.draft))
   .filter((post) => post.data.tags?.includes(tag))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 

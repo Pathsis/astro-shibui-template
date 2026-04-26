@@ -17,8 +17,8 @@ const parser = new MarkdownIt();
 const socialImageVersionToken = createSocialImageVersionToken(getDefaultSocialImageVersionSeed());
 
 export async function getStaticPaths() {
-  const zhPosts = await getCollection("blog-zh");
-  const enPosts = await getCollection("blog-en");
+  const zhPosts = await getCollection("blog-zh", ({ data }) => !data.draft);
+  const enPosts = await getCollection("blog-en", ({ data }) => !data.draft);
   
   const categories = new Set();
   
@@ -39,7 +39,7 @@ export async function GET(context) {
   const { category } = context.params;
   const currentLang = 'en';
   
-  const posts = await getCollection('blog-en');
+  const posts = await getCollection('blog-en', ({ data }) => !data.draft);
   
   const categoryPosts = posts
     .filter((post) => post.data.categories?.includes(category))

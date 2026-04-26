@@ -18,7 +18,7 @@ const socialImageVersionToken = createSocialImageVersionToken(getDefaultSocialIm
 
 export async function GET(context) {
   const currentLang = 'zh-cn';
-  const posts = await getCollection('blog-zh');
+  const posts = await getCollection('blog-zh', ({ data }) => !data.draft);
   
   // 按日期排序，最新的在前
   const sortedPosts = posts.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());

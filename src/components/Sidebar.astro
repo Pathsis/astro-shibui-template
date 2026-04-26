@@ -24,7 +24,7 @@ const currentLang = lang || (Astro.currentLocale as "zh-cn" | "en") || "zh-cn";
 
 // 根据语言选择正确的 collection
 const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
-const allPosts = await getCollection(collectionName);
+const allPosts = await getCollection(collectionName, ({ data }) => !data.draft);
 type BlogEntry = CollectionEntry<"blog-zh"> | CollectionEntry<"blog-en">;
 
 // 获取相关阅读：优先使用 frontmatter.related，未命中时回退到首标签最新文章

@@ -56,8 +56,8 @@ function getPodcastAudioKey(slug: string, lang: "zh-cn" | "en"): string {
  */
 export async function getAllPodcastEpisodes(): Promise<PodcastEpisode[]> {
   const [zhPosts, enPosts] = await Promise.all([
-    getCollection("blog-zh"),
-    getCollection("blog-en"),
+    getCollection("blog-zh", ({ data }) => !data.draft),
+    getCollection("blog-en", ({ data }) => !data.draft),
   ]);
 
   const episodes: PodcastEpisode[] = [];
