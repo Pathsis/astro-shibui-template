@@ -27,13 +27,14 @@ const paginationVersion = getBuildVersionToken();
 const paginationSignature = page.data
   .map((post) => `${post.id}:${post.data.date.toISOString()}`)
   .join("|");
+const isFirstPage = page.currentPage === 1;
 ---
 
 <SingleColumnLayout
   title={siteConfig.title}
   description={description}
   isHome={true}
-  pageKind="home"
+  pageKind={isFirstPage ? "home" : "page"}
 >
   <Fragment slot="head">
     {page.url.next && (

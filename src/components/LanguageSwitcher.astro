@@ -5,7 +5,7 @@
  * 逻辑：
  * 1. 首页、Section页面、Taxonomy页面（标签列表）：始终显示
  * 2. 文章页：仅在存在翻译版本时显示
- * 3. Term页面（单个标签页）：不显示
+ * 3. Term页面（单个标签页）：仅在另一语言存在同名 term 时显示
  * 
  * 使用 Astro 原生 i18n API
  */
@@ -13,7 +13,7 @@ import { getLanguageSwitchHref } from "../lib/language-switch";
 
 interface Props {
   // 当前页面类型
-  pageKind: "home" | "section" | "taxonomy" | "term" | "article";
+  pageKind: "home" | "section" | "taxonomy" | "term" | "article" | "page";
   // 当前语言
   lang: "zh-cn" | "en";
   // 文章翻译信息（仅在 article 类型时需要）

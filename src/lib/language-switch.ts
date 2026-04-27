@@ -1,6 +1,6 @@
 import { getRelativeLocaleUrl } from "astro:i18n";
 
-export type SwitchablePageKind = "home" | "section" | "taxonomy" | "term" | "article";
+export type SwitchablePageKind = "home" | "section" | "taxonomy" | "term" | "article" | "page";
 export type SwitchableLang = "zh-cn" | "en";
 
 interface LanguageSwitchOptions {
@@ -38,7 +38,14 @@ export function getLanguageSwitchHref({
   }
 
   if (pageKind === "taxonomy") {
-    return getRelativeLocaleUrl(targetLang, "/tags/");
+    const pathWithoutLang = pathname.replace(/^\/en(?=\/|$)/, "") || "/";
+    return getRelativeLocaleUrl(targetLang, pathWithoutLang);
+  }
+
+  if (pageKind === "term") {
+    if (!hasTranslation) return undefined;
+    const pathWithoutLang = pathname.replace(/^\/en(?=\/|$)/, "") || "/";
+    return getRelativeLocaleUrl(targetLang, pathWithoutLang);
   }
 
   return undefined;

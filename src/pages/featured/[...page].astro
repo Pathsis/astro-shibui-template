@@ -34,6 +34,7 @@ const paginationVersion = getBuildVersionToken();
 const paginationSignature = page.data
   .map((post) => `${post.id}:${post.data.date.toISOString()}`)
   .join("|");
+const isFirstPage = page.currentPage === 1;
 const feedItems = await Promise.all(page.data.map(async (post, index) => {
   const postPath = getLocalizedBlogPathById(post.id, currentLang);
   const excerpt = truncateChars(
@@ -65,7 +66,7 @@ const feedItems = await Promise.all(page.data.map(async (post, index) => {
 <SingleColumnLayout
   title={pageTitle}
   description={pageDescription}
-  pageKind="section"
+  pageKind={isFirstPage ? "section" : "page"}
 >
   <Fragment slot="head">
     {page.url.next && (

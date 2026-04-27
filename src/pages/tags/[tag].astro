@@ -32,6 +32,8 @@ const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
 const posts = (await getCollection(collectionName, ({ data }) => !data.draft))
   .filter((post) => post.data.tags?.includes(tag))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const alternatePosts = await getCollection("blog-en", ({ data }) => !data.draft);
+const hasMatchingTag = alternatePosts.some((post) => post.data.tags?.includes(tag));
 
 // 按年份分组
 const postsByYear = posts.reduce((acc, post) => {
@@ -76,6 +78,7 @@ const podcastHint = currentLang === "en" ? " (Podcast available)" : "（可收�
   pageKind="term"
   image={featuredImage}
   lang={currentLang}
+  hasTranslation={hasMatchingTag}
 >
   <h1>{tagLabel}: {tag}</h1>
 
