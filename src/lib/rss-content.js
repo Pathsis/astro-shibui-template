@@ -3,6 +3,8 @@ import sanitizeHtml from "sanitize-html";
 
 const parser = new MarkdownIt();
 const alignmentTitles = new Set(["align-left", "align-right", "align-center", "full-bleed"]);
+const footnoteRefPrefix = "RSSFOOTNOTEREF";
+const footnoteRefSuffix = "END";
 
 parser.renderer.rules.image = function(tokens, idx) {
   const token = tokens[idx];
@@ -29,30 +31,113 @@ function renderFeedFigures(html) {
   );
 }
 
-export function stripFootnotesForFeed(markdown) {
+function trimBlankEdges(lines) {
+  const output = [...lines];
+  while (output.length > 0 && output[0].trim() === "") output.shift();
+  while (output.length > 0 && output[output.length - 1].trim() === "") output.pop();
+  return output;
+}
+
+export function extractFootnotesForFeed(markdown) {
   const lines = markdown.split(/\r?\n/);
-  const output = [];
-  let skippingFootnote = false;
+  const bodyLines = [];
+  const footnotes = [];
+  let currentFootnote = null;
 
   for (const line of lines) {
-    if (/^\[\^[^\]]+\]:/.test(line)) {
-      skippingFootnote = true;
+    const footnoteMatch = line.match(/^\[\^([^\]]+)\]:\s?(.*)$/);
+
+    if (footnoteMatch) {
+      currentFootnote = {
+        label: footnoteMatch[1],
+        lines: [footnoteMatch[2] || ""],
+      };
+      footnotes.push(currentFootnote);
       continue;
     }
 
-    if (skippingFootnote) {
-      if (line.trim() === "" || /^(?: {4}|\t)/.test(line)) continue;
-      skippingFootnote = false;
+    if (currentFootnote) {
+      if (line.trim() === "") {
+        currentFootnote.lines.push("");
+        continue;
+      }
+
+      if (/^(?: {4}|\t)/.test(line)) {
+        currentFootnote.lines.push(line.replace(/^(?: {4}|\t)/, ""));
+        continue;
+      }
+
+      currentFootnote = null;
     }
 
-    output.push(line);
+    bodyLines.push(line);
   }
 
-  return output.join("\n").replace(/\[\^[^\]]+\]/g, "");
+  return {
+    body: bodyLines.join("\n"),
+    footnotes: footnotes.map((footnote) => ({
+      label: footnote.label,
+      markdown: trimBlankEdges(footnote.lines).join("\n"),
+    })),
+  };
 }
 
-export function renderRssMarkdown(markdown) {
-  const htmlContent = renderFeedFigures(parser.render(stripFootnotesForFeed(markdown)));
+function prepareFeedFootnotes(markdown) {
+  const { body, footnotes } = extractFootnotesForFeed(markdown);
+  if (footnotes.length === 0) return { body, orderedFootnotes: [] };
+
+  const footnotesByLabel = new Map(footnotes.map((footnote) => [footnote.label, footnote]));
+  const orderedFootnotes = [];
+  const numbersByLabel = new Map();
+  const bodyWithRefs = body.replace(/\[\^([^\]]+)\]/g, (match, label) => {
+    if (!footnotesByLabel.has(label)) return match;
+
+    if (!numbersByLabel.has(label)) {
+      numbersByLabel.set(label, orderedFootnotes.length + 1);
+      orderedFootnotes.push(footnotesByLabel.get(label));
+    }
+
+    const number = numbersByLabel.get(label);
+    return `${footnoteRefPrefix}${number}${footnoteRefSuffix}`;
+  });
+
+  for (const footnote of footnotes) {
+    if (!numbersByLabel.has(footnote.label)) {
+      numbersByLabel.set(footnote.label, orderedFootnotes.length + 1);
+      orderedFootnotes.push(footnote);
+    }
+  }
+
+  return { body: bodyWithRefs, orderedFootnotes };
+}
+
+function renderFootnoteRefs(html) {
+  return html.replace(
+    new RegExp(`${footnoteRefPrefix}(\\d+)${footnoteRefSuffix}`, "g"),
+    (_match, number) => `<sup>[${number}]</sup>`,
+  );
+}
+
+function renderFootnoteList(footnotes, notesTitle) {
+  if (footnotes.length === 0) return "";
+
+  const items = footnotes
+    .map((footnote) => {
+      const html = renderFeedFigures(parser.render(footnote.markdown));
+      return `<li>${html}</li>`;
+    })
+    .join("");
+
+  return `<section><h2>${parser.utils.escapeHtml(notesTitle)}</h2><ol>${items}</ol></section>`;
+}
+
+export function renderRssMarkdown(markdown, options = {}) {
+  const { notesTitle = "Notes" } = options;
+  const { body, orderedFootnotes } = prepareFeedFootnotes(markdown);
+  const htmlContent = [
+    renderFootnoteRefs(renderFeedFigures(parser.render(body))),
+    renderFootnoteList(orderedFootnotes, notesTitle),
+  ].join("");
 
   return sanitizeHtml(htmlContent, {
     allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "figure", "figcaption"]),

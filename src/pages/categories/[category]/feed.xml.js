@@ -69,7 +69,7 @@ export async function GET(context) {
         });
       }
 
-      const sanitizedContent = renderRssMarkdown(post.body || '');
+      const sanitizedContent = renderRssMarkdown(post.body || '', { notesTitle: '注释' });
 
       const finalContent = coverUrl 
         ? `<img src="${coverUrl}" alt="${post.data.title}" /><br/>${sanitizedContent}`
