@@ -182,19 +182,8 @@ export const registerPodcastPlayerRuntime = function(runtimeInput) {
       }
     }
 
-    const isSwitchingEpisode = !(state.currentSlug === slug && isPlayerVisible);
-    const audio = getGlobalAudio();
-
-    if (isSwitchingEpisode) {
-      try {
-        audio.currentTime = 0;
-      } catch (e) {
-        // ignore
-      }
-    }
-    setAudioSrc(url);
-
     if (state.currentSlug === slug && isPlayerVisible) {
+      setAudioSrc(url);
       trackUmami(state.isPlaying ? 'podcast-pause' : 'podcast-play', {
         source: 'article',
         slug,
@@ -226,6 +215,7 @@ export const registerPodcastPlayerRuntime = function(runtimeInput) {
 
     trackUmami('podcast-play', { source: 'article', slug });
 
+    const audio = getGlobalAudio();
     const requestId = ++playRequestSeq;
     const finalizeStart = function() {
       if (requestId !== playRequestSeq) return;

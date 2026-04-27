@@ -12,6 +12,7 @@ const canPlayListeners = new Set<() => void>();
 const endedListeners = new Set<() => void>();
 const errorListeners = new Set<() => void>();
 const playListeners = new Set<() => void>();
+const playingListeners = new Set<() => void>();
 const pauseListeners = new Set<() => void>();
 const seekedListeners = new Set<() => void>();
 
@@ -70,6 +71,10 @@ export function getGlobalAudio(): HTMLAudioElement {
 
     globalAudio.addEventListener('play', () => {
       playListeners.forEach(cb => cb());
+    });
+
+    globalAudio.addEventListener('playing', () => {
+      playingListeners.forEach(cb => cb());
     });
 
     globalAudio.addEventListener('pause', () => {
@@ -137,7 +142,11 @@ export function playAudio(): Promise<void> {
   if (audio.preload !== 'auto') {
     audio.preload = 'auto';
   }
-  if (audio.readyState === HTMLMediaElement.HAVE_NOTHING && audio.src) {
+  if (
+    audio.readyState === HTMLMediaElement.HAVE_NOTHING &&
+    audio.networkState === HTMLMediaElement.NETWORK_EMPTY &&
+    audio.src
+  ) {
     audio.load();
   }
   return audio.play();
@@ -242,6 +251,14 @@ export function onError(callback: () => void): () => void {
 export function onPlay(callback: () => void): () => void {
   playListeners.add(callback);
   return () => playListeners.delete(callback);
+}
+
+/**
+ * 订阅真正开始播放事件
+ */
+export function onPlaying(callback: () => void): () => void {
+  playingListeners.add(callback);
+  return () => playingListeners.delete(callback);
 }
 
 /**

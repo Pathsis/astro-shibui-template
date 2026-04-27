@@ -31,6 +31,7 @@ import {
   onEnded,
   onError,
   onPlay,
+  onPlaying,
   onPause,
   onSeeked,
   getAudioError,
@@ -598,7 +599,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
 
     pendingSeekTime.current = savedTime;
     resumeSeekPendingRef.current = savedTime > 0 ? Date.now() : null;
-    setIsBuffering(getPlayIntent());
+    setIsBuffering(getPlayIntent() || state.isPlaying);
     const shouldEagerLoad = state.isPlaying || getPlayIntent();
     setCurrentEpisode(episode);
     setAudioSrc(episode.url, { eager: shouldEagerLoad });
@@ -688,7 +689,9 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     
     const unsubWaiting = onWaiting(() => setIsBuffering(true));
     const unsubCanPlay = onCanPlay(() => {
-      setIsBuffering(false);
+      if (!stateRef.current.isPlaying) {
+        setIsBuffering(false);
+      }
       // 缓冲成功后清除错误
       if (errorRef.current) setError(null);
       const lastSeek = lastSeekRef.current;
@@ -760,6 +763,10 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       setIsBuffering(false);
     });
     const unsubPlay = onPlay(() => {
+      // `play` fires when playback is requested, before data necessarily flows.
+      // Keep buffering visible until the stronger `playing` event.
+    });
+    const unsubPlaying = onPlaying(() => {
       setIsBuffering(false);
       applyLocalPlayerState({ isPlaying: true });
       if (!stateRef.current.isPlaying) {
@@ -795,6 +802,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       unsubEnded();
       unsubError();
       unsubPlay();
+      unsubPlaying();
       unsubPause();
       unsubSeeked();
     };
@@ -835,6 +843,13 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       return;
     }
 
+    if (state.currentSlug && (!currentEpisode || state.currentSlug !== currentEpisode.slug)) {
+      if (state.isPlaying) {
+        setIsBuffering(true);
+      }
+      return;
+    }
+
     if (state.isPlaying) {
       if (state.currentSlug && currentEpisode && state.currentSlug !== currentEpisode.slug) {
         return;
@@ -869,6 +884,10 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
         });
       }
     } else {
+      if (state.currentSlug && currentEpisode && state.currentSlug === currentEpisode.slug && getPlayIntent()) {
+        setIsBuffering(true);
+        return;
+      }
       // 暂停时清除播放意图
       setPlayIntent(false);
       setIsBuffering(false);
