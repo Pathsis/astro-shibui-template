@@ -14,12 +14,20 @@ parser.renderer.rules.image = function(tokens, idx) {
   const titleAttr = title && !alignmentTitles.has(title)
     ? ` title="${parser.utils.escapeHtml(title)}"`
     : "";
-  const image = `<img src="${escapedSrc}" alt="${escapedAlt}"${titleAttr}>`;
+  const captionAttr = alt ? ` data-rss-caption="${escapedAlt}"` : "";
 
-  if (!alt) return image;
-
-  return `${image}<br><em>${escapedAlt}</em>`;
+  return `<img src="${escapedSrc}" alt="${escapedAlt}"${titleAttr}${captionAttr}>`;
 };
+
+function renderFeedFigures(html) {
+  return html.replace(
+    /<p>\s*(<img\b(?=[^>]*\bdata-rss-caption="([^"]+)")[^>]*>)\s*<\/p>/g,
+    (_match, image, caption) => {
+      const cleanImage = image.replace(/\sdata-rss-caption="[^"]+"/, "");
+      return `<figure>${cleanImage}<figcaption>${caption}</figcaption></figure>`;
+    },
+  );
+}
 
 export function stripFootnotesForFeed(markdown) {
   const lines = markdown.split(/\r?\n/);
@@ -44,10 +52,10 @@ export function stripFootnotesForFeed(markdown) {
 }
 
 export function renderRssMarkdown(markdown) {
-  const htmlContent = parser.render(stripFootnotesForFeed(markdown));
+  const htmlContent = renderFeedFigures(parser.render(stripFootnotesForFeed(markdown)));
 
   return sanitizeHtml(htmlContent, {
-    allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img"]),
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "figure", "figcaption"]),
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
       img: ["src", "alt", "title"],
