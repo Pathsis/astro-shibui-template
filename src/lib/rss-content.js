@@ -2,6 +2,24 @@ import MarkdownIt from "markdown-it";
 import sanitizeHtml from "sanitize-html";
 
 const parser = new MarkdownIt();
+const alignmentTitles = new Set(["align-left", "align-right", "align-center", "full-bleed"]);
+
+parser.renderer.rules.image = function(tokens, idx) {
+  const token = tokens[idx];
+  const src = token.attrGet("src") || "";
+  const alt = (token.content || token.attrGet("alt") || "").trim();
+  const title = token.attrGet("title") || "";
+  const escapedSrc = parser.utils.escapeHtml(src);
+  const escapedAlt = parser.utils.escapeHtml(alt);
+  const titleAttr = title && !alignmentTitles.has(title)
+    ? ` title="${parser.utils.escapeHtml(title)}"`
+    : "";
+  const image = `<img src="${escapedSrc}" alt="${escapedAlt}"${titleAttr}>`;
+
+  if (!alt) return image;
+
+  return `${image}<br><em>${escapedAlt}</em>`;
+};
 
 export function stripFootnotesForFeed(markdown) {
   const lines = markdown.split(/\r?\n/);
