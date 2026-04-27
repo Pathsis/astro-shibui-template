@@ -1,10 +1,9 @@
 import rss from '@astrojs/rss';
 import { getCollection } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
-import sanitizeHtml from 'sanitize-html';
-import MarkdownIt from 'markdown-it';
 import { getLocalizedBlogPathById } from '../../lib/post-url';
 import { extractFirstImageFromMarkdown, normalizeImagePath } from '../../lib/image-path';
+import { renderRssMarkdown } from '../../lib/rss-content';
 import {
   createSocialImageVersionToken,
   getDefaultSocialImageVersionSeed,
@@ -13,7 +12,6 @@ import {
 import { formatRssDate } from '../../lib/date';
 import { siteConfig } from '@site-config';
 
-const parser = new MarkdownIt();
 const socialImageVersionToken = createSocialImageVersionToken(getDefaultSocialImageVersionSeed());
 
 export async function GET(context) {
@@ -55,14 +53,7 @@ export async function GET(context) {
         });
       }
 
-      const htmlContent = parser.render(post.body || '');
-      const sanitizedContent = sanitizeHtml(htmlContent, {
-        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img']),
-        allowedAttributes: {
-          ...sanitizeHtml.defaults.allowedAttributes,
-          img: ['src', 'alt', 'title']
-        }
-      });
+      const sanitizedContent = renderRssMarkdown(post.body || '');
 
       const finalContent = coverUrl 
         ? `<img src="${coverUrl}" alt="${post.data.title}" /><br/>${sanitizedContent}`
