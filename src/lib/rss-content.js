@@ -114,7 +114,7 @@ function prepareFeedFootnotes(markdown) {
 function renderFootnoteRefs(html) {
   return html.replace(
     new RegExp(`${footnoteRefPrefix}(\\d+)${footnoteRefSuffix}`, "g"),
-    (_match, number) => `<sup>[${number}]</sup>`,
+    (_match, number) => `[${number}]`,
   );
 }
 
@@ -122,13 +122,14 @@ function renderFootnoteList(footnotes, notesTitle) {
   if (footnotes.length === 0) return "";
 
   const items = footnotes
-    .map((footnote) => {
+    .map((footnote, index) => {
       const html = renderFeedFigures(parser.render(footnote.markdown));
-      return `<li>${html}</li>`;
+      const marker = `[${index + 1}] `;
+      return html.replace(/^<p>/, `<p>${marker}`);
     })
     .join("");
 
-  return `<section><h2>${parser.utils.escapeHtml(notesTitle)}</h2><ol>${items}</ol></section>`;
+  return `<hr><p><strong>${parser.utils.escapeHtml(notesTitle)}</strong></p>${items}`;
 }
 
 export function renderRssMarkdown(markdown, options = {}) {
