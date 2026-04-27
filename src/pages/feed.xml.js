@@ -53,7 +53,10 @@ export async function GET(context) {
         });
       }
 
-      const sanitizedContent = renderRssMarkdown(post.body || '', { notesTitle: '注释' });
+      const sanitizedContent = renderRssMarkdown(post.body || '', {
+        notesTitle: '注释',
+        footnoteIdPrefix: post.id,
+      });
 
       // 如果有封面图，将其添加到内容最前面
       const finalContent = coverUrl 

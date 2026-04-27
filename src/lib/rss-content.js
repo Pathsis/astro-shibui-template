@@ -111,40 +111,64 @@ function prepareFeedFootnotes(markdown) {
   return { body: bodyWithRefs, orderedFootnotes };
 }
 
-function renderFootnoteRefs(html) {
+function createFootnoteIdPrefix(value) {
+  const normalized = String(value || "rss")
+    .trim()
+    .replace(/[^A-Za-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || "rss";
+}
+
+function renderFootnoteRefs(html, idPrefix) {
   return html.replace(
     new RegExp(`${footnoteRefPrefix}(\\d+)${footnoteRefSuffix}`, "g"),
-    (_match, number) => `[${number}]`,
+    (_match, number) => {
+      const refId = `${idPrefix}-fnref-${number}`;
+      const noteId = `${idPrefix}-fn-${number}`;
+      return `<sup id="${refId}" role="doc-noteref"><a href="#${noteId}" rel="footnote">${number}</a></sup>`;
+    },
   );
 }
 
-function renderFootnoteList(footnotes, notesTitle) {
+function renderFootnoteList(footnotes, notesTitle, idPrefix) {
   if (footnotes.length === 0) return "";
 
   const items = footnotes
     .map((footnote, index) => {
+      const number = index + 1;
+      const refId = `${idPrefix}-fnref-${number}`;
+      const noteId = `${idPrefix}-fn-${number}`;
       const html = renderFeedFigures(parser.render(footnote.markdown));
-      const marker = `[${index + 1}] `;
-      return html.replace(/^<p>/, `<p>${marker}`);
+      const backlink = ` <a href="#${refId}" class="reversefootnote" role="doc-backlink">&#8617;</a>`;
+      const content = html.match(/<\/p>\s*$/)
+        ? html.replace(/<\/p>\s*$/, `${backlink}</p>`)
+        : `${html}${backlink}`;
+      return `<li id="${noteId}" role="doc-endnote">${content}</li>`;
     })
     .join("");
 
-  return `<hr><p><strong>${parser.utils.escapeHtml(notesTitle)}</strong></p>${items}`;
+  return `<div class="footnotes" role="doc-endnotes"><p><strong>${parser.utils.escapeHtml(notesTitle)}</strong></p><ol>${items}</ol></div>`;
 }
 
 export function renderRssMarkdown(markdown, options = {}) {
-  const { notesTitle = "Notes" } = options;
+  const { notesTitle = "Notes", footnoteIdPrefix } = options;
+  const idPrefix = createFootnoteIdPrefix(footnoteIdPrefix);
   const { body, orderedFootnotes } = prepareFeedFootnotes(markdown);
   const htmlContent = [
-    renderFootnoteRefs(renderFeedFigures(parser.render(body))),
-    renderFootnoteList(orderedFootnotes, notesTitle),
+    renderFootnoteRefs(renderFeedFigures(parser.render(body)), idPrefix),
+    renderFootnoteList(orderedFootnotes, notesTitle, idPrefix),
   ].join("");
 
   return sanitizeHtml(htmlContent, {
     allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "figure", "figcaption"]),
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
+      a: ["href", "name", "target", "rel", "class", "role"],
+      div: ["class", "role"],
       img: ["src", "alt", "title"],
+      li: ["id", "role"],
+      sup: ["id", "role"],
     },
   });
 }
