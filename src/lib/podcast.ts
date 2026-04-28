@@ -29,12 +29,12 @@ export function getPodcastEpisodeSlug(
   return lang === "en" ? `${slug}__en` : slug;
 }
 
-function resolvePodcastCoverImage(rawImage?: string): string | undefined {
+function resolvePodcastCoverImage(rawImage: string | undefined, pageUrl: URL): string | undefined {
   const normalized = normalizeImagePath(rawImage);
   if (!normalized) return undefined;
 
   const resolved = resolveSocialImage(normalized, {
-    pageUrl: PODCAST_IMAGE_CANONICAL,
+    pageUrl,
     source: "images",
   });
 
@@ -66,16 +66,18 @@ export async function getAllPodcastEpisodes(): Promise<PodcastEpisode[]> {
   for (const post of zhPosts) {
     if (post.data.podcast) {
       // 获取封面图片
+      const articleUrl = getRelativeLocaleUrl("zh-cn", getLocalizedBlogPathById(post.id, "zh-cn"));
+      const pageUrl = new URL(articleUrl, PODCAST_IMAGE_CANONICAL);
       let coverImage: string | undefined;
       if (post.data.images && post.data.images.length > 0) {
-        coverImage = resolvePodcastCoverImage(post.data.images[0]);
+        coverImage = resolvePodcastCoverImage(post.data.images[0], pageUrl);
       }
 
       episodes.push({
         slug: getPodcastEpisodeSlug(post.id, "zh-cn"),
         title: post.data.title,
         url: getPodcastUrl(post.id, "zh-cn"),
-        articleUrl: getRelativeLocaleUrl("zh-cn", getLocalizedBlogPathById(post.id, "zh-cn")),
+        articleUrl,
         date: post.data.date,
         lang: "zh-cn",
         description: post.data.description,
@@ -88,16 +90,18 @@ export async function getAllPodcastEpisodes(): Promise<PodcastEpisode[]> {
   for (const post of enPosts) {
     if (post.data.podcast) {
       // 获取封面图片
+      const articleUrl = getRelativeLocaleUrl("en", getLocalizedBlogPathById(post.id, "en"));
+      const pageUrl = new URL(articleUrl, PODCAST_IMAGE_CANONICAL);
       let coverImage: string | undefined;
       if (post.data.images && post.data.images.length > 0) {
-        coverImage = resolvePodcastCoverImage(post.data.images[0]);
+        coverImage = resolvePodcastCoverImage(post.data.images[0], pageUrl);
       }
 
       episodes.push({
         slug: getPodcastEpisodeSlug(post.id, "en"),
         title: post.data.title,
         url: getPodcastUrl(post.id, "en"),
-        articleUrl: getRelativeLocaleUrl("en", getLocalizedBlogPathById(post.id, "en")),
+        articleUrl,
         date: post.data.date,
         lang: "en",
         description: post.data.description,

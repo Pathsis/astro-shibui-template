@@ -624,6 +624,33 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       coverImage: episode.coverImage,
     });
   }, [state.currentSlug, state.playbackRate, episodes]);
+
+  useEffect(() => {
+    if (!currentEpisode) return;
+
+    const freshEpisode = episodes.find((episode) => episode.slug === currentEpisode.slug);
+    if (!freshEpisode) return;
+
+    const isFresh =
+      freshEpisode.title === currentEpisode.title &&
+      freshEpisode.url === currentEpisode.url &&
+      freshEpisode.articleUrl === currentEpisode.articleUrl &&
+      freshEpisode.description === currentEpisode.description &&
+      freshEpisode.coverImage === currentEpisode.coverImage;
+    if (isFresh) return;
+
+    setCurrentEpisode(freshEpisode);
+    saveCurrentEpisode({
+      slug: freshEpisode.slug,
+      title: freshEpisode.title,
+      url: freshEpisode.url,
+      articleUrl: freshEpisode.articleUrl,
+      date: freshEpisode.date.toISOString(),
+      lang: freshEpisode.lang,
+      description: freshEpisode.description,
+      coverImage: freshEpisode.coverImage,
+    });
+  }, [currentEpisode, episodes]);
   
   useEffect(() => {
     if (!isReady) return;
