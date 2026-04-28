@@ -26,7 +26,7 @@ function renderFeedFigures(html) {
     /<p>\s*(<img\b(?=[^>]*\bdata-rss-caption="([^"]+)")[^>]*>)\s*<\/p>/g,
     (_match, image, caption) => {
       const cleanImage = image.replace(/\sdata-rss-caption="[^"]+"/, "");
-      return `<figure>${cleanImage}<figcaption>${caption}</figcaption></figure>`;
+      return `<figure>${cleanImage}<br><em>${caption}</em></figure>`;
     },
   );
 }
@@ -161,7 +161,7 @@ export function renderRssMarkdown(markdown, options = {}) {
   ].join("");
 
   return sanitizeHtml(htmlContent, {
-    allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "figure", "figcaption"]),
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "figure"]),
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
       a: ["href", "name", "target", "rel", "class", "role"],
