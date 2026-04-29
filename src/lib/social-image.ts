@@ -34,6 +34,12 @@ function toGeneratedLocalSocialPath(localPathname: string, variantKey?: string) 
   return `/generated/social/${hash}.jpg`;
 }
 
+function toGeneratedLocalMediaArtworkPath(localPathname: string, variantKey?: string) {
+  const hashKey = getSocialImageHashKey(localPathname, variantKey);
+  const hash = createHash("sha1").update(hashKey).digest("hex").slice(0, 16);
+  return `/generated/media/${hash}.jpg`;
+}
+
 export function isRemoteSocialImage(rawImage: string): boolean {
   return REMOTE_IMAGE_RE.test(rawImage.trim());
 }
@@ -62,6 +68,15 @@ export function getGeneratedSocialImagePath(
   },
 ): string {
   return toGeneratedLocalSocialPath(rawImage, options?.variantKey);
+}
+
+export function getGeneratedMediaArtworkPath(
+  rawImage: string,
+  options?: {
+    variantKey?: string;
+  },
+): string {
+  return toGeneratedLocalMediaArtworkPath(rawImage, options?.variantKey);
 }
 
 export function resolveSocialImage(
@@ -128,4 +143,33 @@ export function resolveSocialImage(
   }
 
   return finalImage.toString();
+}
+
+export function resolveMediaArtwork(
+  rawImage: string,
+  options: {
+    pageUrl: URL;
+    publicDir?: string;
+  },
+): string {
+  const canonicalURL = options.pageUrl;
+  const variantKey = canonicalURL.pathname;
+  const variantToken = createSocialImageVariantToken(variantKey);
+  const generatedPath = getGeneratedMediaArtworkPath(rawImage, { variantKey });
+  const publicDir = options.publicDir ?? resolvePublicRoot();
+  const generatedFile = join(publicDir, generatedPath.slice(1));
+
+  if (existsSync(generatedFile)) {
+    const finalImage = new URL(generatedPath, canonicalURL);
+    if (variantToken) {
+      finalImage.searchParams.set("pv", variantToken);
+    }
+    return finalImage.toString();
+  }
+
+  return resolveSocialImage(rawImage, {
+    pageUrl: canonicalURL,
+    publicDir,
+    source: "images",
+  });
 }

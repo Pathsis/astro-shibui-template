@@ -103,8 +103,6 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   const playlistPanelRef = useRef<HTMLDivElement>(null);
   const coverImageRef = useRef<HTMLImageElement>(null);
   const lastCoverRotationRef = useRef<number | null>(null);
-  const mediaSquareArtworkUrlRef = useRef<string | null>(null);
-  const mediaBannerArtworkUrlRef = useRef<string | null>(null);
 
   // 从 localStorage 恢复状态
   const [state, setState] = useState<PlayerState>(() => {
@@ -133,29 +131,6 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     });
   }, []);
 
-  useEffect(() => {
-    return () => {
-      const squareUrl = mediaSquareArtworkUrlRef.current;
-      if (squareUrl) {
-        try {
-          URL.revokeObjectURL(squareUrl);
-        } catch {
-          // ignore
-        }
-        mediaSquareArtworkUrlRef.current = null;
-      }
-      const bannerUrl = mediaBannerArtworkUrlRef.current;
-      if (bannerUrl) {
-        try {
-          URL.revokeObjectURL(bannerUrl);
-        } catch {
-          // ignore
-        }
-        mediaBannerArtworkUrlRef.current = null;
-      }
-    };
-  }, []);
-  
   const [currentEpisode, setCurrentEpisode] = useState<PodcastEpisode | null>(() => {
     if (typeof window !== 'undefined') {
       const saved = getSavedEpisode();
@@ -169,6 +144,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
           lang: saved.lang,
           description: saved.description,
           coverImage: saved.coverImage,
+          mediaArtwork: saved.mediaArtwork,
         };
       }
     }
@@ -268,73 +244,6 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     }
     lastCoverRotationRef.current = angle;
     root.style.setProperty('--cover-rotation', `${angle}deg`);
-  }, []);
-
-  const createMediaSessionArtworkSrc = useCallback(async (coverSrc: string, width: number, height: number) => {
-    if (typeof window === 'undefined' || typeof document === 'undefined') return null;
-    if (!coverSrc) return null;
-
-    let absoluteSrc = coverSrc;
-    try {
-      absoluteSrc = new URL(coverSrc, window.location.href).href;
-    } catch {
-      // ignore URL resolution errors
-    }
-
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.decoding = 'async';
-    img.src = absoluteSrc;
-    try {
-      if (typeof (img as any).decode === 'function') {
-        await (img as any).decode();
-      } else {
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = () => reject(new Error('image load failed'));
-        });
-      }
-    } catch {
-      return null;
-    }
-
-    const iw = img.naturalWidth || img.width;
-    const ih = img.naturalHeight || img.height;
-    if (!iw || !ih) return null;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-
-    const targetRatio = width / height;
-    const imgRatio = iw / ih;
-    let sx = 0;
-    let sy = 0;
-    let sw = iw;
-    let sh = ih;
-    if (imgRatio > targetRatio) {
-      // Too wide: crop left/right.
-      sw = ih * targetRatio;
-      sx = (iw - sw) / 2;
-    } else {
-      // Too tall/square: crop top/bottom.
-      sh = iw / targetRatio;
-      sy = (ih - sh) / 2;
-    }
-
-    try {
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, width, height);
-    } catch {
-      return null;
-    }
-
-    try {
-      return canvas.toDataURL('image/jpeg', 0.92);
-    } catch {
-      return null;
-    }
   }, []);
 
   useEffect(() => {
@@ -668,6 +577,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       lang: episode.lang,
       description: episode.description,
       coverImage: episode.coverImage,
+      mediaArtwork: episode.mediaArtwork,
     });
   }, [state.currentSlug, state.playbackRate, episodes]);
 
@@ -682,7 +592,8 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       freshEpisode.url === currentEpisode.url &&
       freshEpisode.articleUrl === currentEpisode.articleUrl &&
       freshEpisode.description === currentEpisode.description &&
-      freshEpisode.coverImage === currentEpisode.coverImage;
+      freshEpisode.coverImage === currentEpisode.coverImage &&
+      freshEpisode.mediaArtwork === currentEpisode.mediaArtwork;
     if (isFresh) return;
 
     setCurrentEpisode(freshEpisode);
@@ -695,6 +606,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       lang: freshEpisode.lang,
       description: freshEpisode.description,
       coverImage: freshEpisode.coverImage,
+      mediaArtwork: freshEpisode.mediaArtwork,
     });
   }, [currentEpisode, episodes]);
   
@@ -980,26 +892,6 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   }, [state.playbackRate]);
 
   useEffect(() => {
-    // Revoke previous generated artwork to avoid memory leaks.
-    const prevSquare = mediaSquareArtworkUrlRef.current;
-    if (prevSquare) {
-      try {
-        URL.revokeObjectURL(prevSquare);
-      } catch {
-        // ignore
-      }
-      mediaSquareArtworkUrlRef.current = null;
-    }
-    const prevBanner = mediaBannerArtworkUrlRef.current;
-    if (prevBanner) {
-      try {
-        URL.revokeObjectURL(prevBanner);
-      } catch {
-        // ignore
-      }
-      mediaBannerArtworkUrlRef.current = null;
-    }
-
     if (!currentEpisode) {
       setMediaSessionMetadata(null);
       setMediaSessionPlaybackState('none');
@@ -1008,87 +900,39 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     const album = currentEpisode.lang === 'en' ? 'AI Podcast' : 'AI 播客';
     // Always provide a cover image; fallback to site logo when article has no images.
     const coverImage = currentEpisode.coverImage ?? siteConfig.images.podcastDefaultCover;
-    const coverType = coverImage?.endsWith('.png')
+    const squareImage = currentEpisode.mediaArtwork ?? coverImage;
+    const getArtworkType = (src: string | undefined) => src?.endsWith('.png')
       ? 'image/png'
-      : (coverImage?.endsWith('.webp') ? 'image/webp' : (coverImage?.endsWith('.jpg') || coverImage?.endsWith('.jpeg') ? 'image/jpeg' : undefined));
-    const squareArtwork = coverImage
-      ? [
-          { src: coverImage, sizes: '96x96', type: coverType },
-          { src: coverImage, sizes: '128x128', type: coverType },
-          { src: coverImage, sizes: '192x192', type: coverType },
-          { src: coverImage, sizes: '256x256', type: coverType },
-          { src: coverImage, sizes: '384x384', type: coverType },
-          { src: coverImage, sizes: '512x512', type: coverType },
-        ]
-      : undefined;
-    // Android media surfaces tend to prefer a landscape banner; iOS compact surfaces prefer square.
-    let cancelled = false;
+      : (src?.endsWith('.webp') ? 'image/webp' : (src?.endsWith('.jpg') || src?.endsWith('.jpeg') ? 'image/jpeg' : undefined));
     const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
     const isTouchMac = /Macintosh/i.test(ua) && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1;
     const preferBannerArtwork = /Android/i.test(ua);
     const preferSquareArtwork = /iPad|iPhone|iPod/i.test(ua) || isTouchMac;
-    const canGenerateArtwork = coverImage && !coverImage.endsWith('.svg');
-    const shouldGenerateArtwork = Boolean(canGenerateArtwork && (preferBannerArtwork || preferSquareArtwork));
+
+    const coverType = getArtworkType(coverImage);
+    const squareType = getArtworkType(squareImage);
+    const squareArtwork = squareImage
+      ? [
+          { src: squareImage, sizes: '1024x1024', type: squareType },
+          { src: squareImage, sizes: '512x512', type: squareType },
+          { src: squareImage, sizes: '384x384', type: squareType },
+          { src: squareImage, sizes: '256x256', type: squareType },
+        ]
+      : undefined;
+    const bannerArtwork = coverImage
+      ? [
+          { src: coverImage, sizes: '1200x630', type: coverType },
+          ...(squareArtwork ?? []),
+        ]
+      : squareArtwork;
+
     setMediaSessionMetadata({
       title: currentEpisode.title,
       artist: siteConfig.branding.podcastArtist,
       album,
-      artwork: shouldGenerateArtwork ? undefined : squareArtwork,
+      artwork: preferBannerArtwork && !preferSquareArtwork ? bannerArtwork : squareArtwork,
     });
-    if (preferBannerArtwork && canGenerateArtwork) {
-      (async () => {
-        const bannerSrc = await createMediaSessionArtworkSrc(coverImage, 1024, 576);
-        if (cancelled) return;
-        if (!bannerSrc) {
-          setMediaSessionMetadata({
-            title: currentEpisode.title,
-            artist: siteConfig.branding.podcastArtist,
-            album,
-            artwork: squareArtwork,
-          });
-          return;
-        }
-        mediaBannerArtworkUrlRef.current = bannerSrc;
-        setMediaSessionMetadata({
-          title: currentEpisode.title,
-          artist: siteConfig.branding.podcastArtist,
-          album,
-          artwork: [
-            { src: bannerSrc, sizes: '1024x576', type: 'image/jpeg' },
-            ...(squareArtwork ?? []),
-          ],
-        });
-      })();
-    } else if (preferSquareArtwork && canGenerateArtwork) {
-      (async () => {
-        const squareSrc = await createMediaSessionArtworkSrc(coverImage, 1024, 1024);
-        if (cancelled) return;
-        if (!squareSrc) {
-          setMediaSessionMetadata({
-            title: currentEpisode.title,
-            artist: siteConfig.branding.podcastArtist,
-            album,
-            artwork: squareArtwork,
-          });
-          return;
-        }
-        mediaSquareArtworkUrlRef.current = squareSrc;
-        setMediaSessionMetadata({
-          title: currentEpisode.title,
-          artist: siteConfig.branding.podcastArtist,
-          album,
-          artwork: [
-            { src: squareSrc, sizes: '1024x1024', type: 'image/jpeg' },
-            ...(squareArtwork ?? []),
-          ],
-        });
-      })();
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [currentEpisode?.slug, currentEpisode?.title, currentEpisode?.coverImage, currentEpisode?.lang, createMediaSessionArtworkSrc]);
+  }, [currentEpisode?.slug, currentEpisode?.title, currentEpisode?.coverImage, currentEpisode?.mediaArtwork, currentEpisode?.lang]);
 
   useEffect(() => {
     if (!currentEpisode) {
@@ -1600,6 +1444,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       lang: episode.lang,
       description: episode.description,
       coverImage: episode.coverImage,
+      mediaArtwork: episode.mediaArtwork,
     });
 
     updatePlayerState({

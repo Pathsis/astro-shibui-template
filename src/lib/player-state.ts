@@ -332,7 +332,7 @@ export function getEpisodeProgress(slug: string): { currentTime: number; duratio
 /**
  * 保存当前播放的 episode 信息
  */
-export function saveCurrentEpisode(episode: { slug: string; title: string; url: string; articleUrl: string; date: string; lang: string; description?: string; coverImage?: string }) {
+export function saveCurrentEpisode(episode: { slug: string; title: string; url: string; articleUrl: string; date: string; lang: string; description?: string; coverImage?: string; mediaArtwork?: string }) {
   if (typeof window === 'undefined') return;
   
   try {

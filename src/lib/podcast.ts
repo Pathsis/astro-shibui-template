@@ -2,7 +2,7 @@ import { getCollection } from "astro:content";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import { getLocalizedBlogPathById } from "./post-url";
 import { normalizeImagePath } from "./image-path";
-import { resolveSocialImage } from "./social-image";
+import { resolveMediaArtwork, resolveSocialImage } from "./social-image";
 import { siteConfig } from "@site-config";
 
 export interface PodcastEpisode {
@@ -14,6 +14,7 @@ export interface PodcastEpisode {
   lang: "zh-cn" | "en";
   description?: string;
   coverImage?: string;
+  mediaArtwork?: string;
 }
 
 const PODCAST_IMAGE_CANONICAL = new URL(siteConfig.siteUrl);
@@ -46,6 +47,19 @@ function resolvePodcastCoverImage(rawImage: string | undefined, pageUrl: URL): s
   return resolved;
 }
 
+function resolvePodcastMediaArtwork(rawImage: string | undefined, pageUrl: URL): string | undefined {
+  const normalized = normalizeImagePath(rawImage);
+  if (!normalized) return undefined;
+
+  const resolved = resolveMediaArtwork(normalized, { pageUrl });
+
+  const parsed = new URL(resolved);
+  if (parsed.origin === PODCAST_IMAGE_CANONICAL.origin) {
+    return `${parsed.pathname}${parsed.search}`;
+  }
+  return resolved;
+}
+
 function getPodcastAudioKey(slug: string, lang: "zh-cn" | "en"): string {
   if (lang === "en") return `${slug}.en`;
   return slug;
@@ -69,8 +83,10 @@ export async function getAllPodcastEpisodes(): Promise<PodcastEpisode[]> {
       const articleUrl = getRelativeLocaleUrl("zh-cn", getLocalizedBlogPathById(post.id, "zh-cn"));
       const pageUrl = new URL(articleUrl, PODCAST_IMAGE_CANONICAL);
       let coverImage: string | undefined;
+      let mediaArtwork: string | undefined;
       if (post.data.images && post.data.images.length > 0) {
         coverImage = resolvePodcastCoverImage(post.data.images[0], pageUrl);
+        mediaArtwork = resolvePodcastMediaArtwork(post.data.images[0], pageUrl);
       }
 
       episodes.push({
@@ -82,6 +98,7 @@ export async function getAllPodcastEpisodes(): Promise<PodcastEpisode[]> {
         lang: "zh-cn",
         description: post.data.description,
         coverImage,
+        mediaArtwork,
       });
     }
   }
@@ -93,8 +110,10 @@ export async function getAllPodcastEpisodes(): Promise<PodcastEpisode[]> {
       const articleUrl = getRelativeLocaleUrl("en", getLocalizedBlogPathById(post.id, "en"));
       const pageUrl = new URL(articleUrl, PODCAST_IMAGE_CANONICAL);
       let coverImage: string | undefined;
+      let mediaArtwork: string | undefined;
       if (post.data.images && post.data.images.length > 0) {
         coverImage = resolvePodcastCoverImage(post.data.images[0], pageUrl);
+        mediaArtwork = resolvePodcastMediaArtwork(post.data.images[0], pageUrl);
       }
 
       episodes.push({
@@ -106,6 +125,7 @@ export async function getAllPodcastEpisodes(): Promise<PodcastEpisode[]> {
         lang: "en",
         description: post.data.description,
         coverImage,
+        mediaArtwork,
       });
     }
   }
