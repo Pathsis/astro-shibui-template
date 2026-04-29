@@ -7,12 +7,6 @@ const LOCAL_TRANSFORMABLE_RE = /\.(?:avif|gif|jpe?g|png|webp|svg)$/i;
 const REMOTE_IMAGE_RE = /^(?:[a-z][a-z0-9+.-]*:)?\/\//i;
 
 export type SocialImageSource = "images" | "other";
-export type PodcastArtworkVariant = "square" | "banner";
-
-export interface PodcastArtworkSet {
-  square?: string;
-  banner?: string;
-}
 
 export function createSocialImageVersionToken(seed: string | undefined): string | undefined {
   if (!seed) return undefined;
@@ -38,16 +32,6 @@ function toGeneratedLocalSocialPath(localPathname: string, variantKey?: string) 
   const hashKey = getSocialImageHashKey(localPathname, variantKey);
   const hash = createHash("sha1").update(hashKey).digest("hex").slice(0, 16);
   return `/generated/social/${hash}.jpg`;
-}
-
-function toGeneratedPodcastArtworkPath(
-  rawImage: string,
-  variant: PodcastArtworkVariant,
-  variantKey?: string,
-) {
-  const hashKey = getSocialImageHashKey(rawImage, variantKey);
-  const hash = createHash("sha1").update(hashKey).digest("hex").slice(0, 16);
-  return `/generated/podcast-artwork/${variant}/${hash}.jpg`;
 }
 
 export function isRemoteSocialImage(rawImage: string): boolean {
@@ -78,48 +62,6 @@ export function getGeneratedSocialImagePath(
   },
 ): string {
   return toGeneratedLocalSocialPath(rawImage, options?.variantKey);
-}
-
-export function getGeneratedPodcastArtworkPath(
-  rawImage: string,
-  options: {
-    variant: PodcastArtworkVariant;
-    variantKey?: string;
-  },
-): string {
-  return toGeneratedPodcastArtworkPath(rawImage, options.variant, options.variantKey);
-}
-
-export function resolvePodcastArtwork(
-  rawImage: string,
-  options: {
-    pageUrl: URL;
-    publicDir?: string;
-  },
-): PodcastArtworkSet | undefined {
-  const canonicalURL = options.pageUrl;
-  const variantKey = canonicalURL.pathname;
-  const variantToken = createSocialImageVariantToken(variantKey);
-  const publicDir = options.publicDir ?? resolvePublicRoot();
-  const variants: PodcastArtworkVariant[] = ["square", "banner"];
-  const result: PodcastArtworkSet = {};
-
-  for (const variant of variants) {
-    const generatedPath = getGeneratedPodcastArtworkPath(rawImage, {
-      variant,
-      variantKey,
-    });
-    const generatedFile = join(publicDir, generatedPath.slice(1));
-    if (!existsSync(generatedFile)) continue;
-
-    const finalImage = new URL(generatedPath, canonicalURL);
-    if (variantToken) {
-      finalImage.searchParams.set("pv", variantToken);
-    }
-    result[variant] = finalImage.toString();
-  }
-
-  return result.square || result.banner ? result : undefined;
 }
 
 export function resolveSocialImage(
