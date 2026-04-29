@@ -103,6 +103,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   const playlistPanelRef = useRef<HTMLDivElement>(null);
   const coverImageRef = useRef<HTMLImageElement>(null);
   const lastCoverRotationRef = useRef<number | null>(null);
+  const mediaSquareArtworkUrlRef = useRef<string | null>(null);
   const mediaBannerArtworkUrlRef = useRef<string | null>(null);
 
   // 从 localStorage 恢复状态
@@ -134,6 +135,15 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
 
   useEffect(() => {
     return () => {
+      const squareUrl = mediaSquareArtworkUrlRef.current;
+      if (squareUrl) {
+        try {
+          URL.revokeObjectURL(squareUrl);
+        } catch {
+          // ignore
+        }
+        mediaSquareArtworkUrlRef.current = null;
+      }
       const bannerUrl = mediaBannerArtworkUrlRef.current;
       if (bannerUrl) {
         try {
@@ -260,7 +270,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     root.style.setProperty('--cover-rotation', `${angle}deg`);
   }, []);
 
-  const createMediaSessionBannerArtworkUrl = useCallback(async (coverSrc: string) => {
+  const createMediaSessionArtworkUrl = useCallback(async (coverSrc: string, width: number, height: number) => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return null;
     if (!coverSrc) return null;
 
@@ -292,10 +302,6 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     const ih = img.naturalHeight || img.height;
     if (!iw || !ih) return null;
 
-    // 16:9 banner works better for most mobile media UIs.
-    const width = 1024;
-    const height = 576;
-
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -318,11 +324,20 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       sy = (ih - sh) / 2;
     }
 
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, width, height);
+    try {
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, width, height);
+    } catch {
+      return null;
+    }
 
-    const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92);
-    });
+    let blob: Blob | null = null;
+    try {
+      blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92);
+      });
+    } catch {
+      return null;
+    }
     if (!blob) return null;
     return URL.createObjectURL(blob);
   }, []);
@@ -435,6 +450,22 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     if (pendingSeekRatio.current != null) pendingSeekRatio.current = null;
   }, [currentEpisode?.slug]);
 
+  const reconcilePlaybackFromAudio = useCallback(() => {
+    const audioActuallyPlaying = isPlaying();
+    if (audioActuallyPlaying === stateRef.current.isPlaying) return;
+
+    applyLocalPlayerState({ isPlaying: audioActuallyPlaying });
+    updatePlayerState({ isPlaying: audioActuallyPlaying });
+
+    if (!audioActuallyPlaying) {
+      if (stateRef.current.currentSlug) {
+        persistProgressSnapshot();
+      }
+      setIsBuffering(false);
+      setPlayIntent(false);
+    }
+  }, [applyLocalPlayerState, persistProgressSnapshot]);
+
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -488,6 +519,26 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       document.removeEventListener('astro:after-swap', handleAfterSwap);
     };
   }, [persistProgressSnapshot, syncCoverRotation]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    const reconcileWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        reconcilePlaybackFromAudio();
+      }
+    };
+
+    window.addEventListener('focus', reconcilePlaybackFromAudio);
+    window.addEventListener('pageshow', reconcilePlaybackFromAudio);
+    document.addEventListener('visibilitychange', reconcileWhenVisible);
+
+    return () => {
+      window.removeEventListener('focus', reconcilePlaybackFromAudio);
+      window.removeEventListener('pageshow', reconcilePlaybackFromAudio);
+      document.removeEventListener('visibilitychange', reconcileWhenVisible);
+    };
+  }, [reconcilePlaybackFromAudio]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -934,7 +985,16 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   }, [state.playbackRate]);
 
   useEffect(() => {
-    // Revoke previous generated banner artwork to avoid memory leaks.
+    // Revoke previous generated artwork to avoid memory leaks.
+    const prevSquare = mediaSquareArtworkUrlRef.current;
+    if (prevSquare) {
+      try {
+        URL.revokeObjectURL(prevSquare);
+      } catch {
+        // ignore
+      }
+      mediaSquareArtworkUrlRef.current = null;
+    }
     const prevBanner = mediaBannerArtworkUrlRef.current;
     if (prevBanner) {
       try {
@@ -973,15 +1033,16 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       artwork: squareArtwork,
     });
 
-    // Some mobile media UIs render a landscape artwork much nicer (similar to video cards).
-    // For Android Chrome, prefer providing a 16:9 banner, while keeping square as fallback.
+    // Android media surfaces tend to prefer a landscape banner; iOS compact surfaces prefer square.
     let cancelled = false;
     const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const isTouchMac = /Macintosh/i.test(ua) && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1;
     const preferBannerArtwork = /Android/i.test(ua);
-    const canGenerateBanner = coverImage && !coverImage.endsWith('.svg');
-    if (preferBannerArtwork && canGenerateBanner) {
+    const preferSquareArtwork = /iPad|iPhone|iPod/i.test(ua) || isTouchMac;
+    const canGenerateArtwork = coverImage && !coverImage.endsWith('.svg');
+    if (preferBannerArtwork && canGenerateArtwork) {
       (async () => {
-        const bannerUrl = await createMediaSessionBannerArtworkUrl(coverImage);
+        const bannerUrl = await createMediaSessionArtworkUrl(coverImage, 1024, 576);
         if (!bannerUrl) return;
         if (cancelled) {
           try {
@@ -1002,12 +1063,35 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
           ],
         });
       })();
+    } else if (preferSquareArtwork && canGenerateArtwork) {
+      (async () => {
+        const squareUrl = await createMediaSessionArtworkUrl(coverImage, 1024, 1024);
+        if (!squareUrl) return;
+        if (cancelled) {
+          try {
+            URL.revokeObjectURL(squareUrl);
+          } catch {
+            // ignore
+          }
+          return;
+        }
+        mediaSquareArtworkUrlRef.current = squareUrl;
+        setMediaSessionMetadata({
+          title: currentEpisode.title,
+          artist: siteConfig.branding.podcastArtist,
+          album,
+          artwork: [
+            { src: squareUrl, sizes: '1024x1024', type: 'image/jpeg' },
+            ...(squareArtwork ?? []),
+          ],
+        });
+      })();
     }
 
     return () => {
       cancelled = true;
     };
-  }, [currentEpisode?.slug, currentEpisode?.title, currentEpisode?.coverImage, currentEpisode?.lang, createMediaSessionBannerArtworkUrl]);
+  }, [currentEpisode?.slug, currentEpisode?.title, currentEpisode?.coverImage, currentEpisode?.lang, createMediaSessionArtworkUrl]);
 
   useEffect(() => {
     if (!currentEpisode) {
@@ -1180,13 +1264,57 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   useEffect(() => {
     bindMediaSessionHandlers({
       onPlay: () => {
-        if (!stateRef.current.currentSlug) return;
-        updatePlayerState({ isPlaying: true });
+        if (!stateRef.current.currentSlug || !currentEpisode) return;
+        setPlayIntent(true);
+        setHasEnded(false);
+        setPlaybackRate(stateRef.current.playbackRate);
+        setAudioSrc(currentEpisode.url);
+        setIsBuffering(true);
+        playAudio().then(() => {
+          if (!isPlaying()) {
+            setIsBuffering(false);
+            applyLocalPlayerState({ isPlaying: false });
+            updatePlayerState({ isPlaying: false });
+            setPlayIntent(false);
+            return;
+          }
+          setIsBuffering(false);
+          reconcilePlaybackFromAudio();
+          trackUmami('podcast-play', {
+            source: 'media-session',
+            slug: currentEpisode.slug,
+            lang: currentEpisode.lang,
+          });
+        }).catch(() => {
+          setIsBuffering(false);
+          applyLocalPlayerState({ isPlaying: false });
+          updatePlayerState({ isPlaying: false });
+          setPlayIntent(false);
+        });
       },
       onPause: () => {
+        if (stateRef.current.currentSlug) {
+          persistProgressSnapshot();
+        }
+        pauseAudio();
+        setPlayIntent(false);
+        setIsBuffering(false);
+        applyLocalPlayerState({ isPlaying: false });
         updatePlayerState({ isPlaying: false });
+        trackUmami('podcast-pause', {
+          source: 'media-session',
+          slug: currentEpisode?.slug ?? '',
+          lang: currentEpisode?.lang ?? '',
+        });
       },
       onStop: () => {
+        if (stateRef.current.currentSlug) {
+          persistProgressSnapshot();
+        }
+        pauseAudio();
+        setPlayIntent(false);
+        setIsBuffering(false);
+        applyLocalPlayerState({ isPlaying: false });
         updatePlayerState({ isPlaying: false });
       },
       onSeekTo: (time) => {
@@ -1200,7 +1328,13 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
         seekToTime(audio.currentTime + offset);
       },
     });
-  }, [seekToTime]);
+  }, [
+    applyLocalPlayerState,
+    currentEpisode,
+    persistProgressSnapshot,
+    reconcilePlaybackFromAudio,
+    seekToTime,
+  ]);
 
   const handleSeek = useCallback((e: InputTargetEvent) => {
     const rawValue = parseFloat(e.currentTarget.value);
