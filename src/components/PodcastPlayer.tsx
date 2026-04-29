@@ -270,7 +270,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     root.style.setProperty('--cover-rotation', `${angle}deg`);
   }, []);
 
-  const createMediaSessionArtworkUrl = useCallback(async (coverSrc: string, width: number, height: number) => {
+  const createMediaSessionArtworkSrc = useCallback(async (coverSrc: string, width: number, height: number) => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return null;
     if (!coverSrc) return null;
 
@@ -330,16 +330,11 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       return null;
     }
 
-    let blob: Blob | null = null;
     try {
-      blob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92);
-      });
+      return canvas.toDataURL('image/jpeg', 0.92);
     } catch {
       return null;
     }
-    if (!blob) return null;
-    return URL.createObjectURL(blob);
   }, []);
 
   useEffect(() => {
@@ -1026,13 +1021,6 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
           { src: coverImage, sizes: '512x512', type: coverType },
         ]
       : undefined;
-    setMediaSessionMetadata({
-      title: currentEpisode.title,
-      artist: siteConfig.branding.podcastArtist,
-      album,
-      artwork: squareArtwork,
-    });
-
     // Android media surfaces tend to prefer a landscape banner; iOS compact surfaces prefer square.
     let cancelled = false;
     const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
@@ -1040,48 +1028,57 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     const preferBannerArtwork = /Android/i.test(ua);
     const preferSquareArtwork = /iPad|iPhone|iPod/i.test(ua) || isTouchMac;
     const canGenerateArtwork = coverImage && !coverImage.endsWith('.svg');
+    const shouldGenerateArtwork = Boolean(canGenerateArtwork && (preferBannerArtwork || preferSquareArtwork));
+    setMediaSessionMetadata({
+      title: currentEpisode.title,
+      artist: siteConfig.branding.podcastArtist,
+      album,
+      artwork: shouldGenerateArtwork ? undefined : squareArtwork,
+    });
     if (preferBannerArtwork && canGenerateArtwork) {
       (async () => {
-        const bannerUrl = await createMediaSessionArtworkUrl(coverImage, 1024, 576);
-        if (!bannerUrl) return;
-        if (cancelled) {
-          try {
-            URL.revokeObjectURL(bannerUrl);
-          } catch {
-            // ignore
-          }
+        const bannerSrc = await createMediaSessionArtworkSrc(coverImage, 1024, 576);
+        if (cancelled) return;
+        if (!bannerSrc) {
+          setMediaSessionMetadata({
+            title: currentEpisode.title,
+            artist: siteConfig.branding.podcastArtist,
+            album,
+            artwork: squareArtwork,
+          });
           return;
         }
-        mediaBannerArtworkUrlRef.current = bannerUrl;
+        mediaBannerArtworkUrlRef.current = bannerSrc;
         setMediaSessionMetadata({
           title: currentEpisode.title,
           artist: siteConfig.branding.podcastArtist,
           album,
           artwork: [
-            { src: bannerUrl, sizes: '1024x576', type: 'image/jpeg' },
+            { src: bannerSrc, sizes: '1024x576', type: 'image/jpeg' },
             ...(squareArtwork ?? []),
           ],
         });
       })();
     } else if (preferSquareArtwork && canGenerateArtwork) {
       (async () => {
-        const squareUrl = await createMediaSessionArtworkUrl(coverImage, 1024, 1024);
-        if (!squareUrl) return;
-        if (cancelled) {
-          try {
-            URL.revokeObjectURL(squareUrl);
-          } catch {
-            // ignore
-          }
+        const squareSrc = await createMediaSessionArtworkSrc(coverImage, 1024, 1024);
+        if (cancelled) return;
+        if (!squareSrc) {
+          setMediaSessionMetadata({
+            title: currentEpisode.title,
+            artist: siteConfig.branding.podcastArtist,
+            album,
+            artwork: squareArtwork,
+          });
           return;
         }
-        mediaSquareArtworkUrlRef.current = squareUrl;
+        mediaSquareArtworkUrlRef.current = squareSrc;
         setMediaSessionMetadata({
           title: currentEpisode.title,
           artist: siteConfig.branding.podcastArtist,
           album,
           artwork: [
-            { src: squareUrl, sizes: '1024x1024', type: 'image/jpeg' },
+            { src: squareSrc, sizes: '1024x1024', type: 'image/jpeg' },
             ...(squareArtwork ?? []),
           ],
         });
@@ -1091,7 +1088,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     return () => {
       cancelled = true;
     };
-  }, [currentEpisode?.slug, currentEpisode?.title, currentEpisode?.coverImage, currentEpisode?.lang, createMediaSessionArtworkUrl]);
+  }, [currentEpisode?.slug, currentEpisode?.title, currentEpisode?.coverImage, currentEpisode?.lang, createMediaSessionArtworkSrc]);
 
   useEffect(() => {
     if (!currentEpisode) {
