@@ -450,6 +450,22 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     if (pendingSeekRatio.current != null) pendingSeekRatio.current = null;
   }, [currentEpisode?.slug]);
 
+  const reconcilePlaybackFromAudio = useCallback(() => {
+    const audioActuallyPlaying = isPlaying();
+    if (audioActuallyPlaying === stateRef.current.isPlaying) return;
+
+    applyLocalPlayerState({ isPlaying: audioActuallyPlaying });
+    updatePlayerState({ isPlaying: audioActuallyPlaying });
+
+    if (!audioActuallyPlaying) {
+      if (stateRef.current.currentSlug) {
+        persistProgressSnapshot();
+      }
+      setIsBuffering(false);
+      setPlayIntent(false);
+    }
+  }, [applyLocalPlayerState, persistProgressSnapshot]);
+
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -503,6 +519,26 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       document.removeEventListener('astro:after-swap', handleAfterSwap);
     };
   }, [persistProgressSnapshot, syncCoverRotation]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    const reconcileWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        reconcilePlaybackFromAudio();
+      }
+    };
+
+    window.addEventListener('focus', reconcilePlaybackFromAudio);
+    window.addEventListener('pageshow', reconcilePlaybackFromAudio);
+    document.addEventListener('visibilitychange', reconcileWhenVisible);
+
+    return () => {
+      window.removeEventListener('focus', reconcilePlaybackFromAudio);
+      window.removeEventListener('pageshow', reconcilePlaybackFromAudio);
+      document.removeEventListener('visibilitychange', reconcileWhenVisible);
+    };
+  }, [reconcilePlaybackFromAudio]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -1219,9 +1255,15 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
         setAudioSrc(currentEpisode.url);
         setIsBuffering(true);
         playAudio().then(() => {
+          if (!isPlaying()) {
+            setIsBuffering(false);
+            applyLocalPlayerState({ isPlaying: false });
+            updatePlayerState({ isPlaying: false });
+            setPlayIntent(false);
+            return;
+          }
           setIsBuffering(false);
-          applyLocalPlayerState({ isPlaying: true });
-          updatePlayerState({ isPlaying: true });
+          reconcilePlaybackFromAudio();
           trackUmami('podcast-play', {
             source: 'media-session',
             slug: currentEpisode.slug,
@@ -1274,6 +1316,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     applyLocalPlayerState,
     currentEpisode,
     persistProgressSnapshot,
+    reconcilePlaybackFromAudio,
     seekToTime,
   ]);
 
