@@ -1212,13 +1212,51 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   useEffect(() => {
     bindMediaSessionHandlers({
       onPlay: () => {
-        if (!stateRef.current.currentSlug) return;
-        updatePlayerState({ isPlaying: true });
+        if (!stateRef.current.currentSlug || !currentEpisode) return;
+        setPlayIntent(true);
+        setHasEnded(false);
+        setPlaybackRate(stateRef.current.playbackRate);
+        setAudioSrc(currentEpisode.url);
+        setIsBuffering(true);
+        playAudio().then(() => {
+          setIsBuffering(false);
+          applyLocalPlayerState({ isPlaying: true });
+          updatePlayerState({ isPlaying: true });
+          trackUmami('podcast-play', {
+            source: 'media-session',
+            slug: currentEpisode.slug,
+            lang: currentEpisode.lang,
+          });
+        }).catch(() => {
+          setIsBuffering(false);
+          applyLocalPlayerState({ isPlaying: false });
+          updatePlayerState({ isPlaying: false });
+          setPlayIntent(false);
+        });
       },
       onPause: () => {
+        if (stateRef.current.currentSlug) {
+          persistProgressSnapshot();
+        }
+        pauseAudio();
+        setPlayIntent(false);
+        setIsBuffering(false);
+        applyLocalPlayerState({ isPlaying: false });
         updatePlayerState({ isPlaying: false });
+        trackUmami('podcast-pause', {
+          source: 'media-session',
+          slug: currentEpisode?.slug ?? '',
+          lang: currentEpisode?.lang ?? '',
+        });
       },
       onStop: () => {
+        if (stateRef.current.currentSlug) {
+          persistProgressSnapshot();
+        }
+        pauseAudio();
+        setPlayIntent(false);
+        setIsBuffering(false);
+        applyLocalPlayerState({ isPlaying: false });
         updatePlayerState({ isPlaying: false });
       },
       onSeekTo: (time) => {
@@ -1232,7 +1270,12 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
         seekToTime(audio.currentTime + offset);
       },
     });
-  }, [seekToTime]);
+  }, [
+    applyLocalPlayerState,
+    currentEpisode,
+    persistProgressSnapshot,
+    seekToTime,
+  ]);
 
   const handleSeek = useCallback((e: InputTargetEvent) => {
     const rawValue = parseFloat(e.currentTarget.value);
