@@ -80,6 +80,20 @@ function formatPlaybackRateLabel(rate: number): string {
   return normalized;
 }
 
+function getImageTypeFromSrc(src: string | undefined): string | undefined {
+  if (!src) return undefined;
+  let pathname = src.split(/[?#]/)[0] || src;
+  try {
+    pathname = new URL(src, typeof window !== 'undefined' ? window.location.href : 'https://example.com').pathname;
+  } catch {
+    // keep the simple split fallback
+  }
+  if (pathname.endsWith('.png')) return 'image/png';
+  if (pathname.endsWith('.webp')) return 'image/webp';
+  if (pathname.endsWith('.jpg') || pathname.endsWith('.jpeg')) return 'image/jpeg';
+  return undefined;
+}
+
 export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMinimized, setIsMinimized] = useState(() => {
@@ -159,6 +173,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
           lang: saved.lang,
           description: saved.description,
           coverImage: saved.coverImage,
+          mediaArtwork: saved.mediaArtwork,
         };
       }
     }
@@ -622,6 +637,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       lang: episode.lang,
       description: episode.description,
       coverImage: episode.coverImage,
+      mediaArtwork: episode.mediaArtwork,
     });
   }, [state.currentSlug, state.playbackRate, episodes]);
 
@@ -636,7 +652,9 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       freshEpisode.url === currentEpisode.url &&
       freshEpisode.articleUrl === currentEpisode.articleUrl &&
       freshEpisode.description === currentEpisode.description &&
-      freshEpisode.coverImage === currentEpisode.coverImage;
+      freshEpisode.coverImage === currentEpisode.coverImage &&
+      freshEpisode.mediaArtwork?.square === currentEpisode.mediaArtwork?.square &&
+      freshEpisode.mediaArtwork?.banner === currentEpisode.mediaArtwork?.banner;
     if (isFresh) return;
 
     setCurrentEpisode(freshEpisode);
@@ -649,6 +667,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       lang: freshEpisode.lang,
       description: freshEpisode.description,
       coverImage: freshEpisode.coverImage,
+      mediaArtwork: freshEpisode.mediaArtwork,
     });
   }, [currentEpisode, episodes]);
   
@@ -953,32 +972,36 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     const album = currentEpisode.lang === 'en' ? 'AI Podcast' : 'AI 播客';
     // Always provide a cover image; fallback to site logo when article has no images.
     const coverImage = currentEpisode.coverImage ?? siteConfig.images.podcastDefaultCover;
-    const coverType = coverImage?.endsWith('.png')
-      ? 'image/png'
-      : (coverImage?.endsWith('.webp') ? 'image/webp' : (coverImage?.endsWith('.jpg') || coverImage?.endsWith('.jpeg') ? 'image/jpeg' : undefined));
-    const squareArtwork = coverImage
-      ? [
-          { src: coverImage, sizes: '96x96', type: coverType },
-          { src: coverImage, sizes: '128x128', type: coverType },
-          { src: coverImage, sizes: '192x192', type: coverType },
-          { src: coverImage, sizes: '256x256', type: coverType },
-          { src: coverImage, sizes: '384x384', type: coverType },
-          { src: coverImage, sizes: '512x512', type: coverType },
-        ]
-      : undefined;
+    const squareImage = currentEpisode.mediaArtwork?.square;
+    const bannerImage = currentEpisode.mediaArtwork?.banner;
+    const squareArtwork = squareImage
+      ? [{ src: squareImage, sizes: '1024x1024', type: getImageTypeFromSrc(squareImage) }]
+      : [];
+    const bannerArtwork = bannerImage
+      ? [{ src: bannerImage, sizes: '1024x576', type: getImageTypeFromSrc(bannerImage) }]
+      : [];
+    // Last-resort fallback: omit sizes when the source ratio is unknown, so we
+    // don't describe a landscape image as square.
+    const fallbackArtwork = coverImage
+      ? [{ src: coverImage, type: getImageTypeFromSrc(coverImage) }]
+      : [];
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const preferBannerArtwork = /Android/i.test(ua);
+    const mediaArtwork = preferBannerArtwork
+      ? [...bannerArtwork, ...squareArtwork, ...fallbackArtwork]
+      : [...squareArtwork, ...bannerArtwork, ...fallbackArtwork];
+
     setMediaSessionMetadata({
       title: currentEpisode.title,
       artist: siteConfig.branding.podcastArtist,
       album,
-      artwork: squareArtwork,
+      artwork: mediaArtwork,
     });
 
-    // Some mobile media UIs render a landscape artwork much nicer (similar to video cards).
-    // For Android Chrome, prefer providing a 16:9 banner, while keeping square as fallback.
+    // If build-time artwork is missing, keep the old Android-only runtime
+    // banner fallback so long media cards still have something landscape-ish.
     let cancelled = false;
-    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-    const preferBannerArtwork = /Android/i.test(ua);
-    const canGenerateBanner = coverImage && !coverImage.endsWith('.svg');
+    const canGenerateBanner = coverImage && !bannerImage && !coverImage.split(/[?#]/)[0]?.endsWith('.svg');
     if (preferBannerArtwork && canGenerateBanner) {
       (async () => {
         const bannerUrl = await createMediaSessionBannerArtworkUrl(coverImage);
@@ -998,7 +1021,8 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
           album,
           artwork: [
             { src: bannerUrl, sizes: '1024x576', type: 'image/jpeg' },
-            ...(squareArtwork ?? []),
+            ...squareArtwork,
+            ...fallbackArtwork,
           ],
         });
       })();
@@ -1007,7 +1031,15 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     return () => {
       cancelled = true;
     };
-  }, [currentEpisode?.slug, currentEpisode?.title, currentEpisode?.coverImage, currentEpisode?.lang, createMediaSessionBannerArtworkUrl]);
+  }, [
+    currentEpisode?.slug,
+    currentEpisode?.title,
+    currentEpisode?.coverImage,
+    currentEpisode?.mediaArtwork?.square,
+    currentEpisode?.mediaArtwork?.banner,
+    currentEpisode?.lang,
+    createMediaSessionBannerArtworkUrl,
+  ]);
 
   useEffect(() => {
     if (!currentEpisode) {
@@ -1469,6 +1501,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       lang: episode.lang,
       description: episode.description,
       coverImage: episode.coverImage,
+      mediaArtwork: episode.mediaArtwork,
     });
 
     updatePlayerState({
