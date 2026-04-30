@@ -1410,6 +1410,13 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   const selectEpisode = useCallback((episode: PodcastEpisode) => {
     if (currentEpisode?.slug === episode.slug) return;
 
+    if (stateRef.current.currentSlug) {
+      persistProgressSnapshot();
+    }
+    setPlayIntent(false);
+    setIsBuffering(false);
+    pauseAudio();
+
     trackUmami('podcast-episode-select', {
       source: 'playlist',
       slug: episode.slug,
@@ -1452,7 +1459,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       isPlaying: false,
       currentTime: startTime,
     });
-  }, [currentEpisode, state.playbackRate]);
+  }, [currentEpisode, state.playbackRate, persistProgressSnapshot]);
 
   const [episodeProgressMap, setEpisodeProgressMap] = useState<Record<string, { currentTime: number; duration: number }>>({});
 
