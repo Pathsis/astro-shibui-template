@@ -60,6 +60,8 @@ type ScrubStartEvent = (PointerEvent | TouchEvent) & {
   currentTarget: HTMLDivElement;
 };
 
+const SCRUB_ACTIVATION_THRESHOLD_PX = 3;
+
 function getPageLang(): PodcastEpisode['lang'] {
   if (typeof window === 'undefined') return 'zh-cn';
   const path = window.location.pathname;
@@ -193,6 +195,9 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   const tailSeekRef = useRef(false);
   const resumeOnSwapRef = useRef(false);
   const scrubRectRef = useRef<DOMRect | null>(null);
+  const scrubStartClientXRef = useRef<number | null>(null);
+  const scrubTrackingRef = useRef(false);
+  const scrubMovedRef = useRef(false);
   const playlistTouchStartYRef = useRef<number | null>(null);
 
   const updateTitleScroll = useCallback(() => {
@@ -1179,8 +1184,22 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
 
   const handleSeek = useCallback((e: InputTargetEvent) => {
     const rawValue = parseFloat(e.currentTarget.value);
-    seekToTime(rawValue);
-  }, [seekToTime]);
+    if (!Number.isFinite(rawValue)) return;
+    if (!scrubbingRef.current || !scrubMovedRef.current) return;
+    const duration = getDuration();
+    const safeDuration = Number.isFinite(duration) && duration > 0
+      ? duration
+      : (Number.isFinite(stateRef.current.duration) ? stateRef.current.duration : 0);
+    const time = safeDuration > 0
+      ? Math.min(Math.max(rawValue, 0), safeDuration)
+      : Math.max(rawValue, 0);
+    scrubValueRef.current = time;
+    setProgress(time);
+    setHasEnded(false);
+    if (safeDuration > 0) {
+      syncMediaSessionPosition(time, safeDuration);
+    }
+  }, [syncMediaSessionPosition]);
 
   const updateScrubFromClientX = useCallback((clientX: number) => {
     const rect = scrubRectRef.current;
@@ -1206,7 +1225,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   }, []);
 
   const handleScrubMove = useCallback((event: PointerEvent | TouchEvent) => {
-    if (!scrubbingRef.current) return;
+    if (!scrubTrackingRef.current) return;
     let clientX: number | undefined;
     if ('touches' in event) {
       const t = event.touches[0] ?? event.changedTouches[0];
@@ -1216,13 +1235,31 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       clientX = (event as PointerEvent).clientX;
     }
     if (typeof clientX !== 'number') return;
+    if (!scrubMovedRef.current) {
+      const startClientX = scrubStartClientXRef.current;
+      const movedEnough = typeof startClientX !== 'number'
+        || Math.abs(clientX - startClientX) >= SCRUB_ACTIVATION_THRESHOLD_PX;
+      if (!movedEnough) return;
+      if (isMinimized) return;
+      if (!scrubbingRef.current) {
+        scrubbingRef.current = true;
+        wasPlayingRef.current = stateRef.current.isPlaying;
+        setHasEnded(false);
+        setIsScrubbing(true);
+        if (wasPlayingRef.current) {
+          pauseAudio();
+          setPlayIntent(false);
+          updatePlayerState({ isPlaying: false });
+        }
+      }
+      scrubMovedRef.current = true;
+    }
     updateScrubFromClientX(clientX);
-  }, [updateScrubFromClientX]);
+  }, [isMinimized, updateScrubFromClientX]);
 
   const endScrub = useCallback(() => {
-    if (!scrubbingRef.current) return;
-    scrubbingRef.current = false;
-    setIsScrubbing(false);
+    if (!scrubTrackingRef.current) return;
+    scrubTrackingRef.current = false;
     window.removeEventListener('pointerup', endScrub);
     window.removeEventListener('pointercancel', endScrub);
     window.removeEventListener('pointermove', handleScrubMove);
@@ -1230,7 +1267,15 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     window.removeEventListener('touchcancel', endScrub);
     window.removeEventListener('touchmove', handleScrubMove as any);
     scrubRectRef.current = null;
-    if (scrubValueRef.current != null) {
+    scrubStartClientXRef.current = null;
+    if (!scrubbingRef.current) {
+      scrubMovedRef.current = false;
+      scrubValueRef.current = null;
+      return;
+    }
+    scrubbingRef.current = false;
+    setIsScrubbing(false);
+    if (scrubMovedRef.current && scrubValueRef.current != null) {
       const duration = getDuration();
       const safeDuration = Number.isFinite(duration) && duration > 0
         ? duration
@@ -1258,8 +1303,9 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
           syncMediaSessionPosition(clampedTime, safeDuration, { force: true });
         }
       }
-      scrubValueRef.current = null;
     }
+    scrubValueRef.current = null;
+    scrubMovedRef.current = false;
     if (tailSeekRef.current) {
       tailSeekRef.current = false;
     } else if (wasPlayingRef.current) {
@@ -1283,28 +1329,8 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     };
   }, [endScrub]);
 
-  const startScrub = useCallback(() => {
-    if (isMinimized) return false;
-    if (scrubbingRef.current) return false;
-    scrubbingRef.current = true;
-    wasPlayingRef.current = stateRef.current.isPlaying;
-    setHasEnded(false);
-    setIsScrubbing(true);
-    if (wasPlayingRef.current) {
-      pauseAudio();
-      setPlayIntent(false);
-      updatePlayerState({ isPlaying: false });
-    }
-    window.addEventListener('pointerup', endScrub);
-    window.addEventListener('pointercancel', endScrub);
-    window.addEventListener('pointermove', handleScrubMove);
-    window.addEventListener('touchend', endScrub);
-    window.addEventListener('touchcancel', endScrub);
-    window.addEventListener('touchmove', handleScrubMove as any, { passive: false });
-    return true;
-  }, [isMinimized, endScrub, handleScrubMove]);
-
   const handleSeekCommit = useCallback((e: InputTargetEvent) => {
+    if (!scrubbingRef.current || !scrubMovedRef.current) return;
     const rawValue = parseFloat(e.currentTarget.value);
     if (!Number.isFinite(rawValue)) return;
     const duration = getDuration();
@@ -1322,11 +1348,14 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   }, [state.duration]);
 
   const handleProgressStart = useCallback((event: ScrubStartEvent) => {
-    const started = startScrub();
-    if (!started) return;
+    if (isMinimized) return;
+    if (scrubTrackingRef.current) return;
     if ('touches' in event) {
       if (event.cancelable) event.preventDefault();
     }
+    scrubTrackingRef.current = true;
+    scrubMovedRef.current = false;
+    scrubValueRef.current = null;
     const preferredRect = progressWrapperRef.current?.getBoundingClientRect?.();
     const fallbackRect = event.currentTarget?.getBoundingClientRect?.();
     if (preferredRect && preferredRect.width > 0) {
@@ -1334,24 +1363,19 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     } else if (fallbackRect) {
       scrubRectRef.current = fallbackRect;
     }
-
-    const duration = getDuration();
-    const safeDuration = Number.isFinite(duration) && duration > 0
-      ? duration
-      : (Number.isFinite(stateRef.current.duration) ? stateRef.current.duration : 0);
     const clientX = 'touches' in event
       ? event.touches[0]?.clientX
       : event.clientX;
     if (typeof clientX === 'number') {
-      // Always update once on start so that “拖到 0”在移动端更容易触发。
-      updateScrubFromClientX(clientX);
-      // If metadata isn't ready yet, keep ratio in case we need to apply later.
-      if (safeDuration <= 0 && scrubRectRef.current?.width) {
-        const ratio = Math.min(Math.max((clientX - scrubRectRef.current.left) / scrubRectRef.current.width, 0), 1);
-        pendingSeekRatio.current = ratio;
-      }
+      scrubStartClientXRef.current = clientX;
     }
-  }, [startScrub, updateScrubFromClientX]);
+    window.addEventListener('pointerup', endScrub);
+    window.addEventListener('pointercancel', endScrub);
+    window.addEventListener('pointermove', handleScrubMove);
+    window.addEventListener('touchend', endScrub);
+    window.addEventListener('touchcancel', endScrub);
+    window.addEventListener('touchmove', handleScrubMove as any, { passive: false });
+  }, [endScrub, handleScrubMove, isMinimized]);
   
   const togglePlaybackRate = useCallback(() => {
     const rates = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
