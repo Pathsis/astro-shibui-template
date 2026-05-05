@@ -144,8 +144,9 @@
 
 .searchResultItem h1 {
   margin: 0 0 0.25rem 0;
+  font-family: var(--font-family-sans);
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .searchResultItem p {

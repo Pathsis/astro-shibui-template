@@ -8,7 +8,8 @@
 }
 
 .toc-title {
-  font-weight: bold;
+  font-family: var(--font-family-sans);
+  font-weight: 400;
   margin-bottom: var(--spacing-sm);
   color: var(--color-text-primary);
   font-size: var(--font-size-small);

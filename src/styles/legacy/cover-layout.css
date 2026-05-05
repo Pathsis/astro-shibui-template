@@ -122,7 +122,8 @@ body.menu-open-with-image .menu-toggle:hover span {
 }
 
 .cover-site-title a {
-  font-weight: bold;
+  font-family: var(--font-family-sans);
+  font-weight: 400;
   font-size: 1rem;
   text-decoration: none;
   border-bottom: none;

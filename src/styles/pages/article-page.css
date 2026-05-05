@@ -58,7 +58,8 @@ body[data-page-kind="article"] .gh-content .heading-anchor {
 .tldr-title {
   margin: 0 0 var(--spacing-sm) 0;
   font-size: 0.85em;
-  font-weight: 600;
+  font-family: var(--font-family-sans);
+  font-weight: 400;
   color: var(--color-text-primary);
   opacity: 0.7;
   text-transform: uppercase;
