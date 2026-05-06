@@ -5,7 +5,7 @@
  * 布局结构：
  * 1. Header - 顶部导航栏（Ghost Journal 风格）
  * 2. Main Layout - 主内容区域（626px 宽，居中）
- * 3. Footer - 页脚（版权 + 统计 + 构建信息）
+ * 3. Footer - 页脚（版权信息）
  *
  * 特点：
  * - 全站单栏设计
@@ -61,16 +61,6 @@ const currentLang = lang || (Astro.currentLocale as "zh-cn" | "en") || "zh-cn";
 // 封面图：保留用于社交媒体图片
 const socialImage = image;
 
-// 构建信息（按语言格式化时间）
-const rawBuildTime = process.env.BUILD_TIME as string | undefined;
-const parsedBuildTime = rawBuildTime ? new Date(rawBuildTime) : null;
-const buildTime = parsedBuildTime && !Number.isNaN(parsedBuildTime.valueOf())
-  ? formatDateTimeMinute(parsedBuildTime, currentLang)
-  : formatDateTimeMinute(new Date(), currentLang);
-
-const buildInfoText = currentLang === "en"
-  ? `Built at ${buildTime}`
-  : `构建于 ${buildTime}`;
 ---
 
 <BaseLayout
@@ -116,10 +106,7 @@ const buildInfoText = currentLang === "en"
   </div>
 
   <!-- 页脚 -->
-  <Footer
-    currentLang={currentLang}
-    buildInfoText={buildInfoText}
-  />
+  <Footer currentLang={currentLang} />
 </BaseLayout>
 
 <style>

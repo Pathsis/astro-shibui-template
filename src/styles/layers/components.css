@@ -206,12 +206,12 @@ html:lang(en) .time-list {
 .home-waterfall-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: 0;
   position: relative;
 }
 
 .home-waterfall-item {
-  padding-bottom: var(--spacing-sm);
+  padding-bottom: 0;
 }
 
 .home-waterfall-meta {
@@ -546,8 +546,8 @@ html:lang(en) .time-list {
   .home-waterfall-item {
     break-inside: avoid;
     page-break-inside: avoid;
-    padding-bottom: var(--spacing-sm);
-    margin-bottom: var(--spacing-sm);
+    padding-bottom: 0;
+    margin-bottom: 0;
   }
 }
 
@@ -587,19 +587,6 @@ html:lang(en) .time-list {
 .stats {
   color: var(--color-text-muted);
   font-size: var(--font-size-small);
-}
-
-.build-info {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-small);
-  font-family: var(--font-family-sans);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.build-info svg {
-  flex-shrink: 0;
 }
 
 .git-commit {

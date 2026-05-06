@@ -102,9 +102,6 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
     data-has-mermaid={hasMermaid ? "1" : "0"}
     data-notes-numbered={shouldNumberNotes ? "1" : "0"}
   >
-    <time datetime={post.data.date.toISOString()}>
-      {formatDateTimeMinute(post.data.date, currentLang)}
-    </time>
     <h1 class={`article-title-heading ${post.data.podcast ? "has-podcast" : ""}`}>
       {post.data.title}
       {post.data.podcast && <span class="sr-only">{podcastHint}</span>}
@@ -149,6 +146,10 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
     )}
 
     <Content />
+
+    <time class="article-meta-time" datetime={post.data.date.toISOString()}>
+      {formatDateTimeMinute(post.data.date)}
+    </time>
 
   </article>
 

@@ -43,6 +43,11 @@
   margin: 0;
 }
 
+.gh-content .article-meta-time {
+  margin-top: var(--spacing-lg);
+  margin-bottom: 0;
+}
+
 /* 标题锚点（当前 Markdown 会把标题文本包进该链接，必须保持可见） */
 body[data-page-kind="article"] .gh-content .heading-anchor {
   opacity: 1;

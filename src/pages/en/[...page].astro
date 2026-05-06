@@ -6,7 +6,6 @@ import type { GetStaticPaths, Page } from "astro";
 import { getLocalizedBlogPathById } from "../../lib/post-url";
 import { extractFirstParagraph, truncateChars } from "../../lib/excerpt";
 import { getBuildVersionToken } from "../../lib/build-version";
-import { formatDateTimeMinute } from "../../lib/date";
 import { siteConfig } from "@site-config";
 
 export const getStaticPaths: GetStaticPaths = async ({ paginate }) => {
@@ -56,11 +55,6 @@ const isFirstPage = page.currentPage === 1;
         );
         return (
           <article class="home-waterfall-item">
-            <header class="home-waterfall-meta">
-              <time datetime={post.data.date.toISOString()}>
-                {formatDateTimeMinute(post.data.date, "en")}
-              </time>
-            </header>
             <h2 class="home-waterfall-title">
               <a href={postUrl}>
                 {post.data.title}

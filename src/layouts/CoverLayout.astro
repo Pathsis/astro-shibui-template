@@ -99,19 +99,8 @@ const homeLinkHint = currentLang === "en"
   : "提示：点击站点名，第一次会返回上次展开与滚动位置，第二次才会重置分页。";
 
 
-// 构建信息（按语言格式化时间）
-const rawBuildTime = process.env.BUILD_TIME as string | undefined;
-const parsedBuildTime = rawBuildTime ? new Date(rawBuildTime) : null;
-const buildTime = parsedBuildTime && !Number.isNaN(parsedBuildTime.valueOf())
-  ? formatDateTimeMinute(parsedBuildTime, currentLang)
-  : formatDateTimeMinute(new Date(), currentLang);
-
 const commitSha = process.env.VERCEL_GIT_COMMIT_SHA;
 const commitMsg = process.env.VERCEL_GIT_COMMIT_MESSAGE;
-
-const buildInfoText = currentLang === "en"
-  ? `Built at ${buildTime}`
-  : `构建于 ${buildTime}`;
 ---
 
 <BaseLayout
@@ -182,9 +171,6 @@ const buildInfoText = currentLang === "en"
         <p set:html={copyrightHtml} />
         <div class="stats">
           {statsText}
-        </div>
-        <div class="build-info">
-          {buildInfoText}
         </div>
         {commitSha && commitMsg && (
           <div class="git-commit">
