@@ -463,7 +463,7 @@ export const registerPaginationRuntime = function(runtimeInput) {
   paginationApi.init = initPaginationRuntime;
 
   function bindHomeLinkResets() {
-    const siteNameLinks = document.querySelectorAll('.gh-head-logo.js-home-link, .gh-copyright .js-home-link, .cover-site-title a, header a[href="/"], header a[href="/en"]');
+    const siteNameLinks = document.querySelectorAll('.gh-head-logo.js-home-link, .gh-foot-copy .js-home-link, .gh-copyright .js-home-link, .cover-site-title a, header a[href="/"], header a[href="/en"]');
     siteNameLinks.forEach(function(link) {
       if (link.dataset.paginationResetBound) return;
       link.dataset.paginationResetBound = '1';
