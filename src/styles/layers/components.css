@@ -218,6 +218,10 @@
   border-bottom-color: var(--color-text-muted);
 }
 
+.home-waterfall-list > .home-waterfall-item:first-child .home-waterfall-title {
+  margin-top: 0;
+}
+
 .home-waterfall-desc {
   margin: 0;
   color: var(--color-text-muted);
