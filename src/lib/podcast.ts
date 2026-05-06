@@ -82,12 +82,9 @@ export async function getAllPodcastEpisodes(): Promise<PodcastEpisode[]> {
       // 获取封面图片
       const articleUrl = getRelativeLocaleUrl("zh-cn", getLocalizedBlogPathById(post.id, "zh-cn"));
       const pageUrl = new URL(articleUrl, PODCAST_IMAGE_CANONICAL);
-      let coverImage: string | undefined;
-      let mediaArtwork: string | undefined;
-      if (post.data.images && post.data.images.length > 0) {
-        coverImage = resolvePodcastCoverImage(post.data.images[0], pageUrl);
-        mediaArtwork = resolvePodcastMediaArtwork(post.data.images[0], pageUrl);
-      }
+      const rawCoverImage = post.data.images?.[0] ?? siteConfig.images.podcastDefaultCover;
+      const coverImage = resolvePodcastCoverImage(rawCoverImage, pageUrl);
+      const mediaArtwork = resolvePodcastMediaArtwork(rawCoverImage, pageUrl);
 
       episodes.push({
         slug: getPodcastEpisodeSlug(post.id, "zh-cn"),
@@ -109,12 +106,9 @@ export async function getAllPodcastEpisodes(): Promise<PodcastEpisode[]> {
       // 获取封面图片
       const articleUrl = getRelativeLocaleUrl("en", getLocalizedBlogPathById(post.id, "en"));
       const pageUrl = new URL(articleUrl, PODCAST_IMAGE_CANONICAL);
-      let coverImage: string | undefined;
-      let mediaArtwork: string | undefined;
-      if (post.data.images && post.data.images.length > 0) {
-        coverImage = resolvePodcastCoverImage(post.data.images[0], pageUrl);
-        mediaArtwork = resolvePodcastMediaArtwork(post.data.images[0], pageUrl);
-      }
+      const rawCoverImage = post.data.images?.[0] ?? siteConfig.images.podcastDefaultCover;
+      const coverImage = resolvePodcastCoverImage(rawCoverImage, pageUrl);
+      const mediaArtwork = resolvePodcastMediaArtwork(rawCoverImage, pageUrl);
 
       episodes.push({
         slug: getPodcastEpisodeSlug(post.id, "en"),
