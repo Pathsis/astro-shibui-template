@@ -12,6 +12,7 @@ const libRoot = existsSync(LIB_ROOT) ? LIB_ROOT : TEMPLATE_LIB_ROOT;
 const imagePathLib = await import(pathToFileURL(path.join(libRoot, "image-path.ts")).href);
 const publicRootLib = await import(pathToFileURL(path.join(libRoot, "public-root.ts")).href);
 const socialImageLib = await import(pathToFileURL(path.join(libRoot, "social-image.ts")).href);
+const siteConfigModule = await import(pathToFileURL(path.join(ROOT, "site.config.js")).href);
 const {
   extractFirstImageFromMarkdown,
   normalizeImagePath,
@@ -30,6 +31,10 @@ const PUBLIC_DIR = resolvePublicRoot(ROOT);
 const SOCIAL_OUTPUT_DIR = path.join(PUBLIC_DIR, "generated/social");
 const MEDIA_OUTPUT_DIR = path.join(PUBLIC_DIR, "generated/media");
 const IMAGE_EXT = /\.(?:avif|gif|jpe?g|png|webp|svg)$/i;
+const PODCAST_DEFAULT_COVER = normalizeImagePath(
+  siteConfigModule?.siteConfig?.images?.podcastDefaultCover,
+);
+const JPEG_BACKGROUND = { r: 250, g: 249, b: 245 };
 
 function normalizeLocalImagePath(input: string): string {
   const [withoutQuery] = input.trim().split(/[?#]/);
@@ -82,13 +87,17 @@ function getPagePathForMarkdown(filePath: string): string | undefined {
   return isEnglish ? `/en/blog/${id}/` : `/blog/${id}/`;
 }
 
-function extractPrimaryImage(fileContent: string): string | undefined {
+function extractEntryImage(fileContent: string): { image?: string; podcast: boolean } {
   const { data, content } = matter(fileContent);
+  const podcast = data?.podcast === true;
   if (Array.isArray(data.images) && typeof data.images[0] === "string") {
-    return normalizeImagePath(data.images[0]);
+    return { image: normalizeImagePath(data.images[0]), podcast };
   }
 
-  return extractFirstImageFromMarkdown(content);
+  return {
+    image: extractFirstImageFromMarkdown(content),
+    podcast,
+  };
 }
 
 async function readImageInput(imageRef: string): Promise<Buffer | string | null> {
@@ -131,6 +140,7 @@ async function generateSocial(imageRef: string, pagePath?: string): Promise<"gen
       position: "attention",
       withoutEnlargement: false,
     })
+    .flatten({ background: JPEG_BACKGROUND })
     .jpeg({ quality: 82, mozjpeg: true })
     .toFile(outputPath);
 
@@ -154,6 +164,7 @@ async function generateMediaArtwork(imageRef: string, pagePath?: string): Promis
       position: "attention",
       withoutEnlargement: false,
     })
+    .flatten({ background: JPEG_BACKGROUND })
     .jpeg({ quality: 86, mozjpeg: true })
     .toFile(outputPath);
 
@@ -173,12 +184,15 @@ async function main() {
   const socialImages = new Map<string, { imageRef: string; pagePath?: string }>();
   for (const filePath of markdownFiles) {
     const content = await readFile(filePath, "utf8");
-    const image = extractPrimaryImage(content);
-    if (!image) continue;
-    if (!isRemoteSocialImage(image) && !IMAGE_EXT.test(image.split(/[?#]/)[0] || image)) continue;
     const pagePath = getPagePathForMarkdown(filePath);
-    const key = `${pagePath || ""}::${image}`;
-    socialImages.set(key, { imageRef: image, pagePath });
+    const { image, podcast } = extractEntryImage(content);
+    const fallbackImage = podcast ? PODCAST_DEFAULT_COVER : undefined;
+    const selectedImage = image ?? fallbackImage;
+    if (!selectedImage) continue;
+    if (!pagePath) continue;
+    if (!isRemoteSocialImage(selectedImage) && !IMAGE_EXT.test(selectedImage.split(/[?#]/)[0] || selectedImage)) continue;
+    const key = `${pagePath}::${selectedImage}`;
+    socialImages.set(key, { imageRef: selectedImage, pagePath });
   }
 
   let socialGenerated = 0;

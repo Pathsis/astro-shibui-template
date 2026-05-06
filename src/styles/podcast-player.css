@@ -13,6 +13,8 @@
   --player-pad-y: 12px;
   --player-pad-x: 20px;
   --player-cover-size: 40px;
+  --player-cover-border-color: light-dark(rgba(0, 0, 0, 0.28), rgba(255, 255, 255, 0.38));
+  --player-cover-border-color-hover: light-dark(rgba(0, 0, 0, 0.42), rgba(255, 255, 255, 0.56));
 }
 
 /* 最小化状态 - 右下角圆圈，位置与展开时对齐 */
@@ -83,10 +85,12 @@
   width: var(--player-cover-size);
   height: var(--player-cover-size);
   border-radius: 50%;
+  border: 1px solid var(--player-cover-border-color);
+  background: var(--color-bg-secondary);
   overflow: hidden;
   flex-shrink: 0;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   position: relative;
   /* 使用 order 将封面移到最右边 */
   order: 999;
@@ -95,6 +99,7 @@
 
 .player-cover:hover {
   transform: scale(1.05);
+  border-color: var(--player-cover-border-color-hover);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
