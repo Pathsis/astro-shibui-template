@@ -1,3 +1,5 @@
+import { navigate } from 'astro:transitions/client';
+
 export const installOutboundLinkTracking = function(runtime, trackUmami) {
   if (runtime.flags.outboundTrackingInstalled) return;
   runtime.flags.outboundTrackingInstalled = true;
@@ -145,6 +147,24 @@ export const installSearchShortcut = function(runtime) {
   const getBlogPath = function() {
     return window.location.pathname.startsWith('/en/') ? '/en/blog/' : '/blog/';
   };
+  const navigateTo = function(pathname) {
+    try {
+      if (typeof navigate === 'function') {
+        navigate(pathname);
+        return;
+      }
+    } catch (e) {
+      // fallback below
+    }
+    window.location.href = pathname;
+  };
+  const isEditableTarget = function(target) {
+    if (!(target instanceof Element)) return false;
+    if (target.closest('input, textarea, select')) return true;
+    if (target.closest('[role="textbox"]')) return true;
+    if (target.closest('[contenteditable], [contenteditable="true"], [contenteditable="plaintext-only"]')) return true;
+    return false;
+  };
   const focusExistingInput = function() {
     const input = document.querySelector("input[data-search-input='true']");
     if (!(input instanceof HTMLInputElement)) return false;
@@ -190,6 +210,7 @@ export const installSearchShortcut = function(runtime) {
     const isK = String(event.key || '').toLowerCase() === 'k';
     if (!isK || !(event.metaKey || event.ctrlKey)) return;
     if (event.isComposing) return;
+    if (isEditableTarget(event.target)) return;
     event.preventDefault();
 
     const target = normalizePath(getBlogPath());
@@ -202,7 +223,7 @@ export const installSearchShortcut = function(runtime) {
     }
 
     markPendingFocus();
-    window.location.href = target;
+    navigateTo(target);
   });
 };
 

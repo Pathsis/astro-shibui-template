@@ -35,6 +35,19 @@ const PODCAST_DEFAULT_COVER = normalizeImagePath(
   siteConfigModule?.siteConfig?.images?.podcastDefaultCover,
 );
 const JPEG_BACKGROUND = { r: 250, g: 249, b: 245 };
+function parseNonNegativeNumber(raw: string | undefined, fallback: number): number {
+  if (typeof raw !== "string") return fallback;
+  const normalized = raw.trim();
+  if (!normalized) return fallback;
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+  return parsed;
+}
+const REMOTE_FETCH_TIMEOUT_MS = parseNonNegativeNumber(process.env.SOCIAL_IMAGE_FETCH_TIMEOUT_MS, 12000);
+const REMOTE_IMAGE_REVALIDATE_MS = parseNonNegativeNumber(
+  process.env.SOCIAL_IMAGE_REMOTE_TTL_MS,
+  24 * 60 * 60 * 1000,
+);
 
 function normalizeLocalImagePath(input: string): string {
   const [withoutQuery] = input.trim().split(/[?#]/);
@@ -102,10 +115,21 @@ function extractEntryImage(fileContent: string): { image?: string; podcast: bool
 
 async function readImageInput(imageRef: string): Promise<Buffer | string | null> {
   if (isRemoteSocialImage(imageRef)) {
-    const response = await fetch(imageRef);
-    if (!response.ok) return null;
-    const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), Math.max(1000, REMOTE_FETCH_TIMEOUT_MS));
+    try {
+      const response = await fetch(imageRef, {
+        signal: controller.signal,
+        redirect: "follow",
+      });
+      if (!response.ok) return null;
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   const sourcePath = resolveSourcePath(imageRef);
@@ -115,7 +139,12 @@ async function readImageInput(imageRef: string): Promise<Buffer | string | null>
 
 async function isGeneratedCurrent(outputPath: string, imageRef: string): Promise<boolean> {
   if (!existsSync(outputPath)) return false;
-  if (isRemoteSocialImage(imageRef)) return true;
+  if (isRemoteSocialImage(imageRef)) {
+    const outputStat = await stat(outputPath);
+    const maxAge = Math.max(0, REMOTE_IMAGE_REVALIDATE_MS);
+    if (maxAge === 0) return false;
+    return Date.now() - outputStat.mtimeMs < maxAge;
+  }
 
   const sourcePath = resolveSourcePath(imageRef);
   if (!existsSync(sourcePath)) return true;
@@ -184,10 +213,10 @@ async function main() {
   const socialImages = new Map<string, { imageRef: string; pagePath?: string }>();
   for (const filePath of markdownFiles) {
     const content = await readFile(filePath, "utf8");
-    const pagePath = getPagePathForMarkdown(filePath);
     const { image, podcast } = extractEntryImage(content);
     const fallbackImage = podcast ? PODCAST_DEFAULT_COVER : undefined;
     const selectedImage = image ?? fallbackImage;
+    const pagePath = getPagePathForMarkdown(filePath);
     if (!selectedImage) continue;
     if (!pagePath) continue;
     if (!isRemoteSocialImage(selectedImage) && !IMAGE_EXT.test(selectedImage.split(/[?#]/)[0] || selectedImage)) continue;

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "preact/hooks";
 import { liteClient } from "algoliasearch/lite";
+import { navigate } from "astro:transitions/client";
 
 interface Props {
   lang: "zh-cn" | "en";
@@ -59,6 +60,19 @@ export default function SearchWidget({ lang, appId, searchKey, indexName }: Prop
   const widgetRef = useRef<HTMLDivElement>(null);
   const restoreFocusedIndexRef = useRef<number | null>(null);
   const restoreScrollTopRef = useRef<number | null>(null);
+  const latestSearchRequestRef = useRef(0);
+  const navigateToSearchResult = useCallback((url: string) => {
+    try {
+      const resolved = new URL(url, window.location.href);
+      if (resolved.origin === window.location.origin && typeof navigate === "function") {
+        navigate(`${resolved.pathname}${resolved.search}${resolved.hash}`);
+        return;
+      }
+      window.location.href = resolved.href;
+    } catch {
+      window.location.href = url;
+    }
+  }, []);
 
   const detectShortcutPrimaryKey = useCallback(() => {
     if (typeof navigator === "undefined") return "Ctrl";
@@ -90,10 +104,12 @@ export default function SearchWidget({ lang, appId, searchKey, indexName }: Prop
 
   // 防抖搜索
   const debouncedSearch = useCallback(
-    debounce(async (searchQuery: string) => {
+    debounce(async (searchQuery: string, requestId: number) => {
       if (!searchQuery.trim()) {
-        setResults([]);
-        setIsLoading(false);
+        if (requestId === latestSearchRequestRef.current) {
+          setResults([]);
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -124,19 +140,26 @@ export default function SearchWidget({ lang, appId, searchKey, indexName }: Prop
           index === self.findIndex((candidate: SearchHit) => candidate.objectID === hit.objectID)
         );
 
+        if (requestId !== latestSearchRequestRef.current) return;
         setResults(uniqueHits);
         setFocusedIndex(-1);
         setShowResults(true);
       } catch (err) {
-        console.error("Search error:", err);
+        if (requestId === latestSearchRequestRef.current) {
+          console.error("Search error:", err);
+        }
       } finally {
-        setIsLoading(false);
+        if (requestId === latestSearchRequestRef.current) {
+          setIsLoading(false);
+        }
       }
     }, 300),
     [lang, client, indexName]
   );
 
   const performSearch = (searchQuery: string) => {
+    const requestId = latestSearchRequestRef.current + 1;
+    latestSearchRequestRef.current = requestId;
     if (!searchQuery.trim()) {
       setResults([]);
       setShowResults(false);
@@ -144,7 +167,7 @@ export default function SearchWidget({ lang, appId, searchKey, indexName }: Prop
       return;
     }
     setIsLoading(true);
-    debouncedSearch(searchQuery);
+    debouncedSearch(searchQuery, requestId);
   };
 
   const persistReturnSearchState = useCallback((nextFocusedIndex?: number) => {
@@ -186,8 +209,10 @@ export default function SearchWidget({ lang, appId, searchKey, indexName }: Prop
       if (!isComposingRef.current && value.trim()) {
         // 不在这里搜索，等待 debounce 或 compositionEnd
       } else if (!value.trim()) {
+        latestSearchRequestRef.current += 1;
         setResults([]);
         setShowResults(false);
+        setIsLoading(false);
       }
     };
 
@@ -394,7 +419,7 @@ export default function SearchWidget({ lang, appId, searchKey, indexName }: Prop
         e.preventDefault();
         if (!isComposingRef.current && focusedIndex >= 0 && results[focusedIndex]) {
           persistReturnSearchState(focusedIndex);
-          window.location.href = results[focusedIndex].url;
+          navigateToSearchResult(results[focusedIndex].url);
         }
         break;
       case "ArrowDown":
@@ -413,9 +438,11 @@ export default function SearchWidget({ lang, appId, searchKey, indexName }: Prop
   };
 
 const clearSearch = () => {
+  latestSearchRequestRef.current += 1;
   setQuery("");
   setResults([]);
   setShowResults(false);
+  setIsLoading(false);
   inputRef.current?.focus();
 };
 
