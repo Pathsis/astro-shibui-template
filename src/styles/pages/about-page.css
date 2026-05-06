@@ -61,8 +61,3 @@
   margin-top: var(--spacing-xs);
   margin-bottom: var(--spacing-xs);
 }
-
-.about-page-content time {
-  font-family: var(--font-family-sans);
-  color: var(--color-text-muted);
-}
