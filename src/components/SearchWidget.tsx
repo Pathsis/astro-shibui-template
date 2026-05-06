@@ -60,6 +60,19 @@ export default function SearchWidget({ lang, appId, searchKey, indexName }: Prop
   const restoreFocusedIndexRef = useRef<number | null>(null);
   const restoreScrollTopRef = useRef<number | null>(null);
 
+  const detectShortcutPrimaryKey = useCallback(() => {
+    if (typeof navigator === "undefined") return "Ctrl";
+    const uaDataNavigator = navigator as Navigator & { userAgentData?: { platform?: string } };
+    const legacyPlatform = (navigator as any).platform || "";
+    const platform = uaDataNavigator.userAgentData?.platform || legacyPlatform;
+    const ua = navigator.userAgent || "";
+    const maxTouchPoints = (navigator as Navigator & { maxTouchPoints?: number }).maxTouchPoints || 0;
+    const isMacLike = /Mac|iPhone|iPad|iPod/i.test(`${platform} ${ua}`);
+    // iPadOS 13+ may report MacIntel in platform while remaining touch-first.
+    const isIpadOsDesktopMode = /MacIntel/i.test(platform) && maxTouchPoints > 1;
+    return (isMacLike || isIpadOsDesktopMode) ? "⌘" : "Ctrl";
+  }, []);
+
   // 使用 useMemo 稳定 client 引用，避免每次渲染都重新创建
   const client = useMemo(() => liteClient(appId, searchKey), [appId, searchKey]);
 
@@ -314,13 +327,8 @@ export default function SearchWidget({ lang, appId, searchKey, indexName }: Prop
   }, [focusedIndex, showResults]);
 
   useEffect(() => {
-    if (typeof navigator === "undefined") return;
-    const uaDataNavigator = navigator as Navigator & { userAgentData?: { platform?: string } };
-    const platform = uaDataNavigator.userAgentData?.platform || "";
-    const ua = navigator.userAgent || "";
-    const isAppleDevice = /Mac|iPhone|iPad|iPod/i.test(`${platform} ${ua}`);
-    setShortcutPrimaryKey(isAppleDevice ? "⌘" : "Ctrl");
-  }, []);
+    setShortcutPrimaryKey(detectShortcutPrimaryKey());
+  }, [detectShortcutPrimaryKey]);
 
   // 响应快捷键请求聚焦搜索框（同页触发 + 跨页一次性标记）
   useEffect(() => {
