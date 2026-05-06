@@ -103,7 +103,7 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
     data-notes-numbered={shouldNumberNotes ? "1" : "0"}
   >
     <time datetime={post.data.date.toISOString()}>
-      {formatDateTimeMinute(post.data.date)}
+      {formatDateTimeMinute(post.data.date, currentLang)}
     </time>
     <h1 class={`article-title-heading ${post.data.podcast ? "has-podcast" : ""}`}>
       {post.data.title}

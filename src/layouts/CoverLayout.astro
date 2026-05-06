@@ -4,6 +4,7 @@ import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import { getCollection } from "astro:content";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import { countWords, formatWordCount } from "../lib/word-count";
+import { formatDateTimeMinute } from "../lib/date";
 import coverLayoutCssUrl from "../styles/legacy/cover-layout.css?url";
 import type { SocialImageSource } from "../lib/social-image";
 import { siteConfig } from "@site-config";
@@ -98,17 +99,12 @@ const homeLinkHint = currentLang === "en"
   : "提示：点击站点名，第一次会返回上次展开与滚动位置，第二次才会重置分页。";
 
 
-// 构建信息
-const buildTime = (process.env.BUILD_TIME as string | undefined) ?? new Date().toLocaleString('zh-CN', {
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-  hour12: false,
-  timeZone: 'Asia/Shanghai'
-}).replace(/\//g, '/');
+// 构建信息（按语言格式化时间）
+const rawBuildTime = process.env.BUILD_TIME as string | undefined;
+const parsedBuildTime = rawBuildTime ? new Date(rawBuildTime) : null;
+const buildTime = parsedBuildTime && !Number.isNaN(parsedBuildTime.valueOf())
+  ? formatDateTimeMinute(parsedBuildTime, currentLang)
+  : formatDateTimeMinute(new Date(), currentLang);
 
 const commitSha = process.env.VERCEL_GIT_COMMIT_SHA;
 const commitMsg = process.env.VERCEL_GIT_COMMIT_MESSAGE;

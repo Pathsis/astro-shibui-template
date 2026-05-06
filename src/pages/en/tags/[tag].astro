@@ -71,7 +71,7 @@ const podcastHint = currentLang === "en" ? " (Podcast available)" : "（可收�
           <ul>
             {yearPosts.map((post) => (
               <li>
-                <span>{formatMonthDay(post.data.date)}</span>
+                <span>{formatMonthDay(post.data.date, currentLang)}</span>
                 <div>
                   <a href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(post.id, "en"))}>
                     {post.data.title}

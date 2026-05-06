@@ -5,6 +5,7 @@
  */
 import { getCollection } from "astro:content";
 import { countWords, formatWordCount } from "../lib/word-count";
+import { formatDateTimeMinute } from "../lib/date";
 
 interface Props {
   lang?: "zh-cn" | "en";
@@ -23,16 +24,8 @@ const totalWords = posts.reduce((sum, post) => sum + countWords(post.body ?? "",
 
 const totalPosts = posts.length;
 
-// 构建时间
-const buildTime = new Date().toLocaleString("zh-CN", {
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-  hour12: false
-});
+// 构建时间（按语言格式化）
+const buildTime = formatDateTimeMinute(new Date(), lang);
 
 const isZhCn = lang === "zh-cn";
 const statsText = isZhCn
@@ -64,5 +57,6 @@ const buildLabel = isZhCn ? "构建于" : "Built at";
     gap: var(--spacing-xs);
     color: var(--color-text-muted);
     font-size: var(--font-size-small);
+    font-family: var(--font-family-sans);
   }
 </style>

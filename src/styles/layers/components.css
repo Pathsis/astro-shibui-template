@@ -99,6 +99,7 @@
   flex: 0 0 auto;
   white-space: nowrap;
   font-size: var(--font-size-small);
+  font-family: var(--font-family-sans);
   color: var(--color-text-muted);
   opacity: 0.9;
 }
@@ -117,6 +118,14 @@
 
 
 /* Time list */
+.time-list {
+  --time-list-date-col-width: 8ch;
+}
+
+html:lang(en) .time-list {
+  --time-list-date-col-width: 13ch;
+}
+
 .time-list ul {
   list-style: none;
   margin-left: 0;
@@ -124,10 +133,24 @@
 
 .time-list li {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: var(--time-list-date-col-width) minmax(0, 1fr);
   gap: var(--gap-base);
   align-items: start;
   padding: var(--spacing-sm) 0;
+}
+
+.time-list li > span,
+.time-list li > time {
+  font-family: var(--font-family-sans);
+  color: var(--color-text-muted);
+  justify-self: end;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.time-list li > div {
+  min-width: 0;
+  text-align: left;
 }
 
 /* Main menu navigation styles */
@@ -197,12 +220,14 @@
   gap: var(--gap-small);
   font-size: var(--font-size-small);
   color: var(--color-text-muted);
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0;
 }
 
 .home-waterfall-meta time {
   font-size: 1em;
+  font-family: var(--font-family-sans);
+  color: var(--color-text-muted);
   margin-bottom: 0;
 }
 
@@ -567,6 +592,7 @@
 .build-info {
   color: var(--color-text-muted);
   font-size: var(--font-size-small);
+  font-family: var(--font-family-sans);
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);

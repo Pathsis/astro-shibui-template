@@ -208,6 +208,7 @@ time {
   display: block;
   margin-bottom: var(--spacing-sm);
   font-size: var(--font-size-small);
+  font-family: var(--font-family-sans);
 }
 
 /* 文章页标题上方的时间样式 */
