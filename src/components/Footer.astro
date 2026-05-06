@@ -68,17 +68,6 @@ const displayBranch = branch || "main";
     color: var(--color-text-muted);
   }
 
-  .gh-foot::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 100vw;
-    transform: translateX(-50%);
-    border-top: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
-    pointer-events: none;
-  }
-
   .gh-foot-inner {
     width: 100%;
     max-width: none;
