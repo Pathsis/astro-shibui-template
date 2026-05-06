@@ -31,6 +31,17 @@ export const registerHeaderRuntime = function(runtimeInput) {
     return window.matchMedia('(max-width: 768px)').matches;
   };
 
+  const isIosWebkit = function() {
+    try {
+      const ua = navigator.userAgent || '';
+      const iOSDevice = /iPhone|iPad|iPod/.test(ua);
+      const iPadOsDesktopUa = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+      return iOSDevice || iPadOsDesktopUa;
+    } catch (_) {
+      return false;
+    }
+  };
+
   const getBurger = function() {
     return document.querySelector('.gh-burger');
   };
@@ -54,12 +65,18 @@ export const registerHeaderRuntime = function(runtimeInput) {
 
   const unlockBodyScroll = function() {
     if (!document.body || document.body.dataset.headerMenuLocked !== '1') return;
+    const lockMode = document.body.dataset.headerMenuLockMode || 'fixed';
     document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.width = '';
+    if (lockMode === 'fixed') {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+    }
     document.body.dataset.headerMenuLocked = '0';
-    window.scrollTo(0, lockedScrollY);
+    delete document.body.dataset.headerMenuLockMode;
+    if (lockMode === 'fixed') {
+      window.scrollTo(0, lockedScrollY);
+    }
   };
 
   const lockBodyScroll = function() {
@@ -67,9 +84,15 @@ export const registerHeaderRuntime = function(runtimeInput) {
     if (!isMobileViewport() || document.body.dataset.headerMenuLocked === '1') return;
     lockedScrollY = window.scrollY || window.pageYOffset || 0;
     document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${lockedScrollY}px`;
-    document.body.style.width = '100%';
+    if (isIosWebkit()) {
+      // Fixed body locks can break fixed overlay hit testing near the page bottom on iOS.
+      document.body.dataset.headerMenuLockMode = 'overflow';
+    } else {
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${lockedScrollY}px`;
+      document.body.style.width = '100%';
+      document.body.dataset.headerMenuLockMode = 'fixed';
+    }
     document.body.dataset.headerMenuLocked = '1';
   };
 
