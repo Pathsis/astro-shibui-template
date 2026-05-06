@@ -56,12 +56,15 @@ const displayBranch = branch || "main";
 
 <style>
   .gh-foot {
+    --footer-height: 64px;
     width: 100%;
     max-width: none;
     position: relative;
+    display: flex;
+    align-items: center;
     margin-top: calc(var(--spacing-lg) * 1.6);
-    padding-top: calc(var(--spacing-md) * 1.1);
-    padding-bottom: calc(var(--spacing-md) * 1.35);
+    min-height: var(--footer-height);
+    padding: 0;
     color: var(--color-text-muted);
   }
 
@@ -125,8 +128,9 @@ const displayBranch = branch || "main";
   @media (max-width: 767px) {
     .gh-foot {
       margin-top: calc(var(--spacing-lg) * 1.25);
-      padding-top: var(--spacing-md);
-      padding-bottom: var(--spacing-md);
+      min-height: auto;
+      padding-top: calc(var(--spacing-md) * 0.9);
+      padding-bottom: calc(var(--spacing-md) * 0.9);
     }
 
     .gh-foot-inner {
