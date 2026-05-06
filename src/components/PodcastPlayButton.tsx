@@ -14,9 +14,7 @@ export function PodcastPlayButton({ episode }: PodcastPlayButtonProps) {
   const [isCurrent, setIsCurrent] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const isEnglish = episode.lang === 'en';
-  const ariaLabel = isPlaying
-    ? (isEnglish ? 'Pause AI Podcast' : '暂停 AI 播客')
-    : (isEnglish ? 'Play AI Podcast' : '播放 AI 播客');
+  const ariaLabel = isEnglish ? 'Open AI Podcast Player' : '打开 AI 播客播放器';
 
   const checkState = useCallback(() => {
     const state = getPlayerState();

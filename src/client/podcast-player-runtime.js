@@ -11,7 +11,7 @@ import {
   setPlayIntent,
   getEpisodeProgress
 } from '../lib/player-state';
-import { getGlobalAudio, setAudioSrc, setCurrentTime, playAudio } from '../lib/audio-player';
+import { pauseAudio } from '../lib/audio-player';
 import { trackUmami } from '../lib/analytics';
 
 const ensurePodcastPlayerRuntime = function(runtimeInput) {
@@ -84,7 +84,6 @@ export const registerPodcastPlayerRuntime = function(runtimeInput) {
   let isPlayerVisible = false;
   let currentEpisodes = [];
   let isPlayerMounted = false;
-  let playRequestSeq = 0;
 
   const getContainer = function() {
     return document.getElementById('podcast-player-container');
@@ -160,43 +159,23 @@ export const registerPodcastPlayerRuntime = function(runtimeInput) {
   };
 
   // 保留全局函数签名兼容：window.playPodcastEpisode(slug, title, url)。
+  // 该入口现在只做“唤起播放器 + 选中曲目”，不直接触发播放。
   // title 在当前实现未直接使用，但暂不移除，避免调用方参数位移风险。
   const playPodcastEpisode = async function(slug, _title, url) {
     const state = getPlayerState();
 
     clearDismissedState();
-
-    const nextIsPlaying = state.currentSlug === slug && isPlayerVisible
-      ? !state.isPlaying
-      : true;
-
-    setPlayIntent(nextIsPlaying);
+    setPlayIntent(false);
 
     if (!isPlayerMounted) {
       try {
         await mountPlayer();
       } catch (error) {
         console.error('Failed to load podcast player styles:', error);
-        setPlayIntent(false);
         return;
       }
     }
-
-    if (state.currentSlug === slug && isPlayerVisible) {
-      setAudioSrc(url);
-      trackUmami(state.isPlaying ? 'podcast-pause' : 'podcast-play', {
-        source: 'article',
-        slug,
-      });
-      updatePlayerState({ isPlaying: nextIsPlaying });
-      if (nextIsPlaying) {
-        playAudio().catch(function() {
-          updatePlayerState({ isPlaying: false });
-          setPlayIntent(false);
-        });
-      }
-      return;
-    }
+    if (state.currentSlug === slug && isPlayerVisible) return;
 
     const savedProgress = getEpisodeProgress(slug);
     const savedTime = Number.isFinite(savedProgress?.currentTime)
@@ -213,27 +192,11 @@ export const registerPodcastPlayerRuntime = function(runtimeInput) {
       ...(savedDuration > 0 ? { duration: savedDuration } : {}),
     });
 
-    trackUmami('podcast-play', { source: 'article', slug });
-
-    const audio = getGlobalAudio();
-    const requestId = ++playRequestSeq;
-    const finalizeStart = function() {
-      if (requestId !== playRequestSeq) return;
-      try {
-        setCurrentTime(savedTime);
-      } catch (e) {
-        // ignore
-      }
-      if (nextIsPlaying) {
-        updatePlayerState({ isPlaying: true });
-      }
-    };
-
-    if (audio.readyState >= HTMLMediaElement.HAVE_METADATA) {
-      finalizeStart();
-    } else {
-      audio.addEventListener('loadedmetadata', finalizeStart, { once: true });
+    // 与列表选择行为一致：只切换当前曲目，不直接播放。
+    if (state.isPlaying) {
+      pauseAudio();
     }
+    trackUmami('podcast-episode-select', { source: 'article', slug, url });
   };
 
   runtime.apis.podcastPlayer = {

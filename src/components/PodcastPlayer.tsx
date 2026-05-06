@@ -638,14 +638,15 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
           lastSeekRef.current = null;
         }
       }
-      const duration = getDuration();
-      const safeDuration = Number.isFinite(duration) && duration > 0
-        ? duration
+      const mediaDuration = getDuration();
+      const hasMediaDuration = Number.isFinite(mediaDuration) && mediaDuration > 0;
+      const safeDuration = hasMediaDuration
+        ? mediaDuration
         : (Number.isFinite(stateRef.current.duration) ? stateRef.current.duration : 0);
       const clampedTime = safeDuration > 0 ? Math.min(time, safeDuration) : time;
-      // 如果时间接近结尾（差距小于 1 秒），直接设置为总时长，确保进度条到达 100%
-      if (safeDuration > 0 && safeDuration - clampedTime < 1) {
-        setProgress(safeDuration);
+      // 仅在拿到真实媒体时长时才做 100% 吸附，避免激活期使用旧/估算时长导致“秒满进度”。
+      if (hasMediaDuration && mediaDuration - clampedTime < 1) {
+        setProgress(mediaDuration);
       } else {
         setProgress(clampedTime);
       }
@@ -714,11 +715,13 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
         saveProgress(safeDuration, safeDuration);
       }
 
-      // 仅当这次 ended 来自“正在播放”时自动循环。
-      // 拖动到尾部或用户非播放态触发 ended 时不自动起播。
-      const shouldAutoLoop = stateRef.current.isPlaying || isPlaying();
+      // 仅当这次 ended 来自“正在播放”且时长看起来正常时自动循环。
+      // 对于激活期/缓冲异常导致的短时长音频（例如 < 60 秒），不自动循环，避免误判进入死循环。
+      const isLikelyTruncatedStream = safeDuration > 0 && safeDuration < 60;
+      const shouldAutoLoop = (stateRef.current.isPlaying || isPlaying()) && !isLikelyTruncatedStream;
       if (!shouldAutoLoop) {
         setHasEnded(true);
+        setPlayIntent(false);
         updatePlayerState({ isPlaying: false });
         return;
       }
