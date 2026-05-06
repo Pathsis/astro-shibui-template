@@ -1,15 +1,8 @@
 ---
-/**
- * Footer 组件 - 页脚（参考 Ghost Journal 设计）
- *
- * 功能：
- * 1. 版权信息
- * 2. 统计信息
- * 3. 构建信息
- * 4. GitHub 链接
- */
+import { getCollection } from "astro:content";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import { siteConfig } from "@site-config";
+import { countWords } from "../lib/word-count";
 
 interface Props {
   currentLang: "zh-cn" | "en";
@@ -17,83 +10,136 @@ interface Props {
 
 const { currentLang } = Astro.props;
 
-const homeUrl = getRelativeLocaleUrl(currentLang, "/");
+const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
+const allPosts = await getCollection(collectionName, ({ data }) => !data.draft);
+const posts = allPosts.filter((post) => post.id && !post.id.startsWith("_"));
+const postCount = posts.length;
+const totalWords = posts.reduce((sum, post) => sum + countWords(post.body ?? "", currentLang), 0);
+const firstYear = posts.reduce((min, post) => {
+  const year = new Date(post.data.date).getFullYear();
+  return Number.isFinite(year) ? Math.min(min, year) : min;
+}, new Date().getFullYear());
 
-const copyrightHtml = `&copy; <a href="${homeUrl}" class="js-home-link">${siteConfig.title}</a>. All rights reserved. <a href="${siteConfig.branding.templateRepoUrl}" target="_blank" rel="noopener" aria-label="GitHub" class="icon-link gh-template-link"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="height: 1em; width: auto;"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg></a>`;
+const numberFmt = new Intl.NumberFormat("en-US");
+const leftMeta = currentLang === "en"
+  ? `${numberFmt.format(postCount)} posts · ${numberFmt.format(totalWords)} words · since ${firstYear}`
+  : `${numberFmt.format(postCount)} 篇文章 · ${numberFmt.format(totalWords)} 字 · 自 ${firstYear} 年`;
+const homeUrl = getRelativeLocaleUrl(currentLang, "/");
+const copyrightText = currentLang === "en"
+  ? "All rights reserved."
+  : "保留所有权利。";
+
+const branch = process.env.VERCEL_GIT_COMMIT_REF || process.env.GIT_BRANCH || "";
+const commitSha = process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_COMMIT || "";
+const shortSha = commitSha ? commitSha.slice(0, 7) : "";
+const displayBranch = branch || "main";
 ---
 
 <footer class="gh-foot">
   <div class="gh-foot-inner">
-    <!-- 版权信息 -->
-    <div class="gh-copyright" set:html={copyrightHtml} />
-
+    <div class="gh-foot-meta">
+      <span class="gh-foot-copy">
+        &copy; <a href={homeUrl} class="js-home-link">{siteConfig.title}</a>. {copyrightText}
+      </span>
+      <span class="gh-foot-stats">{leftMeta}</span>
+    </div>
+    <div class="gh-foot-git" aria-label="git version">
+      <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+        <path fill="currentColor" d="M3.75 2a1.75 1.75 0 1 0 1.5 2.65v6.85a1.75 1.75 0 1 0 1.5 0V8.75h4.69a1.75 1.75 0 1 0 0-1.5H6.75V4.65A1.75 1.75 0 0 0 3.75 2Zm0 1a.75.75 0 1 1 0 1.5.75.75 0 0 1 0-1.5Zm8.5 4a.75.75 0 1 1 0 1.5.75.75 0 0 1 0-1.5Zm-6.25 5a.75.75 0 1 1 0 1.5.75.75 0 0 1 0-1.5Z"/>
+      </svg>
+      <span>{displayBranch}</span>
+      {shortSha && <span class="dot">·</span>}
+      {shortSha && <span>{shortSha}</span>}
+    </div>
   </div>
 </footer>
 
 <style>
-  /* ===== Ghost Journal 风格 Footer 样式 ===== */
-
-  /* Footer 基础样式 - 全幅 */
   .gh-foot {
     width: 100%;
     max-width: none;
-    color: var(--color-text-muted);
-    padding-top: var(--spacing-lg);
-    padding-bottom: var(--spacing-lg);
-    margin-top: calc(var(--spacing-lg) * 1.35);
-    white-space: nowrap;
     position: relative;
-  }
-
-  /* Footer 内部容器（限制宽度） */
-  .gh-foot-inner {
-    max-width: var(--container-width);
-    margin: 0 auto;
-    padding: 0 var(--spacing-lg);
-    display: flex;
-    flex-direction: column; /* 垂直排列 */
-    gap: calc(var(--spacing-xs) * 1.2);
-    font-size: 1.8rem; /* 与正文字号一致 */
-    align-items: center; /* 居中显示 */
-    text-align: center;
-  }
-
-  /* 版权信息 */
-  .gh-copyright {
-    font-size: 1rem; /* 与正文字号一致 */
-  }
-
-  .gh-foot p {
-    margin-bottom: 0;
-  }
-
-  .gh-copyright :global(a) {
+    margin-top: calc(var(--spacing-lg) * 1.6);
+    padding-top: calc(var(--spacing-md) * 1.1);
+    padding-bottom: calc(var(--spacing-md) * 1.35);
     color: var(--color-text-muted);
-    text-decoration: none;
-    transition: color 0.2s ease;
+  }
+
+  .gh-foot::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 100vw;
+    transform: translateX(-50%);
+    border-top: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+    pointer-events: none;
+  }
+
+  .gh-foot-inner {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding-inline: var(--hanging-image-edge-gap, 2rem);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--spacing-md);
+  }
+
+  .gh-foot-meta {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    font-family: var(--font-family-serif);
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+    color: color-mix(in srgb, var(--color-text-muted) 92%, var(--color-text-primary) 8%);
+  }
+
+  .gh-foot-copy a {
     border-bottom: none;
+    text-decoration: none;
   }
 
-  .gh-copyright :global(a:hover) {
-    color: var(--color-text-primary);
-    opacity: 1;
+  .gh-foot-git {
+    display: inline-flex;
+    align-items: center;
+    justify-self: end;
+    gap: 0.38rem;
+    font-family: var(--font-family-mono);
+    font-size: 0.86rem;
+    color: color-mix(in srgb, var(--color-text-muted) 88%, var(--color-text-primary) 12%);
+    white-space: nowrap;
   }
 
-  .gh-copyright :global(.gh-template-link) {
-    margin-left: 4px;
+  .gh-foot-git svg {
+    opacity: 0.86;
   }
 
-  /* ===== 响应式：移动端 ===== */
+  .gh-foot-git .dot {
+    opacity: 0.68;
+  }
+
   @media (max-width: 767px) {
     .gh-foot {
+      margin-top: calc(var(--spacing-lg) * 1.25);
       padding-top: var(--spacing-md);
       padding-bottom: var(--spacing-md);
-      margin-top: calc(var(--spacing-lg) * 1.15);
     }
 
     .gh-foot-inner {
-      padding: 0 var(--spacing-md);
-      gap: calc(var(--spacing-xs) * 0.85);
+      padding-inline: var(--spacing-md);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.45rem;
     }
+
+    .gh-foot-meta {
+      font-size: 0.9rem;
+    }
+
   }
 </style>
