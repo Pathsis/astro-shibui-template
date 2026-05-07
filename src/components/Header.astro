@@ -21,6 +21,7 @@ const { currentLang, pageKind, hasTranslation, targetSlug } = Astro.props;
 
 // 获取当前语言的首页链接
 const homeUrl = getRelativeLocaleUrl(currentLang, "/");
+const homeTopUrl = `${homeUrl}#top`;
 
 // 导航链接配置
 const navLinks = {
@@ -43,11 +44,11 @@ const menuLabel = currentLang === "en" ? "Toggle menu" : "切换菜单";
 const homeAriaLabel = currentLang === "en" ? "Back to home" : "返回首页";
 ---
 
-<header class="gh-head is-head-stacked">
+<header id="top" class="gh-head is-head-stacked">
   <div class="gh-head-inner">
     <!-- 第一行：Logo（居中）+ 汉堡菜单按钮 -->
     <div class="gh-head-brand">
-      <a class="gh-head-logo js-home-link" href={homeUrl} aria-label={homeAriaLabel}>
+      <a class="gh-head-logo js-home-link" href={homeTopUrl} aria-label={homeAriaLabel}>
         {siteTitle}
       </a>
     </div>
@@ -61,7 +62,7 @@ const homeAriaLabel = currentLang === "en" ? "Back to home" : "返回首页";
   <!-- 第二行：导航菜单（全幅，在 gh-head-inner 外面） -->
   <nav class="gh-head-menu" id="site-menu">
     <div class="gh-head-inner">
-      <a class="gh-head-menu-home" href={homeUrl}>{navText.home}</a>
+      <a class="gh-head-menu-home" href={homeTopUrl}>{navText.home}</a>
       <a href={navLinks.archive}>{navText.archive}</a>
       <a href={navLinks.about}>{navText.about}</a>
       <a href={navLinks.tags}>{navText.tags}</a>

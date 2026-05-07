@@ -16,8 +16,6 @@ export const registerPaginationRuntime = function(runtimeInput) {
   // iOS Chrome 的全站 SPA/MPA 降级开关由 main.js 维护
   // (IS_IOS_CHROME_SHELL / syncIosShellSpaGuard)；这里仅在 loadmore
   // 追加新条目后调用 pathosRuntime.shared.syncIosShellSpaGuard 触发一次同步。
-  // 一次性"回首页强制重置"标记，同路径点击首页链接后设置
-  const RESET_FLAG = 'pathosHomeReset';
   // history.state 写入失败或被外部清除时的兜底
   const FALLBACK_PREFIX = 'pathos_pagination_fallback:v4:';
   // 兜底条目的硬过期时间（5 分钟，与 Hugo 方案一致的数量级）
@@ -116,18 +114,6 @@ export const registerPaginationRuntime = function(runtimeInput) {
     }
   }
 
-  function clearHistoryState() {
-    try {
-      if (history.state && history.state[PAGINATION_KEY]) {
-        const next = Object.assign({}, history.state);
-        delete next[PAGINATION_KEY];
-        history.replaceState(next, '');
-      }
-    } catch (e) {
-      // ignore
-    }
-  }
-
   // ---------- sessionStorage 兜底 ----------
   function readFallback() {
     try {
@@ -151,54 +137,6 @@ export const registerPaginationRuntime = function(runtimeInput) {
       // ignore quota / disabled storage
     }
   }
-
-  function clearAllFallbacks() {
-    try {
-      const legacyPrefix = 'pathos_pagination_state:v3:';
-      Object.keys(sessionStorage).forEach(function(k) {
-        if (k.startsWith(FALLBACK_PREFIX) || k.startsWith(legacyPrefix)) {
-          sessionStorage.removeItem(k);
-        }
-      });
-    } catch (e) {
-      // ignore
-    }
-  }
-
-  function clearAllPaginationStates() {
-    clearHistoryState();
-    clearAllFallbacks();
-    try {
-      clearTimeout(getPaginationSaveTimeout());
-      setPaginationSaveTimeout(null);
-    } catch (e) {}
-  }
-
-  paginationApi.clearAllStates = clearAllPaginationStates;
-
-  // 供 Header/Footer 里的"点首页链接"逻辑调用：同路径点击才清空
-  const maybeResetPaginationOnHomeClick = function(link) {
-    if (!(link instanceof HTMLAnchorElement)) return false;
-
-    let targetUrl;
-    try {
-      targetUrl = new URL(link.href, window.location.href);
-    } catch (e) {
-      return false;
-    }
-
-    const currentPath = normalizePathname(window.location.pathname);
-    const targetPath = normalizePathname(targetUrl.pathname);
-
-    if (targetUrl.origin !== window.location.origin || currentPath !== targetPath) {
-      return false;
-    }
-
-    clearAllPaginationStates();
-    try { sessionStorage.setItem(RESET_FLAG, '1'); } catch (e) {}
-    return true;
-  };
-  paginationApi.maybeResetOnHomeClick = maybeResetPaginationOnHomeClick;
 
   // ---------- 快照构建 ----------
   function snapshotFromDOM() {
@@ -434,21 +372,6 @@ export const registerPaginationRuntime = function(runtimeInput) {
 
     if (!hasPaginatedFeed()) return;
 
-    // 显式重置：从"已在首页再点一次首页"场景进入
-    let resetFlag = false;
-    try { resetFlag = sessionStorage.getItem(RESET_FLAG) === '1'; } catch (e) {}
-    if (resetFlag) {
-      try { sessionStorage.removeItem(RESET_FLAG); } catch (e) {}
-      clearAllPaginationStates();
-      try { window.scrollTo(0, 0); } catch (e) {}
-      layoutFeaturedMasonry();
-      initHomePagination();
-      bindHomeLinkResets();
-      bindScrollOnce();
-      syncIosShellSpaGuard();
-      return;
-    }
-
     if (options.shouldRestore === true) {
       tryRestore();
     }
@@ -456,24 +379,10 @@ export const registerPaginationRuntime = function(runtimeInput) {
     layoutFeaturedMasonry();
 
     initHomePagination();
-    bindHomeLinkResets();
     bindScrollOnce();
     syncIosShellSpaGuard();
   };
   paginationApi.init = initPaginationRuntime;
-
-  function bindHomeLinkResets() {
-    const siteNameLinks = document.querySelectorAll('.gh-head-logo.js-home-link, .gh-foot-copy .js-home-link, .gh-copyright .js-home-link, .cover-site-title a, header a[href="/"], header a[href="/en"]');
-    siteNameLinks.forEach(function(link) {
-      if (link.dataset.paginationResetBound) return;
-      link.dataset.paginationResetBound = '1';
-      link.addEventListener('click', function() {
-        if (typeof paginationApi.maybeResetOnHomeClick === 'function') {
-          paginationApi.maybeResetOnHomeClick(link);
-        }
-      });
-    });
-  }
 
   function bindScrollOnce() {
     if (runtimeFlags.paginationScrollBound) return;

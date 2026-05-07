@@ -73,6 +73,7 @@ export const createIosShellSpaGuardSync = function(isIosChromeShell) {
   return function syncIosShellSpaGuard() {
     if (!isIosChromeShell) return;
     const shouldReload = !isPodcastPlaying();
+    const guardAttr = 'data-pathos-ios-shell-reload';
     document.querySelectorAll('a[href]').forEach(function(link) {
       try {
         const url = new URL(link.href, window.location.href);
@@ -83,9 +84,11 @@ export const createIosShellSpaGuardSync = function(isIosChromeShell) {
       if (shouldReload) {
         if (!link.hasAttribute('data-astro-reload')) {
           link.setAttribute('data-astro-reload', '');
+          link.setAttribute(guardAttr, '');
         }
-      } else if (link.hasAttribute('data-astro-reload')) {
+      } else if (link.hasAttribute(guardAttr)) {
         link.removeAttribute('data-astro-reload');
+        link.removeAttribute(guardAttr);
       }
     });
   };

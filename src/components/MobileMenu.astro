@@ -11,8 +11,9 @@ interface Props {
 
 const { currentLang, pageKind, hasTranslation = false, targetSlug } = Astro.props;
 
+const homeUrl = getRelativeLocaleUrl(currentLang, "/");
 const navLinks = {
-  home: getRelativeLocaleUrl(currentLang, "/"),
+  home: `${homeUrl}#top`,
   archive: getRelativeLocaleUrl(currentLang, "/blog/"),
   about: getRelativeLocaleUrl(currentLang, "/about/"),
   tags: getRelativeLocaleUrl(currentLang, "/tags/"),

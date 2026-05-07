@@ -139,18 +139,6 @@ export const registerHeaderRuntime = function(runtimeInput) {
       toggleMenu();
       return;
     }
-
-    if (target.closest('.js-home-link')) {
-      try {
-        const homeLink = target.closest('.js-home-link');
-        if (homeLink instanceof HTMLAnchorElement) {
-          const maybeResetPagination = window.pathosRuntime?.apis?.pagination?.maybeResetOnHomeClick;
-          maybeResetPagination?.(homeLink);
-        }
-      } catch (error) {
-        console.error('Failed to clear pagination state:', error);
-      }
-    }
   });
 
   document.addEventListener('keydown', function(event) {
