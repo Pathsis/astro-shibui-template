@@ -164,8 +164,8 @@ h2.year-heading::before {
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
   margin: var(--spacing-base) 0;
-  font-family: var(--font-family-sans);
-  font-weight: 400;
+  font-family: var(--font-family-primary);
+  font-weight: 700;
   color: var(--color-text-primary);
   scroll-margin-top: var(--spacing-lg);
 }
