@@ -4,9 +4,13 @@
  * 核心原理：使用负边距 calc(50% - 50vw) 让图片突破内容区边界，
  * 悬挂到视口边缘。
  *
- * 三阶段响应式：
- * - 大屏幕（>1400px）：完全悬挂，不与文字在同一列
- * - 中等屏幕（768px-1400px）：部分包裹，文字开始包裹图片
+ * 响应式策略：
+ * - 图片宽度按正文设计宽度（56ch）的比例分级，而不是按视口宽度放大
+ * - 平板竖屏约为正文宽度 40%
+ * - 大平板竖屏约为正文宽度 46%
+ * - 平板横屏 / 小笔记本约为正文宽度 50%
+ * - 主流横屏笔记本约为正文宽度 60%
+ * - 大屏 / 超大屏再逐级放大
  * - 小屏幕（<768px）：全宽，文字在图片上下
  */
 
@@ -16,8 +20,13 @@
   --content-gap: 2rem;       /* 图片与文字的间距 */
   --hanging-image-edge-gap: 2rem;
   --hanging-image-text-gap: 2rem;
-  --hanging-image-max-medium: 20rem;
-  --hanging-image-max-large: 28rem;
+  --hanging-image-width-tablet-portrait: 22.5ch;
+  --hanging-image-width-large-tablet-portrait: 26ch;
+  --hanging-image-width-tablet-landscape: 28ch;
+  --hanging-image-width-laptop: 34ch;
+  --hanging-image-width-display: 39ch;
+  --hanging-image-width-ultra: 46ch;
+  --hanging-image-width-current: var(--hanging-image-width-laptop);
 }
 
 /* ===== 图片悬挂核心样式 ===== */
@@ -29,7 +38,7 @@ figure.align-left {
   margin-right: var(--hanging-image-text-gap) !important;
   margin-top: .5rem;
   margin-bottom: .5rem;
-  max-width: min(100%, var(--hanging-image-max-large)) !important;
+  max-width: min(100%, var(--hanging-image-width-current)) !important;
   clear: left;
 }
 
@@ -41,7 +50,7 @@ figure.align-right {
   margin-left: var(--hanging-image-text-gap) !important;
   margin-top: .5rem;
   margin-bottom: .5rem;
-  max-width: min(100%, var(--hanging-image-max-large)) !important;
+  max-width: min(100%, var(--hanging-image-width-current)) !important;
   clear: right;
 }
 
@@ -110,34 +119,63 @@ figure figcaption {
   clear: both;
 }
 
-/* ===== 响应式三阶段 ===== */
+/* ===== 响应式比例层级 ===== */
 
-/* 阶段 1：超大屏幕（>=1600px）- 恢复完全悬挂 */
-@media (min-width: 1600px) {
-  figure.align-left,
-  figure.align-right {
-    max-width: 100% !important;  /* 图片 100% 宽度 */
+/* 超大屏（>=1920px）：接近正文宽度，但不再无限放大 */
+@media (min-width: 1920px) {
+  :root {
+    --hanging-image-width-current: var(--hanging-image-width-ultra);
   }
 }
 
-/* 阶段 2：普通桌面（1401px-1599px）- 保持悬挂，但限制最大尺寸 */
+/* 大屏 / 2K 显示器（1600px-1919px）：比笔记本稍大一档 */
+@media (min-width: 1600px) and (max-width: 1919px) {
+  :root {
+    --hanging-image-width-current: var(--hanging-image-width-display);
+  }
+}
+
+/* 主流横屏笔记本（1401px-1599px）：解决 MacBook Air / Pro 图片过大的核心区间 */
 @media (min-width: 1401px) and (max-width: 1599px) {
-  figure.align-left,
-  figure.align-right {
-    max-width: min(100%, 32rem) !important;
+  :root {
+    --hanging-image-width-current: var(--hanging-image-width-laptop);
   }
 }
 
-/* 阶段 3：中等屏幕（769px-1400px）- 部分包裹并等比例缩小 */
-@media (min-width: 769px) and (max-width: 1400px) {
+/* 平板横屏 / Surface 横屏 / 小笔记本（769px-1400px）：约正文宽度一半 */
+@media (min-width: 769px) and (max-width: 1400px) and (orientation: landscape) {
+  :root {
+    --hanging-image-width-current: var(--hanging-image-width-tablet-landscape);
+  }
+
   figure.align-left {
-    margin-left: calc(50% - 50vw + 3rem) !important;  /* 中屏保留安全边距，但避免过度内缩 */
-    max-width: min(100%, var(--hanging-image-max-medium)) !important;
+    margin-left: calc(50% - 50vw + 3rem) !important;
   }
 
   figure.align-right {
-    margin-right: calc(50% - 50vw + 3rem) !important;  /* 中屏保留安全边距，但避免过度内缩 */
-    max-width: min(100%, var(--hanging-image-max-medium)) !important;
+    margin-right: calc(50% - 50vw + 3rem) !important;
+  }
+}
+
+/* 平板竖屏：进一步缩小，避免压迫正文 */
+@media (min-width: 769px) and (orientation: portrait) {
+  :root {
+    --hanging-image-width-current: var(--hanging-image-width-tablet-portrait);
+  }
+
+  figure.align-left {
+    margin-left: calc(50% - 50vw + 3rem) !important;
+  }
+
+  figure.align-right {
+    margin-right: calc(50% - 50vw + 3rem) !important;
+  }
+}
+
+/* 大平板竖屏：iPad Pro 12.9 等宽竖屏设备可以承载更大的悬挂图 */
+@media (min-width: 1000px) and (orientation: portrait) {
+  :root {
+    --hanging-image-width-current: var(--hanging-image-width-large-tablet-portrait);
   }
 }
 
