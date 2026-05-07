@@ -20,11 +20,11 @@
   --content-gap: 2rem;       /* 图片与文字的间距 */
   --hanging-image-edge-gap: 2rem;
   --hanging-image-text-gap: 2rem;
-  --hanging-image-width-tablet-portrait: 22.5ch;
-  --hanging-image-width-large-tablet-portrait: 26ch;
-  --hanging-image-width-tablet-landscape: 28ch;
-  --hanging-image-width-laptop: 34ch;
-  --hanging-image-width-display: 39ch;
+  --hanging-image-width-tablet-portrait: 26ch;
+  --hanging-image-width-large-tablet-portrait: 30ch;
+  --hanging-image-width-tablet-landscape: 32ch;
+  --hanging-image-width-laptop: 36ch;
+  --hanging-image-width-display: 40ch;
   --hanging-image-width-ultra: 46ch;
   --hanging-image-width-current: var(--hanging-image-width-laptop);
 }
