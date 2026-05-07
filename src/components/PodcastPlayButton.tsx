@@ -35,19 +35,43 @@ export function PodcastPlayButton({ episode }: PodcastPlayButtonProps) {
     return unsubscribe;
   }, [episode.slug, checkState]);
 
-  const handleClick = useCallback(() => {
-    const playPodcastEpisode = (window as any).playPodcastEpisode;
-    if (playPodcastEpisode) {
+  const handleClick = useCallback(async (event: MouseEvent) => {
+    // Featured 卡片有整卡可点击链接，阻止事件冒泡可避免误触跳转吞掉播放按钮点击。
+    event.preventDefault();
+    event.stopPropagation();
+
+    const win = window as any;
+    const playPodcastEpisode = win.playPodcastEpisode;
+    if (typeof playPodcastEpisode === 'function') {
       playPodcastEpisode(episode.slug, episode.title, episode.url);
+      return;
+    }
+
+    // 兜底：若懒加载桥接尚未就绪，直接拉起播放器 runtime，避免按钮静默失效。
+    try {
+      const runtimeModule = await import('../client/podcast-player-runtime.js');
+      if (typeof runtimeModule.registerPodcastPlayerRuntime === 'function') {
+        runtimeModule.registerPodcastPlayerRuntime(win.pathosRuntime);
+      }
+      const fallbackPlayEpisode = win.playPodcastEpisode
+        || win.pathosRuntime?.apis?.podcastPlayer?.playEpisode;
+      if (typeof fallbackPlayEpisode === 'function') {
+        fallbackPlayEpisode(episode.slug, episode.title, episode.url);
+      }
+    } catch (error) {
+      console.error('Failed to initialize podcast player runtime from play button:', error);
     }
   }, [episode]);
 
   return (
     <button
-      class={`podcast-play-button ${isCurrent && isPlaying ? 'playing' : ''}`}
+      class={`podcast-play-button ${isCurrent ? 'is-current' : ''} ${isCurrent && isPlaying ? 'playing' : ''}`}
       data-podcast-slug={episode.slug}
+      data-podcast-title={episode.title}
+      data-podcast-url={episode.url}
       onClick={handleClick}
       aria-label={ariaLabel}
+      aria-pressed={isCurrent}
       title={ariaLabel}
     >
       <svg viewBox="0 0 24 24" fill="currentColor">

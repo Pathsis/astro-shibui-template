@@ -441,14 +441,31 @@
   font-size: 1em;
   text-decoration: none;
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
   margin: 0;
   flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .podcast-play-button:hover {
   background: var(--color-bg-tertiary);
   border-color: var(--color-text-muted);
+}
+
+.podcast-play-button:active,
+.podcast-play-button:focus-visible {
+  color: var(--color-text-primary);
+}
+
+.podcast-play-button:active {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-text-primary);
+  transform: scale(0.96);
+}
+
+.podcast-play-button.is-current {
+  border-color: color-mix(in srgb, var(--color-text-primary) 38%, var(--color-border) 62%);
+  background: color-mix(in srgb, var(--color-bg-secondary) 72%, var(--color-bg-tertiary) 28%);
 }
 
 .podcast-play-button svg {
