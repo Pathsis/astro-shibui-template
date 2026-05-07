@@ -23,7 +23,7 @@ const firstYear = posts.reduce((min, post) => {
 const numberFmt = new Intl.NumberFormat("en-US");
 const leftMeta = currentLang === "en"
   ? `${numberFmt.format(postCount)} posts · ${numberFmt.format(totalWords)} words · since ${firstYear}`
-  : `${numberFmt.format(postCount)} 篇文章 · ${numberFmt.format(totalWords)} 字 · 自 ${firstYear} 年`;
+  : `${numberFmt.format(postCount)} 篇文章 · ${numberFmt.format(totalWords)} 字 · 自 ${firstYear} 年起`;
 const homeUrl = getRelativeLocaleUrl(currentLang, "/");
 const homeTopUrl = `${homeUrl}#top`;
 const copyrightText = currentLang === "en"
