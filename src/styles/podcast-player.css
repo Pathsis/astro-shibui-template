@@ -280,15 +280,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  transition: transform 0.2s ease, opacity 0.2s ease;
   pointer-events: auto;
   isolation: isolate;
 }
 
 .play-btn:hover {
   transform: scale(1.05);
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
   opacity: 1;
 }
 
@@ -308,11 +308,6 @@
   transform: scale(0.9);
   pointer-events: none;
   transition: opacity 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
-}
-
-.podcast-player.buffering .play-btn {
-  background: color-mix(in srgb, var(--color-text-primary) 82%, var(--color-bg-primary) 18%);
-  color: var(--color-bg-primary);
 }
 
 .podcast-player.buffering .play-btn::after {
