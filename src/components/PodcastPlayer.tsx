@@ -1558,8 +1558,6 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   const ariaProgressText = currentDuration > 0
     ? `${formatTime(clampedProgress)} / ${formatTime(currentDuration)}`
     : '0:00';
-  const bufferingShortLabel = activePlaybackLang === 'en' ? 'Buffering' : '缓冲中';
-  const bufferingTitleLabel = activePlaybackLang === 'en' ? 'Buffering...' : '缓冲中...';
   const remainingTimeLabel = activePlaybackLang === 'en' ? 'Remaining time' : '剩余时间';
   const coverExpandLabel = isMinimized
     ? (activePlaybackLang === 'en' ? 'Expand player' : '展开播放器')
@@ -1577,7 +1575,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   const dismissLabel = activePlaybackLang === 'en' ? 'Close' : '关闭';
   const selectTrackLabel = activePlaybackLang === 'en' ? 'Select track' : '选择曲目';
   const errorDefaultLabel = activePlaybackLang === 'en' ? 'Playback error, please try again later' : '播放出错，请稍后重试';
-  const titleText = isBuffering ? bufferingTitleLabel : currentEpisode.title;
+  const titleText = currentEpisode.title;
 
   return (
     <div
@@ -1606,7 +1604,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
               alt={currentEpisode.title}
             />
             <span className="player-cover-time" aria-hidden="true">
-              {isBuffering ? bufferingShortLabel : remainingLabel}
+              {remainingLabel}
             </span>
           </div>
 
