@@ -303,10 +303,14 @@ export const installScrollTopButton = function(runtime) {
   if (runtime.flags.scrollTopButtonInstalled) return;
   runtime.flags.scrollTopButtonInstalled = true;
 
-  const scrollTopBtn = document.querySelector('.scroll-top');
-  if (!(scrollTopBtn instanceof HTMLElement)) return;
+  const getScrollTopButton = function() {
+    const button = document.querySelector('.scroll-top');
+    return button instanceof HTMLElement ? button : null;
+  };
 
   const toggleVisibility = function() {
+    const scrollTopBtn = getScrollTopButton();
+    if (!scrollTopBtn) return;
     if (window.pageYOffset > 300) {
       scrollTopBtn.classList.add('visible');
     } else {
@@ -315,9 +319,12 @@ export const installScrollTopButton = function(runtime) {
   };
 
   window.addEventListener('scroll', toggleVisibility);
+  window.addEventListener('astro:page-load', toggleVisibility);
   toggleVisibility();
 
-  scrollTopBtn.addEventListener('click', function() {
+  document.addEventListener('click', function(event) {
+    const target = event.target;
+    if (!(target instanceof Element) || !target.closest('.scroll-top')) return;
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
