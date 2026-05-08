@@ -1,15 +1,7 @@
-const ensureHeaderRuntime = function(runtimeInput) {
-  const globalRuntime = runtimeInput || window.pathosRuntime || {};
-  globalRuntime.apis = globalRuntime.apis || {};
-  globalRuntime.apis.headerMenu = globalRuntime.apis.headerMenu || {};
-  globalRuntime.apis.mobileMenu = globalRuntime.apis.mobileMenu || {};
-  globalRuntime.flags = globalRuntime.flags || {};
-  window.pathosRuntime = globalRuntime;
-  return globalRuntime;
-};
+import { ensurePathosRuntime } from './runtime-core.js';
 
 export const registerHeaderRuntime = function(runtimeInput) {
-  const runtime = ensureHeaderRuntime(runtimeInput);
+  const runtime = ensurePathosRuntime(runtimeInput);
   const runtimeFlags = runtime.flags;
   if (runtimeFlags.headerMenuHandlersInstalled) {
     return runtime.apis.headerMenu;

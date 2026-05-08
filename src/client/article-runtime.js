@@ -1,4 +1,5 @@
 import katexCssUrl from 'katex/dist/katex.min.css?url';
+import { ensurePathosRuntime } from './runtime-core.js';
 
 const ensureKatexStyles = function() {
   if (ensureKatexStyles.promise) {
@@ -22,19 +23,9 @@ const ensureKatexStyles = function() {
   return ensureKatexStyles.promise;
 };
 
-const ensureArticleRuntime = function(runtimeInput) {
-  const globalRuntime = runtimeInput || window.pathosRuntime || {};
-  globalRuntime.shared = globalRuntime.shared || {};
-  globalRuntime.apis = globalRuntime.apis || {};
-  globalRuntime.apis.article = globalRuntime.apis.article || {};
-  globalRuntime.flags = globalRuntime.flags || {};
-  window.pathosRuntime = globalRuntime;
-  return globalRuntime;
-};
-
 export const registerArticleRuntime = function(runtimeInput) {
   // article-runtime: TOC · inline footnotes · hanging figures · mermaid · print · selection
-  const runtime = ensureArticleRuntime(runtimeInput);
+  const runtime = ensurePathosRuntime(runtimeInput);
   const articleApi = runtime.apis.article;
   const runtimeFlags = runtime.flags;
   const trackUmami = runtime.shared.trackUmami || function() {};

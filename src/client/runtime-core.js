@@ -16,8 +16,8 @@ export const trackUmami = function(event, data) {
   }
 };
 
-export const ensurePathosRuntime = function() {
-  const globalRuntime = window.pathosRuntime || {};
+export const ensurePathosRuntime = function(runtimeInput) {
+  const globalRuntime = runtimeInput || window.pathosRuntime || {};
   globalRuntime.shared = globalRuntime.shared || {};
   globalRuntime.modules = globalRuntime.modules || {};
   globalRuntime.modules.promises = globalRuntime.modules.promises || {};

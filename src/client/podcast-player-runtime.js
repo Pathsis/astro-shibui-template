@@ -13,16 +13,7 @@ import {
 } from '../lib/player-state';
 import { pauseAudio } from '../lib/audio-player';
 import { trackUmami } from '../lib/analytics';
-
-const ensurePodcastPlayerRuntime = function(runtimeInput) {
-  const globalRuntime = runtimeInput || window.pathosRuntime || {};
-  globalRuntime.apis = globalRuntime.apis || {};
-  globalRuntime.apis.podcastPlayer = globalRuntime.apis.podcastPlayer || {};
-  globalRuntime.shared = globalRuntime.shared || {};
-  globalRuntime.flags = globalRuntime.flags || {};
-  window.pathosRuntime = globalRuntime;
-  return globalRuntime;
-};
+import { ensurePathosRuntime } from './runtime-core.js';
 
 const PODCAST_STYLE_ATTR = 'data-pathos-podcast-player-styles';
 const PODCAST_MOUNT_ATTR = 'data-podcast-player-mount';
@@ -89,7 +80,7 @@ const getMountPoint = function(container) {
 };
 
 export const registerPodcastPlayerRuntime = function(runtimeInput) {
-  const runtime = ensurePodcastPlayerRuntime(runtimeInput);
+  const runtime = ensurePathosRuntime(runtimeInput);
   const runtimeFlags = runtime.flags;
   // Runtime 通过 main.js 与 astro:page-load 多次触发进入，这里必须幂等。
   if (runtimeFlags.podcastPlayerRuntimeRegistered) {

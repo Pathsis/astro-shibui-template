@@ -1,14 +1,7 @@
-const ensureFeaturedRuntime = function(runtimeInput) {
-  const globalRuntime = runtimeInput || window.pathosRuntime || {};
-  globalRuntime.apis = globalRuntime.apis || {};
-  globalRuntime.apis.featured = globalRuntime.apis.featured || {};
-  globalRuntime.flags = globalRuntime.flags || {};
-  window.pathosRuntime = globalRuntime;
-  return globalRuntime;
-};
+import { ensurePathosRuntime } from './runtime-core.js';
 
 export const registerFeaturedRuntime = function(runtimeInput) {
-  const runtime = ensureFeaturedRuntime(runtimeInput);
+  const runtime = ensurePathosRuntime(runtimeInput);
   const featuredApi = runtime.apis.featured;
   const runtimeFlags = runtime.flags;
 

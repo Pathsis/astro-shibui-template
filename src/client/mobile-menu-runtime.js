@@ -1,15 +1,7 @@
-const ensureMobileMenuRuntime = function(runtimeInput) {
-  const globalRuntime = runtimeInput || window.pathosRuntime || {};
-  globalRuntime.apis = globalRuntime.apis || {};
-  globalRuntime.apis.headerMenu = globalRuntime.apis.headerMenu || {};
-  globalRuntime.apis.mobileMenu = globalRuntime.apis.mobileMenu || {};
-  globalRuntime.flags = globalRuntime.flags || {};
-  window.pathosRuntime = globalRuntime;
-  return globalRuntime;
-};
+import { ensurePathosRuntime } from './runtime-core.js';
 
 export const registerMobileMenuRuntime = function(runtimeInput) {
-  const runtime = ensureMobileMenuRuntime(runtimeInput);
+  const runtime = ensurePathosRuntime(runtimeInput);
   const runtimeFlags = runtime.flags;
   if (runtimeFlags.mobileMenuHandlersInstalled) {
     return runtime.apis.mobileMenu;

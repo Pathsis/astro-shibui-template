@@ -1,13 +1,4 @@
-const ensurePaginationRuntime = function(runtimeInput) {
-  const globalRuntime = runtimeInput || window.pathosRuntime || {};
-  globalRuntime.shared = globalRuntime.shared || {};
-  globalRuntime.apis = globalRuntime.apis || {};
-  globalRuntime.apis.pagination = globalRuntime.apis.pagination || {};
-  globalRuntime.apis.featured = globalRuntime.apis.featured || {};
-  globalRuntime.flags = globalRuntime.flags || {};
-  window.pathosRuntime = globalRuntime;
-  return globalRuntime;
-};
+import { ensurePathosRuntime } from './runtime-core.js';
 
 export const registerPaginationRuntime = function(runtimeInput) {
   // 主存储键：挂在 history.state 上，与当前 history entry 绑定
@@ -23,7 +14,7 @@ export const registerPaginationRuntime = function(runtimeInput) {
   // 快照自身的硬过期时间，防止极端情况下把很久以前的 HTML 贴回来
   const SNAPSHOT_MAX_AGE = 60 * 60 * 1000;
 
-  const runtime = ensurePaginationRuntime(runtimeInput);
+  const runtime = ensurePathosRuntime(runtimeInput);
   const runtimeShared = runtime.shared || {};
   const paginationApi = runtime.apis.pagination;
   const runtimeFlags = runtime.flags;
