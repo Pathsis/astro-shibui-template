@@ -23,7 +23,6 @@ import {
   createMenuToggleInitializer,
   installSearchShortcut,
   installPrintLinkSanitizer,
-  installScrollTopButton,
   installGithubCornerTouch,
   sanitizeLocationHash,
   installOutboundLinkTracking,
@@ -125,7 +124,6 @@ const bootstrapMainRuntime = function() {
     syncIosShellSpaGuard,
     isIosChromeShell,
   });
-  installScrollTopButton(runtime);
   installGithubCornerTouch(runtime);
   sanitizeLocationHash(runtime);
 };
