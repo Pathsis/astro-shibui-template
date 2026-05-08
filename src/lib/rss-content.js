@@ -6,6 +6,10 @@ const alignmentTitles = new Set(["align-left", "align-right", "align-center", "f
 const footnoteRefPrefix = "RSSFOOTNOTEREF";
 const footnoteRefSuffix = "END";
 
+export function escapeXmlAttribute(value) {
+  return parser.utils.escapeHtml(String(value ?? ""));
+}
+
 parser.renderer.rules.image = function(tokens, idx) {
   const token = tokens[idx];
   const src = token.attrGet("src") || "";

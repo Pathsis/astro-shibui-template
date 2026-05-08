@@ -20,6 +20,7 @@ html {
   --spacing-sm: calc(var(--spacing-base) * 0.5);
   --spacing-md: var(--spacing-base);
   --spacing-lg: calc(var(--spacing-base) * 2);
+  --spacing-xl: calc(var(--spacing-base) * 3);
 
   /* === 优化后的颜色定义 === */
   color-scheme: light dark;

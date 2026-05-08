@@ -5,10 +5,19 @@ export const installOutboundLinkTracking = function(runtime, trackUmami) {
   runtime.flags.outboundTrackingInstalled = true;
 
   document.addEventListener('click', function(event) {
-    const link = event.target.closest('a[href]');
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const link = target.closest('a[href]');
     if (!link) return;
     const href = link.getAttribute('href');
-    if (href && href.startsWith('http') && !href.includes(window.location.hostname)) {
+    let isOutbound = false;
+    try {
+      const url = new URL(href || '', window.location.href);
+      isOutbound = url.protocol.startsWith('http') && url.origin !== window.location.origin;
+    } catch (e) {
+      return;
+    }
+    if (isOutbound) {
       trackUmami('outbound-link', {
         url: href,
         text: link.textContent.trim().substring(0, 50)

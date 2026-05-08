@@ -593,22 +593,39 @@ function escapeHtml(str: string): string {
 
 function normalizeHighlightHtml(html: string, query: string): string {
   if (!html) return html;
-  if (!isContinuousCjkQuery(query)) return html;
 
   let normalized = html;
-  let previous = "";
-  const adjacentCjkHighlightRe =
-    /<em class="highlight">([\u3400-\u9FFF\uF900-\uFAFF]+)<\/em>([\s\u00A0]*)<em class="highlight">([\u3400-\u9FFF\uF900-\uFAFF]+)<\/em>/g;
+  if (isContinuousCjkQuery(query)) {
+    let previous = "";
+    const adjacentCjkHighlightRe =
+      /<em class="highlight">([\u3400-\u9FFF\uF900-\uFAFF]+)<\/em>([\s\u00A0]*)<em class="highlight">([\u3400-\u9FFF\uF900-\uFAFF]+)<\/em>/g;
 
-  while (normalized !== previous) {
-    previous = normalized;
-    normalized = normalized.replace(adjacentCjkHighlightRe, (_match, left, gap, right) => {
-      if (gap && gap.trim()) return _match;
-      return `<em class="highlight">${left}${right}</em>`;
-    });
+    while (normalized !== previous) {
+      previous = normalized;
+      normalized = normalized.replace(adjacentCjkHighlightRe, (_match, left, gap, right) => {
+        if (gap && gap.trim()) return _match;
+        return `<em class="highlight">${left}${right}</em>`;
+      });
+    }
   }
 
-  return normalized;
+  return sanitizeHighlightHtml(normalized);
+}
+
+function sanitizeHighlightHtml(html: string): string {
+  const allowedHighlightTagRe = /(<em\s+class=(?:"highlight"|'highlight')\s*>|<\/em>)/gi;
+  return html
+    .split(allowedHighlightTagRe)
+    .map((part) => {
+      if (/^<em\s+class=(?:"highlight"|'highlight')\s*>$/i.test(part)) {
+        return '<em class="highlight">';
+      }
+      if (/^<\/em>$/i.test(part)) {
+        return '</em>';
+      }
+      return escapeHtml(part);
+    })
+    .join("");
 }
 
 function isContinuousCjkQuery(query: string): boolean {

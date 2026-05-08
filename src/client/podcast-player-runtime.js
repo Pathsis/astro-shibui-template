@@ -1,6 +1,6 @@
 import { render, h } from 'preact';
 import { PodcastPlayer } from '../components/PodcastPlayer';
-import podcastPlayerCssUrl from '../styles/podcast-player.css?url';
+import podcastPlayerStyles from '../styles/podcast-player.css?inline';
 import {
   updatePlayerState,
   getPlayerState,
@@ -24,52 +24,68 @@ const ensurePodcastPlayerRuntime = function(runtimeInput) {
   return globalRuntime;
 };
 
-const ensurePodcastPlayerStyles = function(runtime) {
+const PODCAST_STYLE_ATTR = 'data-pathos-podcast-player-styles';
+const PODCAST_MOUNT_ATTR = 'data-podcast-player-mount';
+const PODCAST_LAYER_ORDER = '@layer tokens, base, layout, content, components, utilities, print;';
+const PODCAST_LAYERED_STYLES = `${PODCAST_LAYER_ORDER}\n@layer components {\n${podcastPlayerStyles}\n}`;
+
+const supportsConstructedStylesheets = function() {
+  return typeof CSSStyleSheet !== 'undefined'
+    && typeof CSSStyleSheet.prototype.replaceSync === 'function'
+    && Array.isArray(document.adoptedStyleSheets);
+};
+
+const ensurePodcastPlayerStyles = function(runtime, container) {
   const shared = runtime.shared || {};
   runtime.shared = shared;
 
-  if (shared.podcastPlayerStylesPromise) {
-    const existingLink = document.querySelector('link[data-pathos-podcast-player-styles="1"]');
-    if (existingLink instanceof HTMLLinkElement && existingLink.isConnected) {
-      return shared.podcastPlayerStylesPromise;
+  let hasConstructedStylesheet = false;
+  if (supportsConstructedStylesheets()) {
+    try {
+      let sheet = shared.podcastPlayerStyleSheet;
+      if (!(sheet instanceof CSSStyleSheet)) {
+        sheet = new CSSStyleSheet();
+        sheet.replaceSync(PODCAST_LAYERED_STYLES);
+        shared.podcastPlayerStyleSheet = sheet;
+      }
+      if (!document.adoptedStyleSheets.includes(sheet)) {
+        document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+      }
+      hasConstructedStylesheet = true;
+      shared.podcastPlayerStylesReady = true;
+    } catch (error) {
+      if (!shared.podcastPlayerStylesheetFallbackWarned) {
+        shared.podcastPlayerStylesheetFallbackWarned = true;
+        console.warn('Failed to install constructed stylesheet for podcast player, fallback to style tag.', error);
+      }
     }
-    delete shared.podcastPlayerStylesPromise;
   }
 
-  shared.podcastPlayerStylesPromise = new Promise(function(resolve, reject) {
-    const existingLink = document.querySelector('link[data-pathos-podcast-player-styles="1"]');
-    if (existingLink instanceof HTMLLinkElement) {
-      if (existingLink.sheet) {
-        resolve(existingLink);
-        return;
-      }
+  if (hasConstructedStylesheet) return;
 
-      existingLink.addEventListener('load', function() {
-        resolve(existingLink);
-      }, { once: true });
-      existingLink.addEventListener('error', function(event) {
-        reject(event);
-      }, { once: true });
-      return;
-    }
+  if (!container) return;
 
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = podcastPlayerCssUrl;
-    link.dataset.pathosPodcastPlayerStyles = '1';
-    link.addEventListener('load', function() {
-      resolve(link);
-    }, { once: true });
-    link.addEventListener('error', function(event) {
-      reject(event);
-    }, { once: true });
-    document.head.appendChild(link);
-  }).catch(function(error) {
-    delete shared.podcastPlayerStylesPromise;
-    throw error;
-  });
+  let styleTag = container.querySelector(`style[${PODCAST_STYLE_ATTR}="1"]`);
+  if (!(styleTag instanceof HTMLStyleElement)) {
+    styleTag = document.createElement('style');
+    styleTag.setAttribute(PODCAST_STYLE_ATTR, '1');
+    styleTag.textContent = PODCAST_LAYERED_STYLES;
+    container.prepend(styleTag);
+  } else if (!styleTag.textContent) {
+    styleTag.textContent = PODCAST_LAYERED_STYLES;
+  }
 
-  return shared.podcastPlayerStylesPromise;
+  shared.podcastPlayerStylesReady = true;
+};
+
+const getMountPoint = function(container) {
+  let mountPoint = container.querySelector(`[${PODCAST_MOUNT_ATTR}="1"]`);
+  if (!(mountPoint instanceof HTMLElement)) {
+    mountPoint = document.createElement('div');
+    mountPoint.setAttribute(PODCAST_MOUNT_ATTR, '1');
+    container.appendChild(mountPoint);
+  }
+  return mountPoint;
 };
 
 export const registerPodcastPlayerRuntime = function(runtimeInput) {
@@ -89,16 +105,17 @@ export const registerPodcastPlayerRuntime = function(runtimeInput) {
     return document.getElementById('podcast-player-container');
   };
 
-  const mountPlayer = async function() {
-    await ensurePodcastPlayerStyles(runtime);
-
+  const mountPlayer = function() {
     const container = getContainer();
     if (!container || currentEpisodes.length === 0) return;
 
+    ensurePodcastPlayerStyles(runtime, container);
+
     container.style.display = 'block';
+    const mountPoint = getMountPoint(container);
 
     if (isPlayerMounted) return;
-    if (container.querySelector('.podcast-player')) {
+    if (mountPoint.querySelector('.podcast-player')) {
       isPlayerMounted = true;
       isPlayerVisible = true;
       return;
@@ -112,7 +129,7 @@ export const registerPodcastPlayerRuntime = function(runtimeInput) {
           unmountPlayer();
         }
       }),
-      container
+      mountPoint
     );
 
     isPlayerMounted = true;
@@ -122,7 +139,10 @@ export const registerPodcastPlayerRuntime = function(runtimeInput) {
   const unmountPlayer = function() {
     const container = getContainer();
     if (container) {
-      render(null, container);
+      const mountPoint = container.querySelector(`[${PODCAST_MOUNT_ATTR}="1"]`);
+      if (mountPoint instanceof HTMLElement) {
+        render(null, mountPoint);
+      }
       container.style.display = 'none';
     }
     isPlayerMounted = false;
@@ -154,26 +174,21 @@ export const registerPodcastPlayerRuntime = function(runtimeInput) {
 
     const state = getPlayerState();
     if (state.currentSlug && !isPlayerDismissed()) {
-      await mountPlayer();
+      mountPlayer();
     }
   };
 
   // 保留全局函数签名兼容：window.playPodcastEpisode(slug, title, url)。
   // 该入口现在只做“唤起播放器 + 选中曲目”，不直接触发播放。
   // title 在当前实现未直接使用，但暂不移除，避免调用方参数位移风险。
-  const playPodcastEpisode = async function(slug, _title, url) {
+  const playPodcastEpisode = function(slug, _title, url) {
     const state = getPlayerState();
 
     clearDismissedState();
     setPlayIntent(false);
 
     if (!isPlayerMounted) {
-      try {
-        await mountPlayer();
-      } catch (error) {
-        console.error('Failed to load podcast player styles:', error);
-        return;
-      }
+      mountPlayer();
     }
     if (state.currentSlug === slug && isPlayerVisible) return;
 

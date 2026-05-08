@@ -1,6 +1,8 @@
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { lookup } from "node:dns/promises";
+import net from "node:net";
 import matter from "gray-matter";
 import sharp from "sharp";
 import { pathToFileURL } from "node:url";
@@ -30,6 +32,7 @@ const CONTENT_DIRS = [
 const PUBLIC_DIR = resolvePublicRoot(ROOT);
 const SOCIAL_OUTPUT_DIR = path.join(PUBLIC_DIR, "generated/social");
 const MEDIA_OUTPUT_DIR = path.join(PUBLIC_DIR, "generated/media");
+const PUBLIC_DIR_RESOLVED = path.resolve(PUBLIC_DIR);
 const IMAGE_EXT = /\.(?:avif|gif|jpe?g|png|webp|svg)$/i;
 const PODCAST_DEFAULT_COVER = normalizeImagePath(
   siteConfigModule?.siteConfig?.images?.podcastDefaultCover,
@@ -48,6 +51,11 @@ const REMOTE_IMAGE_REVALIDATE_MS = parseNonNegativeNumber(
   process.env.SOCIAL_IMAGE_REMOTE_TTL_MS,
   24 * 60 * 60 * 1000,
 );
+const REMOTE_MAX_REDIRECTS = parseNonNegativeNumber(process.env.SOCIAL_IMAGE_MAX_REDIRECTS, 5);
+const REMOTE_ALLOWED_HOSTS = (process.env.SOCIAL_IMAGE_ALLOWED_HOSTS || "")
+  .split(",")
+  .map((host) => host.trim().toLowerCase())
+  .filter(Boolean);
 
 function normalizeLocalImagePath(input: string): string {
   const [withoutQuery] = input.trim().split(/[?#]/);
@@ -61,7 +69,138 @@ function normalizeLocalImagePath(input: string): string {
 
 function resolveSourcePath(localImagePath: string): string {
   const normalized = normalizeLocalImagePath(localImagePath);
-  return path.join(PUBLIC_DIR, normalized.slice(1));
+  const resolved = path.resolve(PUBLIC_DIR, `.${normalized}`);
+  const relative = path.relative(PUBLIC_DIR_RESOLVED, resolved);
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error(`Blocked path traversal outside public dir: ${localImagePath}`);
+  }
+  return resolved;
+}
+
+function isLocalHostname(hostname: string): boolean {
+  const normalized = hostname.trim().toLowerCase();
+  if (!normalized) return true;
+  return (
+    normalized === "localhost" ||
+    normalized.endsWith(".localhost") ||
+    normalized.endsWith(".local")
+  );
+}
+
+function isAllowedRemoteHost(hostname: string): boolean {
+  if (REMOTE_ALLOWED_HOSTS.length === 0) return true;
+  const normalized = hostname.toLowerCase();
+  return REMOTE_ALLOWED_HOSTS.some((allowedHost) =>
+    normalized === allowedHost || normalized.endsWith(`.${allowedHost}`),
+  );
+}
+
+function isPrivateOrSpecialIpv4(address: string): boolean {
+  const octets = address.split(".").map((part) => Number(part));
+  if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return true;
+  }
+
+  const [a, b] = octets;
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 0) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true;
+  if (a === 198 && (b === 18 || b === 19)) return true;
+  if (a >= 224) return true;
+  return false;
+}
+
+function isPrivateOrSpecialIpv6(address: string): boolean {
+  const normalized = address.toLowerCase();
+  if (normalized === "::1" || normalized === "::") return true;
+  if (normalized.startsWith("fe80:")) return true;
+  if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true;
+  if (normalized.startsWith("ff")) return true;
+
+  const ipv4MappedPrefix = "::ffff:";
+  if (normalized.startsWith(ipv4MappedPrefix)) {
+    const mapped = normalized.slice(ipv4MappedPrefix.length);
+    return isPrivateOrSpecialIpv4(mapped);
+  }
+  return false;
+}
+
+function isPrivateOrSpecialAddress(address: string): boolean {
+  const family = net.isIP(address);
+  if (family === 4) return isPrivateOrSpecialIpv4(address);
+  if (family === 6) return isPrivateOrSpecialIpv6(address);
+  return true;
+}
+
+async function validateRemoteUrl(rawUrl: string): Promise<URL> {
+  const parsed = new URL(rawUrl);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(`Unsupported remote URL protocol: ${parsed.protocol}`);
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  if (!isAllowedRemoteHost(hostname)) {
+    throw new Error(`Remote host not allowed: ${hostname}`);
+  }
+  if (isLocalHostname(hostname)) {
+    throw new Error(`Blocked local hostname: ${hostname}`);
+  }
+
+  const hostIpFamily = net.isIP(hostname);
+  if (hostIpFamily > 0) {
+    if (isPrivateOrSpecialAddress(hostname)) {
+      throw new Error(`Blocked private/special IP: ${hostname}`);
+    }
+    return parsed;
+  }
+
+  const resolvedAddresses = await lookup(hostname, { all: true, verbatim: true });
+  if (resolvedAddresses.length === 0) {
+    throw new Error(`Failed to resolve remote host: ${hostname}`);
+  }
+
+  for (const resolved of resolvedAddresses) {
+    if (isPrivateOrSpecialAddress(resolved.address)) {
+      throw new Error(`Blocked private/special resolved IP: ${hostname} -> ${resolved.address}`);
+    }
+  }
+
+  return parsed;
+}
+
+async function fetchRemoteImage(imageRef: string): Promise<Buffer | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Math.max(1000, REMOTE_FETCH_TIMEOUT_MS));
+  try {
+    let currentUrl = imageRef;
+    const maxRedirects = Math.max(0, Math.floor(REMOTE_MAX_REDIRECTS));
+    for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
+      const safeUrl = await validateRemoteUrl(currentUrl);
+      const response = await fetch(safeUrl, {
+        signal: controller.signal,
+        redirect: "manual",
+      });
+
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get("location");
+        if (!location) return null;
+        currentUrl = new URL(location, safeUrl).toString();
+        continue;
+      }
+
+      if (!response.ok) return null;
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    }
+
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function walkMarkdownFiles(dir: string): Promise<string[]> {
@@ -115,20 +254,10 @@ function extractEntryImage(fileContent: string): { image?: string; podcast: bool
 
 async function readImageInput(imageRef: string): Promise<Buffer | string | null> {
   if (isRemoteSocialImage(imageRef)) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), Math.max(1000, REMOTE_FETCH_TIMEOUT_MS));
     try {
-      const response = await fetch(imageRef, {
-        signal: controller.signal,
-        redirect: "follow",
-      });
-      if (!response.ok) return null;
-      const arrayBuffer = await response.arrayBuffer();
-      return Buffer.from(arrayBuffer);
+      return await fetchRemoteImage(imageRef);
     } catch {
       return null;
-    } finally {
-      clearTimeout(timeout);
     }
   }
 

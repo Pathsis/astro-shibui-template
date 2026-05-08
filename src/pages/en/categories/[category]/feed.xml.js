@@ -3,7 +3,7 @@ import { getCollection } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import { getLocalizedBlogPathById } from '../../../../lib/post-url';
 import { extractFirstImageFromMarkdown, normalizeImagePath } from '../../../../lib/image-path';
-import { renderRssMarkdown } from '../../../../lib/rss-content';
+import { escapeXmlAttribute, renderRssMarkdown } from '../../../../lib/rss-content';
 import {
   createSocialImageVersionToken,
   getDefaultSocialImageVersionSeed,
@@ -73,13 +73,15 @@ export async function GET(context) {
         notesTitle: 'Notes',
         footnoteIdPrefix: post.id,
       });
+      const escapedCoverUrl = escapeXmlAttribute(coverUrl);
+      const escapedTitle = escapeXmlAttribute(post.data.title);
 
       const finalContent = coverUrl 
-        ? `<img src="${coverUrl}" alt="${post.data.title}" /><br/>${sanitizedContent}`
+        ? `<img src="${escapedCoverUrl}" alt="${escapedTitle}" /><br/>${sanitizedContent}`
         : sanitizedContent;
       const itemCustomData = [
         `<pubDate>${formatRssDate(post.data.date)}</pubDate>`,
-        coverUrl ? `<enclosure url="${coverUrl}" type="image/jpeg" length="0" />` : '',
+        coverUrl ? `<enclosure url="${escapedCoverUrl}" type="image/jpeg" length="0" />` : '',
       ].join('');
 
       return {

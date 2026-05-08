@@ -15,9 +15,9 @@ export function countWords(content: string, lang: "zh-cn" | "en"): number {
   // 移除 Markdown 语法符号，更接近 Hugo 的处理方式
   const cleanContent = content
     .replace(/---[\s\S]*?---/g, '') // 移除 frontmatter
-    .replace(/[#*_`\[\](){}|!\-]/g, '') // 移除常见 Markdown 符号
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // 将链接 [text](url) 转为 text
     .replace(/!\[([^\]]*)\]\([^)]+\)/g, '') // 移除图片标记
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // 将链接 [text](url) 转为 text
+    .replace(/[#*_`\[\](){}|!\-]/g, '') // 移除常见 Markdown 符号
     .trim();
 
   if (lang === "en") {
@@ -37,7 +37,7 @@ export function countWords(content: string, lang: "zh-cn" | "en"): number {
  */
 export function formatWordCount(count: number, lang: "zh-cn" | "en"): string {
   if (lang === "en") {
-    return `${Math.round(count / 1000)}k`;
+    return count < 1000 ? `${count}` : `${Math.round(count / 1000)}k`;
   } else {
     return `${(count / 10000).toFixed(2)} 万`;
   }

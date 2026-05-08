@@ -35,7 +35,7 @@ export const registerHeaderRuntime = function(runtimeInput) {
     try {
       const ua = navigator.userAgent || '';
       const iOSDevice = /iPhone|iPad|iPod/.test(ua);
-      const iPadOsDesktopUa = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+      const iPadOsDesktopUa = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
       return iOSDevice || iPadOsDesktopUa;
     } catch (_) {
       return false;

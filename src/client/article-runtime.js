@@ -704,7 +704,7 @@ export const registerArticleRuntime = function(runtimeInput) {
           startOnLoad: false,
           theme: isDark ? 'dark' : 'default',
           flowchart: { curve: 'basis' },
-          securityLevel: 'loose',
+          securityLevel: 'strict',
         });
       };
 

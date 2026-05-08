@@ -60,22 +60,35 @@ const bootstrapMainRuntime = function() {
   const initCapabilityRuntimes = async function(options = {}) {
     const paginationOptions = options.paginationOptions || {};
     const isArticlePage = document.body?.dataset?.pageKind === 'article';
+    const initCapability = async function(name, loadAndInit) {
+      try {
+        await loadAndInit();
+      } catch (error) {
+        console.error(`Failed to initialize ${name} runtime:`, error);
+      }
+    };
 
     if (document.querySelector('.featured-card-wall')) {
-      await loadRuntimeModule('featured');
-      runtime.apis.featured?.init?.();
+      await initCapability('featured', async function() {
+        await loadRuntimeModule('featured');
+        runtime.apis.featured?.init?.();
+      });
     }
 
     if (hasPaginatedFeed()) {
-      await loadRuntimeModule('pagination');
-      runtime.apis.pagination?.init?.(paginationOptions);
+      await initCapability('pagination', async function() {
+        await loadRuntimeModule('pagination');
+        runtime.apis.pagination?.init?.(paginationOptions);
+      });
     }
 
     if (isArticlePage || runtime.apis.article?.init) {
-      if (!runtime.apis.article?.init && isArticlePage) {
-        await loadRuntimeModule('article');
-      }
-      runtime.apis.article?.init?.();
+      await initCapability('article', async function() {
+        if (!runtime.apis.article?.init && isArticlePage) {
+          await loadRuntimeModule('article');
+        }
+        runtime.apis.article?.init?.();
+      });
     }
   };
 

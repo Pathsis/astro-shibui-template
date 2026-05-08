@@ -1,5 +1,12 @@
 /* ========== 播客播放器样式 ========== */
 
+/* 避免 ClientRouter 换页时播放器封面参与 View Transition，
+   导致过渡帧中出现封面闪屏/放大。 */
+#podcast-player-container,
+#podcast-player-container * {
+  view-transition-name: none !important;
+}
+
 /* 播放器主容器 */
 .podcast-player {
   position: relative;
