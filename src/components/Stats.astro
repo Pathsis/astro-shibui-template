@@ -17,7 +17,6 @@ const allPosts = lang === "zh-cn"
   ? await getCollection("blog-zh", ({ data }) => !data.draft)
   : await getCollection("blog-en", ({ data }) => !data.draft);
 
-// 与 CoverLayout 统计口径保持一致
 const posts = allPosts.filter(post => post.id && !post.id.startsWith("_"));
 const totalWords = posts.reduce((sum, post) => sum + countWords(post.body ?? "", lang), 0);
 

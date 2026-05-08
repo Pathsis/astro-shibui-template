@@ -20,7 +20,6 @@ import {
   installPodcastLazyPlayBridge,
 } from './runtime-podcast-lazy.js';
 import {
-  createMenuToggleInitializer,
   installSearchShortcut,
   installPrintLinkSanitizer,
   installGithubCornerTouch,
@@ -104,14 +103,6 @@ const bootstrapMainRuntime = function() {
   });
 
   syncIosShellSpaGuard();
-
-  const hasLegacyCoverMenu = !!document.querySelector('.menu-toggle') && !!document.querySelector('.menu-overlay');
-  if (hasLegacyCoverMenu) {
-    const hasImage = !!document.querySelector('.cover-left img');
-    const initMenuToggle = createMenuToggleInitializer(hasImage);
-    runtime.apis.initMenuToggle = initMenuToggle;
-    initMenuToggle();
-  }
 
   installUmamiAnalytics(runtime, config);
   installClarityAnalytics(runtime, config);

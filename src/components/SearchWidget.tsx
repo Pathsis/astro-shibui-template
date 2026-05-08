@@ -76,15 +76,9 @@ export default function SearchWidget({ lang, appId, searchKey, indexName }: Prop
 
   const detectShortcutPrimaryKey = useCallback(() => {
     if (typeof navigator === "undefined") return "Ctrl";
-    const uaDataNavigator = navigator as Navigator & { userAgentData?: { platform?: string } };
-    const legacyPlatform = (navigator as any).platform || "";
-    const platform = uaDataNavigator.userAgentData?.platform || legacyPlatform;
     const ua = navigator.userAgent || "";
-    const maxTouchPoints = (navigator as Navigator & { maxTouchPoints?: number }).maxTouchPoints || 0;
-    const isMacLike = /Mac|iPhone|iPad|iPod/i.test(`${platform} ${ua}`);
-    // iPadOS 13+ may report MacIntel in platform while remaining touch-first.
-    const isIpadOsDesktopMode = /MacIntel/i.test(platform) && maxTouchPoints > 1;
-    return (isMacLike || isIpadOsDesktopMode) ? "⌘" : "Ctrl";
+    const isAppleLike = /Macintosh|iPhone|iPad|iPod/i.test(ua);
+    return isAppleLike ? "⌘" : "Ctrl";
   }, []);
 
   // 使用 useMemo 稳定 client 引用，避免每次渲染都重新创建
