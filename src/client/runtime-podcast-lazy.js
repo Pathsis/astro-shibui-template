@@ -1,10 +1,26 @@
-import { initPlayerState, getPlayerMinimized, isPlayerDismissed } from '../lib/player-state';
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const readStorageJson = function(key) {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+};
 
 export const shouldAutoloadPodcastPlayer = function() {
-  if (!getPlayerMinimized()) return false;
-  if (isPlayerDismissed()) return false;
-  const state = initPlayerState();
-  return !!state.currentSlug;
+  const min = readStorageJson('podcast-player-minimized');
+  if (!min || min.minimized !== true) return false;
+
+  const dis = readStorageJson('podcast-player-dismissed');
+  if (dis && dis.timestamp && Date.now() - dis.timestamp < DAY_MS) return false;
+
+  const st = readStorageJson('podcast-player-state');
+  if (!st || (st.timestamp && Date.now() - st.timestamp >= DAY_MS)) return false;
+
+  return !!st.currentSlug;
 };
 
 export const installPodcastLazyPlayBridge = function(runtime, loadRuntimeModule) {
