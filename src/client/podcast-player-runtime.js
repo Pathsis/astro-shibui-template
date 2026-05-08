@@ -96,6 +96,32 @@ export const registerPodcastPlayerRuntime = function(runtimeInput) {
     return document.getElementById('podcast-player-container');
   };
 
+  const getEpisodesData = function(container) {
+    const dataScript = container.querySelector('#podcast-episodes-data')
+      || document.getElementById('podcast-episodes-data');
+    if (dataScript instanceof HTMLScriptElement && dataScript.textContent) {
+      return dataScript.textContent;
+    }
+    return container.getAttribute('data-episodes') || '';
+  };
+
+  const parseEpisodesData = function(episodesData) {
+    if (!episodesData) return [];
+    try {
+      const parsed = JSON.parse(episodesData);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map(function(episode) {
+        return {
+          ...episode,
+          date: new Date(episode.date),
+        };
+      });
+    } catch (error) {
+      console.error('Failed to parse podcast episodes:', error);
+      return [];
+    }
+  };
+
   const mountPlayer = function() {
     const container = getContainer();
     if (!container || currentEpisodes.length === 0) return;
@@ -146,21 +172,8 @@ export const registerPodcastPlayerRuntime = function(runtimeInput) {
 
     initPlayerState();
 
-    const episodesData = container.getAttribute('data-episodes');
-    if (episodesData) {
-      try {
-        const parsed = JSON.parse(episodesData);
-        if (Array.isArray(parsed)) {
-          currentEpisodes = parsed.map(function(episode) {
-            return {
-              ...episode,
-              date: new Date(episode.date),
-            };
-          });
-        }
-      } catch (error) {
-        console.error('Failed to parse podcast episodes:', error);
-      }
+    if (currentEpisodes.length === 0) {
+      currentEpisodes = parseEpisodesData(getEpisodesData(container));
     }
 
     const state = getPlayerState();
