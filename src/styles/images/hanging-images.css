@@ -24,8 +24,8 @@
   --hanging-image-width-large-tablet-portrait: 30ch;
   --hanging-image-width-tablet-landscape: 32ch;
   --hanging-image-width-laptop: 36ch;
-  --hanging-image-width-display: 40ch;
-  --hanging-image-width-ultra: 46ch;
+  --hanging-image-width-display: 46ch;
+  --hanging-image-width-ultra: 54ch;
   --hanging-image-width-current: var(--hanging-image-width-laptop);
 }
 
