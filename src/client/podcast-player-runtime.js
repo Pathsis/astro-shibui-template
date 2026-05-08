@@ -96,30 +96,35 @@ export const registerPodcastPlayerRuntime = function(runtimeInput) {
     return document.getElementById('podcast-player-container');
   };
 
-  const getEpisodesData = function(container) {
-    const dataScript = container.querySelector('#podcast-episodes-data')
-      || document.getElementById('podcast-episodes-data');
-    if (dataScript instanceof HTMLScriptElement && dataScript.textContent) {
-      return dataScript.textContent;
-    }
-    return container.getAttribute('data-episodes') || '';
-  };
+  let episodesLoadPromise = null;
 
-  const parseEpisodesData = function(episodesData) {
-    if (!episodesData) return [];
-    try {
-      const parsed = JSON.parse(episodesData);
-      if (!Array.isArray(parsed)) return [];
-      return parsed.map(function(episode) {
-        return {
-          ...episode,
-          date: new Date(episode.date),
-        };
+  const loadEpisodes = async function() {
+    if (currentEpisodes.length > 0) return currentEpisodes;
+    if (episodesLoadPromise) return episodesLoadPromise;
+
+    episodesLoadPromise = fetch('/podcast-episodes.json')
+      .then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function(parsed) {
+        if (!Array.isArray(parsed)) throw new Error('Invalid response');
+        currentEpisodes = parsed.map(function(episode) {
+          return {
+            ...episode,
+            date: new Date(episode.date),
+          };
+        });
+        episodesLoadPromise = null;
+        return currentEpisodes;
+      })
+      .catch(function(error) {
+        episodesLoadPromise = null;
+        console.error('Failed to load podcast episodes:', error);
+        return [];
       });
-    } catch (error) {
-      console.error('Failed to parse podcast episodes:', error);
-      return [];
-    }
+
+    return episodesLoadPromise;
   };
 
   const mountPlayer = function() {
@@ -173,7 +178,7 @@ export const registerPodcastPlayerRuntime = function(runtimeInput) {
     initPlayerState();
 
     if (currentEpisodes.length === 0) {
-      currentEpisodes = parseEpisodesData(getEpisodesData(container));
+      await loadEpisodes();
     }
 
     const state = getPlayerState();
@@ -185,7 +190,11 @@ export const registerPodcastPlayerRuntime = function(runtimeInput) {
   // 保留全局函数签名兼容：window.playPodcastEpisode(slug, title, url)。
   // 该入口现在只做“唤起播放器 + 选中曲目”，不直接触发播放。
   // title 在当前实现未直接使用，但暂不移除，避免调用方参数位移风险。
-  const playPodcastEpisode = function(slug, _title, url) {
+  const playPodcastEpisode = async function(slug, _title, url) {
+    if (currentEpisodes.length === 0) {
+      await loadEpisodes();
+    }
+
     const state = getPlayerState();
 
     clearDismissedState();

@@ -1,16 +1,18 @@
 ---
-import { getAllPodcastEpisodes } from "../lib/podcast";
+import { getCollection } from "astro:content";
 
-const episodes = await getAllPodcastEpisodes();
-const episodesJson = JSON.stringify(episodes).replace(/</g, '\\u003c');
+const [zhPosts, enPosts] = await Promise.all([
+  getCollection("blog-zh", ({ data }) => !data.draft && data.podcast),
+  getCollection("blog-en", ({ data }) => !data.draft && data.podcast),
+]);
+const hasPodcastEpisodes = zhPosts.length > 0 || enPosts.length > 0;
 ---
 
-{episodes.length > 0 && (
+{hasPodcastEpisodes && (
   <div
     id="podcast-player-container"
     transition:persist="podcast-player-container"
     style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 900; pointer-events: none; display: none;"
   >
-    <script is:inline type="application/json" id="podcast-episodes-data" set:html={episodesJson} />
   </div>
 )}
