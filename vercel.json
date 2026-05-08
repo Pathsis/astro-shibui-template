@@ -5,7 +5,7 @@
       "TZ": "Asia/Shanghai"
     }
   },
-  "buildCommand": "export BUILD_TIME=$(date +\"%Y/%m/%d %H:%M:%S\") && pnpm build",
+  "buildCommand": "export BUILD_TIME=$(date +\"%Y/%m/%d %H:%M:%S\") && pnpm exec astro build",
   "headers": [
     {
       "source": "/(.*)",
