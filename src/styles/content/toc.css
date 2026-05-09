@@ -1,22 +1,9 @@
-/* TOC Module (Content Layer) */
+/* TOC Popover Module (Content Layer)
+ * 统一桌面 / 移动端的文章目录：左下角一个低调的胶囊按钮，点击后弹出
+ * 小面板。按钮上显示当前章节编号 + 底部一条窄进度条（阅读进度）。
+ */
 
-.toc {
-  background: var(--color-bg-tertiary);
-  border-radius: var(--border-radius);
-  padding: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
-}
-
-.toc-title {
-  font-family: var(--font-family-sans);
-  font-weight: 400;
-  margin-bottom: var(--spacing-sm);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-small);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
+/* 基础 list 结构（面板内部 + 打印展开态复用） */
 .toc-list {
   list-style: none;
   margin: 0;
@@ -27,7 +14,7 @@
 .toc-list li {
   margin: 0;
   padding: 0;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .toc-list a {
@@ -104,214 +91,256 @@ body[data-page-kind="article"] .gh-content h2.mobile-heading-unnumbered::before 
   content: none !important;
 }
 
-body[data-page-kind="article"] .toc-inline {
-  display: block;
+/* ===== Popover 容器（按钮入口） ===== */
+.toc-popover {
+  --toc-trigger-height: 28px;
+  position: fixed;
+  left: max(var(--floating-chrome-inset-x), env(safe-area-inset-left));
+  bottom: calc(
+    max(var(--floating-chrome-inset-y), calc(env(safe-area-inset-bottom) + var(--floating-chrome-inset-y)))
+    + (var(--floating-chrome-size) - var(--toc-trigger-height)) / 2
+    + var(--toc-player-offset, 0px)
+  );
+  z-index: 120;
+  opacity: 0;
+  transform: translateY(0.35rem);
+  pointer-events: none;
+  transition: opacity 240ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1), bottom 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-body[data-page-kind="article"] .toc-desktop {
+.toc-popover[data-toc-visible="1"] {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* 按钮：低调胶囊，图标 + 当前编号 + 细进度条 */
+.toc-popover-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: var(--toc-trigger-height);
+  padding: 0 0.7rem 0.22rem 0.55rem;
+  color: var(--color-text-muted);
+  background: color-mix(in srgb, var(--color-bg-primary) 94%, var(--color-bg-tertiary) 6%);
+  border: 1px solid color-mix(in srgb, var(--color-text-muted) 18%, transparent);
+  border-radius: 999px;
+  box-shadow: 0 0.35rem 1rem color-mix(in srgb, var(--color-text-primary) 7%, transparent);
+  font-family: var(--font-family-sans);
+  font-size: 0.75rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.toc-popover-trigger-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.toc-popover-trigger:hover {
+  color: var(--color-text-primary);
+  border-color: color-mix(in srgb, var(--color-text-muted) 36%, transparent);
+  background: color-mix(in srgb, var(--color-bg-primary) 88%, var(--color-bg-tertiary) 12%);
+}
+
+.toc-popover-trigger:active {
+  transform: translateY(1px);
+}
+
+.toc-popover-trigger:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 3px;
+}
+
+.toc-popover[data-toc-open="1"] .toc-popover-trigger {
+  color: var(--color-text-primary);
+  border-color: color-mix(in srgb, var(--color-text-muted) 42%, transparent);
+  background: color-mix(in srgb, var(--color-bg-primary) 84%, var(--color-bg-tertiary) 16%);
+}
+
+.toc-popover-trigger-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  opacity: 0.85;
+}
+
+.toc-popover-trigger-number {
+  min-width: 1.6rem;
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  text-align: left;
+  letter-spacing: 0;
+}
+
+/* 底部窄进度条 */
+.toc-popover-trigger-progress {
+  position: absolute;
+  left: 0.55rem;
+  right: 0.55rem;
+  bottom: 0.28rem;
+  height: 1.5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-muted) 18%, transparent);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.toc-popover-trigger-progress-bar {
+  display: block;
+  height: 100%;
+  width: var(--toc-progress, 0%);
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--color-text-primary) 70%, transparent);
+  transition: width 160ms ease, background-color 180ms ease;
+}
+
+/* ===== 弹出面板 ===== */
+.toc-popover-panel[hidden] {
   display: none;
 }
 
-@media (max-width: 768px) {
-  body[data-page-kind="article"] .toc-inline {
-    width: 100vw;
-    max-width: 100vw;
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
-    padding: 0.75rem var(--spacing-md) 0.9rem;
-    border-radius: 0;
-  }
-
-  body[data-page-kind="article"] .toc-inline .toc-list a,
-  body[data-page-kind="article"] .toc-inline .toc-list a::before {
-    color: var(--color-text-primary);
-  }
+.toc-popover-panel {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.55rem);
+  width: max-content;
+  min-width: 10rem;
+  max-width: min(19rem, calc(100vw - 2rem));
+  max-height: min(60vh, 26rem);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-primary);
+  border: 1px solid color-mix(in srgb, var(--color-text-muted) 22%, transparent);
+  border-radius: 0.85rem;
+  box-shadow:
+    0 0.8rem 2.2rem color-mix(in srgb, var(--color-text-primary) 12%, transparent),
+    0 0.15rem 0.4rem color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  padding: 0.5rem 0.4rem 0.5rem 0.5rem;
+  box-sizing: border-box;
+  transform-origin: bottom left;
+  transform: translateY(0.3rem) scale(0.985);
+  opacity: 0;
+  transition:
+    opacity 180ms ease,
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
 }
 
-@media (min-width: 769px) {
-  body[data-page-kind="article"] .toc-inline {
-    --toc-rail-height: clamp(11rem, 40vh, 24rem);
-    --toc-hit-width: min(16rem, calc(100vw - 3rem));
-    position: fixed;
-    top: 50%;
-    left: max(0.85rem, env(safe-area-inset-left));
-    z-index: 35;
-    box-sizing: border-box;
-    width: var(--toc-hit-width);
-    height: var(--toc-rail-height);
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    transform: translateY(-50%);
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    pointer-events: auto;
-    user-select: none;
-    transition: transform 180ms ease;
-  }
+.toc-popover[data-toc-open="1"] .toc-popover-panel {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
 
-  body[data-page-kind="article"] .toc-inline::before,
-  body[data-page-kind="article"] .toc-inline::after {
-    content: none;
-  }
+/* 面板内部的 TOC 列表 */
+.toc-popover-panel .toc-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0;
+  padding: 0 0.1rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-text-muted) 24%, transparent) transparent;
+}
 
-  body[data-page-kind="article"] .toc-inline:hover,
-  body[data-page-kind="article"] .toc-inline:focus-within {
-    transform: translateY(-50%);
-  }
+.toc-popover-panel .toc-list::-webkit-scrollbar {
+  width: 6px;
+}
 
-  body[data-page-kind="article"] .toc-inline .toc-title {
-    display: none;
-  }
+.toc-popover-panel .toc-list::-webkit-scrollbar-track {
+  background: transparent;
+}
 
-  body[data-page-kind="article"] .toc-inline .toc-list {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.85rem;
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    width: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-width: none;
-  }
+.toc-popover-panel .toc-list::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-text-muted) 24%, transparent);
+  border-radius: 999px;
+}
 
-  body[data-page-kind="article"] .toc-inline .toc-list::-webkit-scrollbar {
-    display: none;
-  }
+.toc-popover-panel .toc-list li {
+  margin: 0;
+}
 
-  body[data-page-kind="article"] .toc-inline .toc-list li {
-    width: 100%;
-    min-height: 1rem;
-    margin: 0;
-    padding: 0;
-  }
+.toc-popover-panel .toc-list a {
+  position: relative;
+  display: block;
+  padding: 0.32rem 0.55rem 0.32rem 0.85rem;
+  margin: 0;
+  color: color-mix(in srgb, var(--color-text-muted) 88%, var(--color-text-primary) 12%);
+  font-size: 0.82rem;
+  line-height: 1.42;
+  border-radius: 0.4rem;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    padding-left 180ms ease;
+}
 
-  body[data-page-kind="article"] .toc-inline .toc-list a {
-    position: relative;
-    display: block;
-    min-height: 1rem;
-    width: 100%;
-    max-width: 100%;
-    padding: 0;
-    border-bottom: none;
-    color: transparent;
-    font-size: 0.92rem;
-    line-height: 1.45;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-indent: 0;
-    transform: translateX(0.16rem);
-    letter-spacing: 0.01em;
-    pointer-events: auto;
-    transition:
-      color 220ms ease,
-      transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
-      letter-spacing 220ms ease;
-  }
+.toc-popover-panel .toc-list a::before {
+  color: color-mix(in srgb, var(--color-text-muted) 60%, transparent);
+  margin-right: 0.3em;
+  font-variant-numeric: tabular-nums;
+}
 
-  body[data-page-kind="article"] .toc-inline .toc-list a::before {
-    content: attr(data-toc-number) " ";
-    color: transparent;
-    transition:
-      color 220ms ease,
-      opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
-      transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
+.toc-popover-panel .toc-list a:hover {
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-text-muted) 10%, transparent);
+}
 
-  body[data-page-kind="article"] .toc-inline .toc-list li.toc-item-unnumbered > a::before {
-    content: none !important;
-    margin-right: 0 !important;
-  }
+.toc-popover-panel .toc-list a:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 1px;
+}
 
-  body[data-page-kind="article"] .toc-inline .toc-list a::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 50%;
-    width: var(--toc-line-width, 1rem);
-    height: 1.5px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--color-text-muted) 66%, transparent);
-    transform: translateY(-50%) scaleX(1);
-    transform-origin: left center;
-    transition:
-      width 200ms ease,
-      height 200ms ease,
-      background-color 180ms ease,
-      opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
-      transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
+.toc-popover-panel .toc-list a.active {
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-text-muted) 12%, transparent);
+}
 
-  body[data-page-kind="article"] .toc-inline .toc-list a.active::before {
-    color: transparent;
-  }
+.toc-popover-panel .toc-list a.active::before {
+  color: var(--color-text-primary);
+}
 
-  body[data-page-kind="article"] .toc-inline .toc-list a.active::after {
-    width: calc(var(--toc-line-width, 1rem) + 0.3rem);
-    height: 2px;
-    background: var(--color-text-primary);
-  }
+.toc-popover-panel .toc-list a.active::after {
+  content: "";
+  position: absolute;
+  left: 0.1rem;
+  top: 0.45rem;
+  bottom: 0.45rem;
+  width: 2px;
+  background: var(--color-text-primary);
+  border-radius: 999px;
+}
 
-  body[data-page-kind="article"] .toc-inline:hover .toc-list a,
-  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a,
-  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a {
-    color: color-mix(in srgb, var(--color-text-muted) 84%, var(--color-text-primary) 16%);
-    transform: translateX(0);
-    letter-spacing: 0;
-  }
+/* 紧缩层级缩进，避免弹层过宽 */
+.toc-popover-panel .toc-list .toc-h3 {
+  padding-left: 0.6em;
+}
 
-  body[data-page-kind="article"] .toc-inline:hover .toc-list a::before,
-  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a::before,
-  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a::before {
-    color: color-mix(in srgb, var(--color-text-muted) 84%, var(--color-text-primary) 16%);
-  }
+.toc-popover-panel .toc-list .toc-h4,
+.toc-popover-panel .toc-list .toc-h5,
+.toc-popover-panel .toc-list .toc-h6 {
+  padding-left: 1.2em;
+}
 
-  body[data-page-kind="article"] .toc-inline:hover .toc-list a.active,
-  body[data-page-kind="article"] .toc-inline:hover .toc-list a:hover,
-  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a.active,
-  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a:hover,
-  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a.active,
-  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a:hover {
-    color: var(--color-text-primary);
-  }
-
-  body[data-page-kind="article"] .toc-inline:hover .toc-list a.active::before,
-  body[data-page-kind="article"] .toc-inline:hover .toc-list a:hover::before,
-  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a.active::before,
-  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a:hover::before,
-  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a.active::before,
-  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a:hover::before {
-    color: var(--color-text-primary);
-  }
-
-  body[data-page-kind="article"] .toc-inline:hover .toc-list a::before,
-  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a::before,
-  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a::before {
-    opacity: 1;
-    transform: translateX(0);
-  }
-
-  body[data-page-kind="article"] .toc-inline:hover .toc-list a::after,
-  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a::after,
-  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a::after {
-    opacity: 0;
-    transform: translateY(-50%) scaleX(0.72);
-  }
-
-  body[data-page-kind="article"] .toc-inline .toc-list .toc-h3 {
-    margin-left: 0.9rem;
-  }
-
-  body[data-page-kind="article"] .toc-inline .toc-list .toc-h4,
-  body[data-page-kind="article"] .toc-inline .toc-list .toc-h5,
-  body[data-page-kind="article"] .toc-inline .toc-list .toc-h6 {
-    margin-left: 0.6rem;
+/* 小屏微调：只约束面板尺寸，字号/行高与桌面保持一致 */
+@media (max-width: 480px) {
+  .toc-popover-panel {
+    max-width: min(17rem, calc(100vw - 2.5rem));
+    max-height: min(60vh, 26rem);
   }
 }

@@ -138,7 +138,6 @@ body[data-page-kind="article"] .article-suggest-list {
 
 body[data-page-kind="article"] .article-suggest-side {
   padding-top: var(--spacing-md);
-  border-top: 1px solid var(--article-suggest-rule-color);
 }
 
 body[data-page-kind="article"] .article-suggest-list-item {
@@ -166,6 +165,118 @@ body[data-page-kind="article"] .article-suggest-list-title {
 @media (max-width: 768px) {
   body[data-page-kind="article"] .article-suggest {
     margin-top: var(--spacing-lg);
+  }
+
+  /* grid 容器在无 grid-template-columns 时，grid item 默认 min-width: auto 会被
+     内容撑开。这里强制 min-width: 0，让 .article-suggest-main 的 width 回落到
+     父级给它的 grid track 宽度，而不是由 cards 的总宽度反推。
+     这是水平滚动能工作的前提——否则 cards.scrollWidth === cards.clientWidth。 */
+  body[data-page-kind="article"] .article-suggest-grid,
+  body[data-page-kind="article"] .article-suggest-main {
+    min-width: 0;
+  }
+
+  /* 卡片组：从单列堆叠切换为水平滚动。
+     以"自由惯性滚动"为主，不做 scroll-snap 吸附——iOS WebKit 下即便 proximity snap
+     和 overscroll-behavior:contain 都会引入可感的减速阻尼，真机表现为"滑不快、滑不顺"，
+     两者都不用。代价：手指抬起后卡片不会吸附对齐，可接受。 */
+  body[data-page-kind="article"] .article-suggest-cards {
+    display: flex;
+    flex-direction: row;
+    grid-template-columns: none;
+    gap: 0.85rem;
+    margin: 0;
+    /* 抵消 .article-suggest 的 padding，让滚动容器延伸到屏幕左右边缘；
+       padding-inline 让第一张卡片起点对齐 "阅读更多" label 的左缘。 */
+    margin-inline: calc(-1 * var(--spacing-md));
+    padding-inline: var(--spacing-md);
+    width: auto;
+    max-width: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    /* iOS 硬件加速惯性滚动——
+       父级 body 在移动端有 overflow-x:hidden，不加这条 iOS WebKit 会退回同步 CPU 滚动，
+       手指离开屏幕后立即停止、没有加速度，表现为"滑得很涩"。
+       Chrome 的 iOS 设备模拟用的是 Blink 内核，不还原这个差异，因此模拟里不会暴露。 */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* 显式允许横向 pan：避免父级 body 的 overflow-x: hidden 环境下浏览器把触摸吞掉 */
+    touch-action: pan-x;
+  }
+
+  body[data-page-kind="article"] .article-suggest-cards::-webkit-scrollbar {
+    display: none;
+  }
+
+  body[data-page-kind="article"] .article-suggest-card {
+    flex: 0 0 clamp(140px, 42vw, 168px);
+    min-width: 0;
+    position: relative;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+    border-radius: 0;
+    display: block;
+    grid-template-rows: none;
+    isolation: isolate;
+  }
+
+  body[data-page-kind="article"] .article-suggest-cover-link {
+    display: block;
+    position: absolute;
+    inset: 0;
+    flex: unset;
+  }
+
+  /* 竖形封面图：铺满整张卡片 */
+  body[data-page-kind="article"] .article-suggest-cover {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    object-fit: cover;
+  }
+
+  /* scrim：从底部向上渐变，让标题在封面上清晰可读 */
+  body[data-page-kind="article"] .article-suggest-card::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 72%;
+    background: linear-gradient(
+      to bottom,
+      hsl(0 0% 0% / 0) 0%,
+      hsl(0 0% 0% / 0.25) 38%,
+      hsl(0 0% 0% / 0.78) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  body[data-page-kind="article"] .article-suggest-card-title {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    margin: 0;
+    padding: 0.5rem 0.7rem 0.6rem;
+    min-height: 0;
+    /* 覆盖默认的 line-clamp，不再截断；允许多行标题向上生长 */
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: unset;
+    color: #fff;
+    font-size: var(--font-size-small);
+    line-height: 1.3;
+    text-shadow: 0 0.05em 0.35em hsl(0 0% 0% / 0.55);
+    pointer-events: none;
+  }
+
+  body[data-page-kind="article"] .article-suggest-card-title a {
+    color: inherit;
+    text-decoration: none;
+    pointer-events: auto;
   }
 }
 

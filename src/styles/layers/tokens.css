@@ -49,6 +49,11 @@ html {
   /* Code font sizes - 统一管理 */
   --code-font-size: 13px;
   --code-font-size-mobile: 12px;
+
+  /* Floating chrome (podcast minimized cover / toc button 等底部悬浮元件的共享节拍) */
+  --floating-chrome-size: 40px;
+  --floating-chrome-inset-x: 20px;
+  --floating-chrome-inset-y: 12px;
 }
 /* 大屏幕适配 */
 @media screen and (min-width: 1600px) {

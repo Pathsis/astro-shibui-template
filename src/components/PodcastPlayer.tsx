@@ -77,9 +77,12 @@ function formatTime(seconds: number): string {
 
 function formatPlaybackRateLabel(rate: number): string {
   const normalized = (Math.round(rate * 100) / 100).toFixed(2);
-  if (normalized.endsWith('00')) return normalized.slice(0, -1);
-  if (normalized.endsWith('50')) return normalized.slice(0, -1);
-  return normalized;
+  // 精简尾零：1.00 → 1、1.50 → 1.5、1.25 保留，再统一加 "x" 后缀
+  let trimmed = normalized;
+  if (trimmed.endsWith('00')) trimmed = trimmed.slice(0, -2);
+  else if (trimmed.endsWith('0')) trimmed = trimmed.slice(0, -1);
+  if (trimmed.endsWith('.')) trimmed = trimmed.slice(0, -1);
+  return `${trimmed}x`;
 }
 
 export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
@@ -1697,16 +1700,6 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
               )}
             </svg>
           </button>
-          
-          <button
-            className="close-btn"
-            onClick={handleClose}
-            aria-label={closePlayerLabel}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-            </svg>
-          </button>
         </div>
       </div>
 
@@ -1741,6 +1734,17 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
         <div className="playlist" id="podcast-playlist" ref={playlistPanelRef}>
           <div className="playlist-header">
             <span>{playlistTitle} ({visibleEpisodes.length})</span>
+            {/* 展开态下的关闭按钮：显示在 playlist-header 右上角；
+                Dock 态（未展开）时本按钮不渲染，关闭操作由主行 .player-controls 里的 close-btn 承担。 */}
+            <button
+              className="close-btn playlist-close-btn"
+              onClick={handleClose}
+              aria-label={closePlayerLabel}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+              </svg>
+            </button>
           </div>
           <ul className="playlist-items" ref={playlistContainerRef}>
             {visibleEpisodes.map((episode) => {

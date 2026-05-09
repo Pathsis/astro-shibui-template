@@ -74,29 +74,3 @@
     overflow-wrap: break-word;
   }
 }
-
-/* TOC visibility defaults */
-.toc-inline {
-  display: none;
-}
-
-.toc-desktop {
-  display: block;
-}
-
-@media (max-width: 1500px) {
-  .toc-desktop {
-    display: none;
-  }
-
-  .toc-inline {
-    display: block;
-  }
-
-}
-
-@media (max-width: 768px) {
-  .toc-desktop {
-    display: none;
-  }
-}

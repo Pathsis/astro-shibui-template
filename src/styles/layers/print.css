@@ -24,7 +24,7 @@
   body[data-page-kind="article"] .gh-head,
   body[data-page-kind="article"] .site-mobile-menu,
   body[data-page-kind="article"] .gh-foot,
-  body[data-page-kind="article"] .toc-desktop,
+  body[data-page-kind="article"] .toc-popover-trigger,
   body[data-page-kind="article"] .giscus-container,
   body[data-page-kind="article"] .related-read-section,
   body[data-page-kind="article"] .article-suggest,
@@ -134,74 +134,88 @@
     text-indent: 0 !important;
   }
 
-  body[data-page-kind="article"] .gh-content .toc-inline {
+  body[data-page-kind="article"] .gh-content .toc-popover,
+  body[data-page-kind="article"] .toc-popover {
     display: block !important;
     position: static !important;
     inset: auto !important;
     width: auto !important;
-    height: auto !important;
-    max-height: none !important;
+    max-width: none !important;
     margin: 0 0 1.8rem 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
+  }
+
+  body[data-page-kind="article"] .toc-popover-panel {
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
     padding: 0.9rem 0 0.7rem 0 !important;
     background: transparent !important;
-    border-top: 1px solid #000;
-    border-bottom: 1px solid #000;
+    border: 0 !important;
+    border-top: 1px solid #000 !important;
+    border-bottom: 1px solid #000 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    transform: none !important;
     overflow: visible !important;
-    opacity: 1 !important;
-    visibility: visible !important;
   }
 
-  body[data-page-kind="article"] .gh-content .toc-inline::before,
-  body[data-page-kind="article"] .gh-content .toc-inline::after {
-    display: none !important;
+  body[data-page-kind="article"] .toc-popover-panel[hidden] {
+    display: block !important;
   }
 
-  body[data-page-kind="article"] .gh-content .toc-inline .toc-title {
-    margin: 0 0 0.7rem 0 !important;
-    color: #000 !important;
-    font-size: 0.95em !important;
-    opacity: 1 !important;
-    text-transform: none !important;
-    letter-spacing: 0 !important;
-  }
-
-  body[data-page-kind="article"] .gh-content .toc-inline .toc-list {
+  body[data-page-kind="article"] .toc-popover-panel .toc-list {
     display: block !important;
     margin: 0 !important;
     padding: 0 !important;
+    max-height: none !important;
     overflow: visible !important;
   }
 
-  body[data-page-kind="article"] .gh-content .toc-inline .toc-list li {
+  body[data-page-kind="article"] .toc-popover-panel .toc-list li {
     margin: 0 0 0.42rem 0 !important;
     padding: 0 !important;
     break-inside: auto;
   }
 
-  body[data-page-kind="article"] .gh-content .toc-inline .toc-list a {
+  body[data-page-kind="article"] .toc-popover-panel .toc-list a {
     display: inline !important;
     padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
     color: #000 !important;
     opacity: 1 !important;
     text-decoration: none !important;
     transform: none !important;
   }
 
-  body[data-page-kind="article"] .gh-content .toc-inline .toc-list a::before {
+  body[data-page-kind="article"] .toc-popover-panel .toc-list a::before {
     content: attr(data-toc-number) " " !important;
     position: static !important;
     display: inline !important;
     margin-right: 0.25rem !important;
+    color: #000 !important;
     opacity: 1 !important;
     transform: none !important;
   }
 
-  body[data-page-kind="article"] .gh-content .toc-inline .toc-list li.toc-item-unnumbered > a::before {
+  body[data-page-kind="article"] .toc-popover-panel .toc-list li.toc-item-unnumbered > a::before {
     content: none !important;
     margin-right: 0 !important;
   }
 
-  body[data-page-kind="article"] .gh-content .toc-inline .toc-list a::after {
+  body[data-page-kind="article"] .toc-popover-panel .toc-list a::after {
     display: none !important;
   }
 

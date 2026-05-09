@@ -56,6 +56,8 @@ const tldr = post.data.tldr;
 const isEn = currentLang === "en";
 const podcastHint = isEn ? " (Podcast available)" : "（可收听播客）";
 const tocText = isEn ? "Table of Contents" : "目录";
+const tocToggleLabel = isEn ? "Toggle table of contents" : "切换目录";
+const tocPanelId = `toc-panel-${post.id.replace(/[^a-z0-9_-]/gi, "-")}`;
 const moreFromText = isEn ? "More on" : "阅读更多";
 const nextReadText = isEn ? "Related" : "相关阅读";
 const relatedSectionText = isEn ? "Related reading" : "相关阅读";
@@ -121,19 +123,56 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
       )}
     </h1>
 
-    {toc && (
-      <div class="toc toc-inline" role="navigation" aria-label={tocText} tabindex="0">
-        <div class="toc-title">{tocText}</div>
-        <ul class="toc-list">
-          {tocItems.map((item) => (
-            <li class={`toc-${item.level}`} style={`--toc-line-width: ${item.lineWidth};`}>
-              <a href={`#${item.slug}`} class="toc-link" data-toc-number={item.tocNumber}>
-                {item.text}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
+    {toc && tocItems.length > 0 && (
+      <nav
+        class="toc-popover"
+        data-toc-popover
+        data-toc-visible="1"
+        data-toc-open="0"
+        aria-label={tocText}
+      >
+        <button
+          type="button"
+          class="toc-popover-trigger"
+          aria-haspopup="dialog"
+          aria-controls={tocPanelId}
+          aria-expanded="false"
+          aria-label={tocToggleLabel}
+          data-toc-trigger
+        >
+          <span class="toc-popover-trigger-icon" aria-hidden="true">
+            <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+              <line x1="2.5" y1="4.5" x2="13.5" y2="4.5" />
+              <line x1="2.5" y1="8" x2="13.5" y2="8" />
+              <line x1="2.5" y1="11.5" x2="9.5" y2="11.5" />
+            </svg>
+          </span>
+          <span class="toc-popover-trigger-number" aria-hidden="true" data-toc-active-number>—</span>
+          <span class="toc-popover-trigger-progress" aria-hidden="true">
+            <span class="toc-popover-trigger-progress-bar" data-toc-progress></span>
+          </span>
+          <span class="sr-only">{tocText}</span>
+        </button>
+        <div
+          class="toc-popover-panel"
+          id={tocPanelId}
+          role="dialog"
+          aria-modal="false"
+          aria-label={tocText}
+          data-toc-panel
+          hidden
+        >
+          <ul class="toc-list">
+            {tocItems.map((item) => (
+              <li class={`toc-${item.level}`}>
+                <a href={`#${item.slug}`} class="toc-link" data-toc-number={item.tocNumber}>
+                  {item.text}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </nav>
     )}
 
     {tldr && tldr.length > 0 && (
