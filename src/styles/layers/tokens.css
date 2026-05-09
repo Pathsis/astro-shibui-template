@@ -38,7 +38,6 @@ html {
 
   /* Layout */
   --container-width: 626px; /* 调整为固定宽度，与之前版本一致 */
-  --sidebar-width: 300px;
   --border-radius: .75rem;
   --gap-base: 1em;
   --gap-small: 0.5em;

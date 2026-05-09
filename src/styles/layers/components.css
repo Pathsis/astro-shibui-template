@@ -130,38 +130,6 @@
   padding: var(--spacing-sm) 0;
 }
 
-/* Main menu navigation styles */
-.terminal-nav {
-  font-family: var(--font-family-sans);
-  margin-top: var(--spacing-lg);
-  padding-top: var(--spacing-base);
-}
-
-.terminal-nav nav ul {
-  display: flex;
-  list-style: none;
-  justify-content: left;
-  padding: 0;
-  margin: 0;
-  gap: var(--gap-base);
-}
-
-.terminal-nav nav ul li a,
-.terminal-nav .back-link {
-  color: var(--color-text-muted);
-  border-bottom: none;
-  text-decoration: none;
-}
-
-.terminal-nav .back-link {
-  font-family: var(--font-family-mono);
-}
-
-.terminal-nav nav ul li a:hover,
-.terminal-nav .back-link:hover {
-  color: var(--color-text-primary);
-}
-
 /* Time list links - 添加与标签链接相同的样式 */
 .time-list div a {
   color: var(--color-text-primary);
@@ -547,15 +515,6 @@
   }
 }
 
-
-.terminal-nav nav ul li a.active {
-  color: var(--color-text-primary);
-  font-weight: bold;
-}
-
-.terminal-nav .back-nav {
-  margin: calc(var(--spacing-base) * 0.5) 0;
-}
 
 /* Terms list */
 .terms-list {
