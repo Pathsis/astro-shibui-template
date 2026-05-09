@@ -1,0 +1,88 @@
+---
+/**
+ * HomeFeedPage — 双语首页分页流的共用渲染组件。
+ *
+ * `/[...page].astro` 和 `/en/[...page].astro` 在各自路由文件里通过 Astro `paginate`
+ * 构造 Page 对象,把 `{ page, lang }` 交给本组件完成渲染。
+ *
+ * Astro 要求 `getStaticPaths` 位于路由文件,故无法再上移;抽到组件的主要收益是消除
+ * 两份 76 行的文件在渲染层面的重复。
+ */
+import type { Page } from "astro";
+import type { CollectionEntry } from "astro:content";
+import { siteConfig } from "@site-config";
+import SingleColumnLayout from "../layouts/SingleColumnLayout.astro";
+import { getLocalizedBlogPathById } from "../lib/post-url";
+import { extractFirstParagraph, truncateChars } from "../lib/excerpt";
+import { getBuildVersionToken } from "../lib/build-version";
+
+type BlogPage = Page<CollectionEntry<"blog-zh">> | Page<CollectionEntry<"blog-en">>;
+
+interface Props {
+  page: BlogPage;
+  lang: "zh-cn" | "en";
+}
+
+const { page, lang } = Astro.props as Props;
+
+const isEn = lang === "en";
+const description = isEn ? siteConfig.descriptions.en : siteConfig.descriptions.zh;
+const podcastHint = isEn ? " (Podcast available)" : "（可收听播客）";
+const loadMoreText = isEn ? "Load More" : "加载更多";
+const excerptLen = isEn ? 200 : 100;
+
+const paginationVersion = getBuildVersionToken();
+const paginationSignature = page.data
+  .map((post) => `${post.id}:${post.data.date.toISOString()}`)
+  .join("|");
+const isFirstPage = page.currentPage === 1;
+---
+
+<SingleColumnLayout
+  title={siteConfig.title}
+  description={description}
+  isHome={true}
+  pageKind={isFirstPage ? "home" : "page"}
+  lang={lang}
+>
+  <Fragment slot="head">
+    {page.url.next && (
+      <link rel="next" href={page.url.next} />
+    )}
+  </Fragment>
+
+  <section class="home-feed home-waterfall">
+    <div
+      class="home-waterfall-list shibui-feed"
+      data-pagination-signature={paginationSignature}
+      data-pagination-version={paginationVersion}
+    >
+      {page.data.map((post) => {
+        const postUrl = isEn
+          ? `/en${getLocalizedBlogPathById(post.id, "en")}`
+          : getLocalizedBlogPathById(post.id, "zh-cn");
+        const excerpt = truncateChars(
+          extractFirstParagraph(post.body ?? "") || (post.data.description ?? ""),
+          excerptLen
+        );
+        return (
+          <article class="home-waterfall-item">
+            <h2 class="home-waterfall-title">
+              <a href={postUrl}>
+                {post.data.title}
+                {post.data.podcast && <span class="sr-only">{podcastHint}</span>}
+              </a>
+            </h2>
+            {excerpt && <p class="home-waterfall-desc">{excerpt}</p>}
+          </article>
+        );
+      })}
+    </div>
+
+    {page.url.next && (
+      <button class="shibui-loadmore home-loadmore" type="button" data-next-url={page.url.next}>
+        {loadMoreText}
+      </button>
+    )}
+  </section>
+</SingleColumnLayout>

@@ -9,7 +9,7 @@ export const registerPaginationRuntime = function(runtimeInput) {
   // 追加新条目后调用 pathosRuntime.shared.syncIosShellSpaGuard 触发一次同步。
   // history.state 写入失败或被外部清除时的兜底
   const FALLBACK_PREFIX = 'pathos_pagination_fallback:v4:';
-  // 兜底条目的硬过期时间（5 分钟，与 Hugo 方案一致的数量级）
+  // 兜底条目的硬过期时间（5 分钟）
   const FALLBACK_MAX_AGE = 5 * 60 * 1000;
   // 快照自身的硬过期时间，防止极端情况下把很久以前的 HTML 贴回来
   const SNAPSHOT_MAX_AGE = 60 * 60 * 1000;

@@ -46,10 +46,6 @@ export const installLifecycleBindings = function(runtime, options) {
       paginationOptions: { shouldRestore: shouldRestore }
     });
 
-    if (runtime.apis.initMenuToggle) {
-      runtime.apis.initMenuToggle();
-    }
-
     syncIosShellSpaGuard();
   });
 

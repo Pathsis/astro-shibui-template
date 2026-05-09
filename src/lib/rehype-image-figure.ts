@@ -1,7 +1,6 @@
 /**
  * rehype-image-figure 插件
  * 将 <img> 标签包装在 <figure> 中，并添加 <figcaption>
- * 模仿 Hugo 的 render-image.html 行为
  */
 
 import { visit } from 'unist-util-visit';

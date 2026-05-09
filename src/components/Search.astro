@@ -7,9 +7,9 @@ interface Props {
 
 const { lang = "zh-cn" } = Astro.props;
 
-const ALGOLIA_APP_ID = (import.meta.env.PUBLIC_ALGOLIA_APP_ID || import.meta.env.ALGOLIA_APP_ID || "").trim();
-const ALGOLIA_SEARCH_KEY = (import.meta.env.PUBLIC_ALGOLIA_SEARCH_KEY || import.meta.env.ALGOLIA_SEARCH_KEY || "").trim();
-const ALGOLIA_INDEX_NAME = (import.meta.env.PUBLIC_ALGOLIA_INDEX_NAME || import.meta.env.ALGOLIA_INDEX_NAME || "").trim();
+const ALGOLIA_APP_ID = (import.meta.env.PUBLIC_ALGOLIA_APP_ID || "").trim();
+const ALGOLIA_SEARCH_KEY = (import.meta.env.PUBLIC_ALGOLIA_SEARCH_KEY || "").trim();
+const ALGOLIA_INDEX_NAME = (import.meta.env.PUBLIC_ALGOLIA_INDEX_NAME || "").trim();
 const hasSearchConfig = Boolean(ALGOLIA_APP_ID && ALGOLIA_SEARCH_KEY && ALGOLIA_INDEX_NAME);
 const unavailablePlaceholder = lang === "en" ? "Search is not configured" : "搜索尚未配置";
 ---

@@ -282,9 +282,9 @@ export function saveProgress(currentTime: number, duration: number) {
 }
 
 /**
- * 保存指定 episode 的播放进度
+ * 保存指定 episode 的播放进度(内部使用,不导出)
  */
-export function saveEpisodeProgress(slug: string, currentTime: number, duration: number) {
+function saveEpisodeProgress(slug: string, currentTime: number, duration: number) {
   if (typeof window === 'undefined') return;
 
   try {

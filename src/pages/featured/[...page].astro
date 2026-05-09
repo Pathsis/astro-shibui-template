@@ -1,18 +1,7 @@
 ---
-import SingleColumnLayout from "../../layouts/SingleColumnLayout.astro";
-import FeaturedCardWall from "../../components/FeaturedCardWall.astro";
-import { getCollection } from "astro:content";
-import type { CollectionEntry } from "astro:content";
+import { getCollection, type CollectionEntry } from "astro:content";
 import type { GetStaticPaths, Page } from "astro";
-import { getRelativeLocaleUrl } from "astro:i18n";
-import { extractFirstParagraph, truncateChars } from "../../lib/excerpt";
-import { extractFirstImageFromMarkdown, normalizeImagePath } from "../../lib/image-path";
-import { getLocalizedBlogPathById } from "../../lib/post-url";
-import { getPodcastEpisodeSlug, getPodcastUrl } from "../../lib/podcast";
-import { getFeaturedCardClass } from "../../lib/featured-card-layout";
-import { getBuildVersionToken } from "../../lib/build-version";
-
-const currentLang = "zh-cn" as const;
+import FeaturedFeedPage from "../../components/FeaturedFeedPage.astro";
 
 export const getStaticPaths: GetStaticPaths = async ({ paginate }) => {
   const featuredPosts = await getCollection("blog-zh", ({ data }) => !data.draft)
@@ -20,74 +9,10 @@ export const getStaticPaths: GetStaticPaths = async ({ paginate }) => {
       .filter((post) => post.data.feature)
       .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()));
 
-  return paginate(featuredPosts, {
-    pageSize: 10,
-  });
+  return paginate(featuredPosts, { pageSize: 10 });
 };
 
 const { page } = Astro.props as { page: Page<CollectionEntry<"blog-zh">> };
-
-const pageTitle = "精选文章";
-const pageDescription = "精选阅读文章列表";
-const podcastHint = "（可收听播客）";
-const paginationVersion = getBuildVersionToken();
-const paginationSignature = page.data
-  .map((post) => `${post.id}:${post.data.date.toISOString()}`)
-  .join("|");
-const isFirstPage = page.currentPage === 1;
-const feedItems = await Promise.all(page.data.map(async (post, index) => {
-  const postPath = getLocalizedBlogPathById(post.id, currentLang);
-  const excerpt = truncateChars(
-    extractFirstParagraph(post.body ?? "") || (post.data.description ?? ""),
-    100
-  );
-  const coverImage = normalizeImagePath(post.data.images?.[0]) ?? extractFirstImageFromMarkdown(post.body ?? "");
-
-  return {
-    href: getRelativeLocaleUrl(currentLang, postPath),
-    title: post.data.title,
-    date: post.data.date,
-    excerpt,
-    coverImage,
-    cardClass: await getFeaturedCardClass(coverImage, index),
-    episode: post.data.podcast ? {
-      slug: getPodcastEpisodeSlug(post.id, currentLang),
-      title: post.data.title,
-      url: getPodcastUrl(post.id, currentLang),
-      articleUrl: getRelativeLocaleUrl(currentLang, postPath),
-      date: post.data.date,
-      lang: currentLang,
-      description: post.data.description,
-    } : undefined,
-  };
-}));
 ---
 
-<SingleColumnLayout
-  title={pageTitle}
-  description={pageDescription}
-  pageKind={isFirstPage ? "section" : "page"}
->
-  <Fragment slot="head">
-    {page.url.next && (
-      <link rel="next" href={page.url.next} />
-    )}
-  </Fragment>
-
-  <header class="featured-page-header">
-    <h1>{pageTitle}</h1>
-    <p class="featured-page-description">这里收录了我精选的文章，大多配有播客版本，你可以点开细读，也可以随便听听。</p>
-  </header>
-
-  <FeaturedCardWall
-    items={feedItems}
-    sectionAriaLabel={pageTitle}
-    paginationSignature={paginationSignature}
-    paginationVersion={paginationVersion}
-    paginationKey={page.url.current}
-    nextUrl={page.url.next}
-    loadMoreText="加载更多"
-    completeText="已全部加载"
-    podcastHint={podcastHint}
-  />
-</SingleColumnLayout>
+<FeaturedFeedPage page={page} lang="zh-cn" />

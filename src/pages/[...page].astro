@@ -1,76 +1,16 @@
 ---
-import SingleColumnLayout from "../layouts/SingleColumnLayout.astro";
-import { getCollection } from "astro:content";
-import type { CollectionEntry } from "astro:content";
+import { getCollection, type CollectionEntry } from "astro:content";
 import type { GetStaticPaths, Page } from "astro";
-import { getLocalizedBlogPathById } from "../lib/post-url";
-import { extractFirstParagraph, truncateChars } from "../lib/excerpt";
-import { getBuildVersionToken } from "../lib/build-version";
-import { siteConfig } from "@site-config";
+import HomeFeedPage from "../components/HomeFeedPage.astro";
 
 export const getStaticPaths: GetStaticPaths = async ({ paginate }) => {
   const allPosts = await getCollection("blog-zh", ({ data }) => !data.draft)
-    .then(posts => posts.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()));
+    .then((posts) => posts.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()));
 
-  return paginate(allPosts, {
-    pageSize: 10,
-  });
+  return paginate(allPosts, { pageSize: 10 });
 };
 
 const { page } = Astro.props as { page: Page<CollectionEntry<"blog-zh">> };
-
-// 页面描述
-const description = siteConfig.descriptions.zh;
-const podcastHint = "（可收听播客）";
-const paginationVersion = getBuildVersionToken();
-const paginationSignature = page.data
-  .map((post) => `${post.id}:${post.data.date.toISOString()}`)
-  .join("|");
-const isFirstPage = page.currentPage === 1;
 ---
 
-<SingleColumnLayout
-  title={siteConfig.title}
-  description={description}
-  isHome={true}
-  pageKind={isFirstPage ? "home" : "page"}
->
-  <Fragment slot="head">
-    {page.url.next && (
-      <link rel="next" href={page.url.next} />
-    )}
-  </Fragment>
-
-  <section class="home-feed home-waterfall">
-    <div
-      class="home-waterfall-list shibui-feed"
-      data-pagination-signature={paginationSignature}
-      data-pagination-version={paginationVersion}
-    >
-      {page.data.map((post) => {
-        const postUrl = getLocalizedBlogPathById(post.id, "zh-cn");
-        const excerpt = truncateChars(
-          extractFirstParagraph(post.body ?? "") || (post.data.description ?? ""),
-          100
-        );
-        return (
-          <article class="home-waterfall-item">
-            <h2 class="home-waterfall-title">
-              <a href={postUrl}>
-                {post.data.title}
-                {post.data.podcast && <span class="sr-only">{podcastHint}</span>}
-              </a>
-            </h2>
-            {excerpt && <p class="home-waterfall-desc">{excerpt}</p>}
-          </article>
-        );
-      })}
-    </div>
-
-    {page.url.next && (
-      <button class="shibui-loadmore home-loadmore" type="button" data-next-url={page.url.next}>
-        加载更多
-      </button>
-    )}
-  </section>
-</SingleColumnLayout>
+<HomeFeedPage page={page} lang="zh-cn" />

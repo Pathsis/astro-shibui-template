@@ -1,0 +1,102 @@
+---
+/**
+ * FeaturedFeedPage — 双语精选页的共用渲染组件。
+ * `/featured/[...page].astro` 和 `/en/featured/[...page].astro` 只做 `getStaticPaths`,
+ * 然后把 `{ page, lang }` 交给本组件完成精选墙 + load more 渲染。
+ */
+import type { Page } from "astro";
+import type { CollectionEntry } from "astro:content";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import SingleColumnLayout from "../layouts/SingleColumnLayout.astro";
+import FeaturedCardWall from "./FeaturedCardWall.astro";
+import { extractFirstParagraph, truncateChars } from "../lib/excerpt";
+import { extractFirstImageFromMarkdown, normalizeImagePath } from "../lib/image-path";
+import { getLocalizedBlogPathById } from "../lib/post-url";
+import { getPodcastEpisodeSlug, getPodcastUrl } from "../lib/podcast";
+import { getFeaturedCardClass } from "../lib/featured-card-layout";
+import { getBuildVersionToken } from "../lib/build-version";
+
+type BlogPage = Page<CollectionEntry<"blog-zh">> | Page<CollectionEntry<"blog-en">>;
+
+interface Props {
+  page: BlogPage;
+  lang: "zh-cn" | "en";
+}
+
+const { page, lang } = Astro.props as Props;
+
+const isEn = lang === "en";
+const pageTitle = isEn ? "Selected Articles" : "精选文章";
+const pageDescription = isEn ? "Selected articles" : "精选阅读文章列表";
+const podcastHint = isEn ? " (Podcast available)" : "（可收听播客）";
+const loadMoreText = isEn ? "Load More" : "加载更多";
+const completeText = isEn ? "All loaded" : "已全部加载";
+const headerIntro = isEn
+  ? "A curated list of articles I especially want readers to continue with, including long-form pieces with podcast versions."
+  : "这里收录了我精选的文章，大多配有播客版本，你可以点开细读，也可以随便听听。";
+const excerptLen = isEn ? 200 : 100;
+
+const paginationVersion = getBuildVersionToken();
+const paginationSignature = page.data
+  .map((post) => `${post.id}:${post.data.date.toISOString()}`)
+  .join("|");
+const isFirstPage = page.currentPage === 1;
+
+const feedItems = await Promise.all(page.data.map(async (post, index) => {
+  const postPath = getLocalizedBlogPathById(post.id, lang);
+  const excerpt = truncateChars(
+    extractFirstParagraph(post.body ?? "") || (post.data.description ?? ""),
+    excerptLen
+  );
+  const coverImage = normalizeImagePath(post.data.images?.[0])
+    ?? extractFirstImageFromMarkdown(post.body ?? "");
+
+  return {
+    href: getRelativeLocaleUrl(lang, postPath),
+    title: post.data.title,
+    date: post.data.date,
+    excerpt,
+    coverImage,
+    cardClass: await getFeaturedCardClass(coverImage, index),
+    episode: post.data.podcast ? {
+      slug: getPodcastEpisodeSlug(post.id, lang),
+      title: post.data.title,
+      url: getPodcastUrl(post.id, lang),
+      articleUrl: getRelativeLocaleUrl(lang, postPath),
+      date: post.data.date,
+      lang,
+      description: post.data.description,
+    } : undefined,
+  };
+}));
+---
+
+<SingleColumnLayout
+  title={pageTitle}
+  description={pageDescription}
+  lang={lang}
+  pageKind={isFirstPage ? "section" : "page"}
+>
+  <Fragment slot="head">
+    {page.url.next && (
+      <link rel="next" href={page.url.next} />
+    )}
+  </Fragment>
+
+  <header class="featured-page-header">
+    <h1>{pageTitle}</h1>
+    <p class="featured-page-description">{headerIntro}</p>
+  </header>
+
+  <FeaturedCardWall
+    items={feedItems}
+    sectionAriaLabel={pageTitle}
+    paginationSignature={paginationSignature}
+    paginationVersion={paginationVersion}
+    paginationKey={page.url.current}
+    nextUrl={page.url.next}
+    loadMoreText={loadMoreText}
+    completeText={completeText}
+    podcastHint={podcastHint}
+  />
+</SingleColumnLayout>

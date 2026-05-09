@@ -1,20 +1,6 @@
-export const trackUmami = function(event, data) {
-  const analytics = window.umami;
-  if (!analytics || typeof analytics.track !== 'function') return;
-  try {
-    if (data) {
-      analytics.track(event, data);
-    } else {
-      analytics.track(event);
-    }
-  } catch (e) {
-    try {
-      analytics.track(event);
-    } catch (err) {
-      // ignore
-    }
-  }
-};
+import { trackUmami } from '../lib/analytics';
+
+export { trackUmami };
 
 export const ensurePathosRuntime = function(runtimeInput) {
   const globalRuntime = runtimeInput || window.pathosRuntime || {};

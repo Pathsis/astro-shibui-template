@@ -1,0 +1,68 @@
+---
+/**
+ * CategoryArchivePage — 双语分类归档页的共用渲染组件。
+ *
+ * `/categories/[category].astro` 和 `/en/categories/[category].astro` 在各自路由文件里
+ * 做 `getStaticPaths`(只收集自己语言的 categories),把 `{ category, lang }` 交给本组件。
+ *
+ * 分类名在中英文下通常是不同字符串(如“学术话题” vs “Academic Topics”),因此路由不应
+ * 合并两个集合的 categories。
+ */
+import { getCollection } from "astro:content";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import SingleColumnLayout from "../layouts/SingleColumnLayout.astro";
+import { getLocalizedBlogPathById } from "../lib/post-url";
+import { formatDate } from "../lib/date";
+
+interface Props {
+  category: string;
+  lang: "zh-cn" | "en";
+}
+
+const { category, lang } = Astro.props as Props;
+
+const collectionName = lang === "en" ? "blog-en" : "blog-zh";
+const alternateCollectionName = lang === "en" ? "blog-zh" : "blog-en";
+
+const posts = (await getCollection(collectionName, ({ data }) => !data.draft))
+  .filter((post) => post.data.categories?.includes(category))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const alternatePosts = await getCollection(alternateCollectionName, ({ data }) => !data.draft);
+const hasMatchingCategory = alternatePosts.some((post) => post.data.categories?.includes(category));
+
+const isEn = lang === "en";
+const categoryLabel = isEn ? "Category" : "分类";
+const categoryDescription = isEn
+  ? `All posts in category "${category}"`
+  : `分类 ${category} 下的所有文章`;
+const podcastHint = isEn ? " (Podcast available)" : "（可收听播客）";
+---
+
+<SingleColumnLayout
+  title={`${categoryLabel}: ${category}`}
+  description={categoryDescription}
+  pageKind="term"
+  lang={lang}
+  hasTranslation={hasMatchingCategory}
+>
+  <h1>{categoryLabel}: {category}</h1>
+
+  <div class="time-list">
+    <ul>
+      {posts.map((post) => (
+        <li>
+          <time datetime={post.data.date.toISOString()}>
+            {formatDate(post.data.date)}
+          </time>
+          <div>
+            <a href={getRelativeLocaleUrl(lang, getLocalizedBlogPathById(post.id, lang))}>
+              {post.data.title}
+              {post.data.podcast && <span class="sr-only">{podcastHint}</span>}
+            </a>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </div>
+</SingleColumnLayout>

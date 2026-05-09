@@ -1,0 +1,62 @@
+---
+/**
+ * TagIndexPage — 双语标签总览页的共用渲染组件。
+ * 两份 `tags/index.astro` 只需传 lang,本组件完成聚合与排序。
+ */
+import { getCollection } from "astro:content";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import SingleColumnLayout from "../layouts/SingleColumnLayout.astro";
+
+interface Props {
+  lang: "zh-cn" | "en";
+}
+
+const { lang } = Astro.props as Props;
+const collectionName = lang === "en" ? "blog-en" : "blog-zh";
+
+const allPosts = await getCollection(collectionName, ({ data }) => !data.draft);
+
+const tagInfo = new Map<string, { count: number; latestDate: Date }>();
+allPosts.forEach((post) => {
+  const postDate = post.data.date;
+  post.data.tags?.forEach((tag) => {
+    const existing = tagInfo.get(tag);
+    if (!existing) {
+      tagInfo.set(tag, { count: 1, latestDate: postDate });
+    } else {
+      existing.count++;
+      if (postDate > existing.latestDate) existing.latestDate = postDate;
+    }
+  });
+});
+
+// 按最新文章日期从新到旧
+const sortedTags = Array.from(tagInfo.entries()).sort((a, b) =>
+  b[1].latestDate.getTime() - a[1].latestDate.getTime()
+);
+
+const isEn = lang === "en";
+const pageTitle = isEn ? "Tags" : "标签";
+const pageDescription = isEn ? "All tags" : "所有标签";
+---
+
+<SingleColumnLayout
+  title={pageTitle}
+  description={pageDescription}
+  pageKind="taxonomy"
+  lang={lang}
+>
+  <h1>{pageTitle}</h1>
+
+  <div class="terms-list">
+    <ul>
+      {sortedTags.map(([tag, info]) => (
+        <li>
+          <a href={getRelativeLocaleUrl(lang, `/tags/${tag}/`)}>
+            {tag} ({info.count})
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</SingleColumnLayout>

@@ -12,7 +12,7 @@
 export function countWords(content: string, lang: "zh-cn" | "en"): number {
   if (!content) return 0;
 
-  // 移除 Markdown 语法符号，更接近 Hugo 的处理方式
+  // 移除常见的 Markdown 语法符号
   const cleanContent = content
     .replace(/---[\s\S]*?---/g, '') // 移除 frontmatter
     .replace(/!\[([^\]]*)\]\([^)]+\)/g, '') // 移除图片标记
