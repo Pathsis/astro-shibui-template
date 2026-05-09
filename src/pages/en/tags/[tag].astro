@@ -1,18 +1,17 @@
 ---
-import SingleColumnLayout from "../../../layouts/SingleColumnLayout.astro";
 import { getCollection } from "astro:content";
-import { getRelativeLocaleUrl } from "astro:i18n";
-import { getLocalizedBlogPathById } from "../../../lib/post-url";
-import { formatMonthDay, getDateYear } from "../../../lib/date";
+import TagArchivePage from "../../../components/TagArchivePage.astro";
 
 export async function getStaticPaths() {
-  // 只从英文文章中获取标签（这是英文语言的页面）
+  // 英文标签归档路由：从 blog-en 收集标签空间
+  // 中文侧的对称路由位于 /tags/[tag].astro
   const postsEn = await getCollection("blog-en", ({ data }) => !data.draft);
 
   const tags = new Set<string>();
   postsEn.forEach((post) => {
     post.data.tags?.forEach((tag) => tags.add(tag));
   });
+
   return Array.from(tags).map((tag) => ({
     params: { tag },
     props: { tag },
@@ -20,68 +19,6 @@ export async function getStaticPaths() {
 }
 
 const { tag } = Astro.props;
-
-// 获取当前语言
-const currentLang = Astro.currentLocale as "zh-cn" | "en" || "en";
-const collectionName = currentLang === "en" ? "blog-en" : "blog-zh";
-
-// 获取当前语言下该标签的文章
-const posts = (await getCollection(collectionName, ({ data }) => !data.draft))
-  .filter((post) => post.data.tags?.includes(tag))
-  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
-const alternatePosts = await getCollection("blog-zh", ({ data }) => !data.draft);
-const hasMatchingTag = alternatePosts.some((post) => post.data.tags?.includes(tag));
-
-// 按年份分组
-const postsByYear = posts.reduce((acc, post) => {
-  const year = getDateYear(post.data.date);
-  if (!acc[year]) {
-    acc[year] = [];
-  }
-  acc[year].push(post);
-  return acc;
-}, {} as Record<number, typeof posts>);
-
-function getZodiac(year: number): string {
-  const zodiacs = ["🐭", "🐮", "🐯", "🐰", "🐲", "🐍", "🐴", "🐑", "🐵", "🐔", "🐶", "🐷"];
-  return zodiacs[(year + 8) % 12];
-}
-
-// 界面文本
-const tagLabel = currentLang === "en" ? "Tag" : "标签";
-const tagDescription = currentLang === "en" ? `All posts tagged with "${tag}"` : `标签 ${tag} 下的所有文章`;
-const podcastHint = currentLang === "en" ? " (Podcast available)" : "（可收听播客）";
 ---
 
-<SingleColumnLayout
-  title={`${tagLabel}: ${tag}`}
-  description={tagDescription}
-  pageKind="term"
-  lang={currentLang}
-  hasTranslation={hasMatchingTag}
->
-  <h1>{tagLabel}: {tag}</h1>
-
-  {Object.entries(postsByYear)
-    .sort((a, b) => Number(b[0]) - Number(a[0]))
-    .map(([year, yearPosts]) => (
-      <div>
-        <h2 class="year-heading">{year} {getZodiac(Number(year))}</h2>
-        <div class="time-list">
-          <ul>
-            {yearPosts.map((post) => (
-              <li>
-                <span>{formatMonthDay(post.data.date)}</span>
-                <div>
-                  <a href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(post.id, "en"))}>
-                    {post.data.title}
-                    {post.data.podcast && <span class="sr-only">{podcastHint}</span>}
-                  </a>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    ))}
-</SingleColumnLayout>
+<TagArchivePage tag={tag} lang="en" />

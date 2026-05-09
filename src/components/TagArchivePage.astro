@@ -1,0 +1,86 @@
+---
+/**
+ * TagArchivePage — 双语标签归档页的共用渲染组件。
+ *
+ * `/tags/[tag].astro` 与 `/en/tags/[tag].astro` 都在自己的路由文件里做
+ * `getStaticPaths`（Astro 要求 getStaticPaths 必须位于路由文件），再把
+ * `{ tag, lang }` 交给本组件完成剩余工作：
+ *   - 按 lang 选择集合并过滤文章
+ *   - 检测另一语言下是否存在同名标签（用于 hreflang 切换按钮）
+ *   - 按年份分组渲染
+ *
+ * 这样中英文两个路由共享完全相同的行为，新增/修改行为只需改一处。
+ */
+import { getCollection } from "astro:content";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import SingleColumnLayout from "../layouts/SingleColumnLayout.astro";
+import { getLocalizedBlogPathById } from "../lib/post-url";
+import { formatMonthDay, getDateYear } from "../lib/date";
+
+interface Props {
+  tag: string;
+  lang: "zh-cn" | "en";
+}
+
+const { tag, lang } = Astro.props as Props;
+
+const collectionName = lang === "en" ? "blog-en" : "blog-zh";
+const alternateCollectionName = lang === "en" ? "blog-zh" : "blog-en";
+
+const posts = (await getCollection(collectionName, ({ data }) => !data.draft))
+  .filter((post) => post.data.tags?.includes(tag))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const alternatePosts = await getCollection(alternateCollectionName, ({ data }) => !data.draft);
+const hasMatchingTag = alternatePosts.some((post) => post.data.tags?.includes(tag));
+
+// 按年份分组
+const postsByYear = posts.reduce((acc, post) => {
+  const year = getDateYear(post.data.date);
+  (acc[year] ||= []).push(post);
+  return acc;
+}, {} as Record<number, typeof posts>);
+
+function getZodiac(year: number): string {
+  const zodiacs = ["🐭", "🐮", "🐯", "🐰", "🐲", "🐍", "🐴", "🐑", "🐵", "🐔", "🐶", "🐷"];
+  return zodiacs[(year + 8) % 12];
+}
+
+const isEn = lang === "en";
+const tagLabel = isEn ? "Tag" : "标签";
+const tagDescription = isEn ? `All posts tagged with "${tag}"` : `标签 ${tag} 下的所有文章`;
+const podcastHint = isEn ? " (Podcast available)" : "（可收听播客）";
+---
+
+<SingleColumnLayout
+  title={`${tagLabel}: ${tag}`}
+  description={tagDescription}
+  pageKind="term"
+  lang={lang}
+  hasTranslation={hasMatchingTag}
+>
+  <h1>{tagLabel}: {tag}</h1>
+
+  {Object.entries(postsByYear)
+    .sort((a, b) => Number(b[0]) - Number(a[0]))
+    .map(([year, yearPosts]) => (
+      <div>
+        <h2 class="year-heading">{year} {getZodiac(Number(year))}</h2>
+        <div class="time-list">
+          <ul>
+            {yearPosts.map((post) => (
+              <li>
+                <span>{formatMonthDay(post.data.date)}</span>
+                <div>
+                  <a href={getRelativeLocaleUrl(lang, getLocalizedBlogPathById(post.id, lang))}>
+                    {post.data.title}
+                    {post.data.podcast && <span class="sr-only">{podcastHint}</span>}
+                  </a>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    ))}
+</SingleColumnLayout>
