@@ -140,10 +140,20 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
           aria-label={tocToggleLabel}
           data-toc-trigger
         >
-          <svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-            <line x1="1" y1="4" x2="17" y2="4" />
-            <line x1="1" y1="9" x2="17" y2="9" />
-            <line x1="1" y1="14" x2="11" y2="14" />
+          <svg
+            viewBox="0 0 18 18"
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            aria-hidden="true"
+            class="toc-trigger-icon"
+          >
+            <line class="toc-trigger-line toc-trigger-line-1" x1="1" y1="4" x2="17" y2="4" vector-effect="non-scaling-stroke" />
+            <line class="toc-trigger-line toc-trigger-line-2" x1="1" y1="9" x2="17" y2="9" vector-effect="non-scaling-stroke" />
+            <line class="toc-trigger-line toc-trigger-line-3" x1="1" y1="14" x2="11" y2="14" vector-effect="non-scaling-stroke" />
           </svg>
           <span class="sr-only">{tocText}</span>
         </button>
@@ -156,12 +166,6 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
           data-toc-panel
           hidden
         >
-          <button type="button" class="toc-panel-close" aria-label={isEn ? "Close" : "关闭"} data-toc-close>
-            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-              <line x1="3.5" y1="3.5" x2="12.5" y2="12.5" />
-              <line x1="12.5" y1="3.5" x2="3.5" y2="12.5" />
-            </svg>
-          </button>
           <ul class="toc-list">
             {tocItems.map((item) => (
               <li class={`toc-${item.level}`}>

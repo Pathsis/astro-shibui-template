@@ -81,7 +81,6 @@ export const registerArticleRuntime = function(runtimeInput) {
     const popover = document.querySelector('.toc-popover');
     const trigger = popover?.querySelector('[data-toc-trigger]');
     const panel = popover?.querySelector('[data-toc-panel]');
-    const closeBtn = popover?.querySelector('[data-toc-close]');
     if (!popover || !(trigger instanceof HTMLElement) || !(panel instanceof HTMLElement)) {
       cleanupTocBindings();
       return;
@@ -275,13 +274,6 @@ export const registerArticleRuntime = function(runtimeInput) {
       trigger.dataset.tocTriggerBound = '1';
       trigger.addEventListener('click', function() {
         togglePanel();
-      });
-    }
-
-    if (closeBtn instanceof HTMLElement && closeBtn.dataset.tocCloseBound !== '1') {
-      closeBtn.dataset.tocCloseBound = '1';
-      closeBtn.addEventListener('click', function() {
-        closePanel();
       });
     }
 
