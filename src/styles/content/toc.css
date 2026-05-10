@@ -1,9 +1,22 @@
-/* TOC Popover Module (Content Layer)
- * 左下角一个无背景的菜单图标按钮，点击后弹出面板。
- * 面板展开后按钮隐藏，右上角显示关闭按钮。
- */
+/* TOC Module (Content Layer) */
 
-/* 基础 list 结构（面板内部 + 打印展开态复用） */
+.toc {
+  background: var(--color-bg-tertiary);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.toc-title {
+  font-family: var(--font-family-sans);
+  font-weight: 400;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-small);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .toc-list {
   list-style: none;
   margin: 0;
@@ -14,7 +27,7 @@
 .toc-list li {
   margin: 0;
   padding: 0;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
 .toc-list a {
@@ -91,251 +104,235 @@ body[data-page-kind="article"] .gh-content h2.mobile-heading-unnumbered::before 
   content: none !important;
 }
 
-/* ===== Popover 容器 ===== */
-.toc-popover {
-  --toc-trigger-size: 32px;
-  position: fixed;
-  left: max(var(--floating-chrome-inset-x), env(safe-area-inset-left));
-  bottom: calc(
-    max(var(--floating-chrome-inset-y), calc(env(safe-area-inset-bottom) + var(--floating-chrome-inset-y)))
-    + (var(--floating-chrome-size) - var(--toc-trigger-size)) / 2
-    + var(--toc-player-offset, 0px)
-  );
-  z-index: 120;
-  opacity: 0;
-  transform: translateY(0.35rem);
-  pointer-events: none;
-  transition: opacity 240ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1), bottom 260ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.toc-popover[data-toc-visible="1"] {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-
-/* 按钮：无背景的菜单图标（与 .gh-burger 视觉重量一致）。
-   关闭态保持原 SVG 三条不等长线（x1/y1/x2/y2 不变），打开态通过
-   每条 <line> 的 CSS transform 把它们"原地"变形为 × —— 同一按钮承担
-   打开 / 关闭双角色，平滑过渡，panel 内不再需要独立 close 按钮。 */
-.toc-popover-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--toc-trigger-size);
-  height: var(--toc-trigger-size);
-  padding: 0;
-  color: var(--color-text-primary);
-  background: none;
-  border: none;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  transition: color 180ms ease, opacity 200ms ease, transform 200ms ease;
-}
-
-.toc-popover-trigger:hover {
-  opacity: 0.78;
-}
-
-.toc-popover-trigger:active {
-  transform: scale(0.92);
-}
-
-.toc-popover-trigger:focus-visible {
-  outline: 2px solid var(--color-text-primary);
-  outline-offset: 2px;
-}
-
-.toc-trigger-icon {
-  /* 允许变形后的 line 超出 viewBox 不被裁（比如 line-3 scaleX 后的瞬时位置） */
-  overflow: visible;
-}
-
-/* 每条 line 的 transform-origin 设在自身中心，打开 / 关闭态之间平滑过渡 */
-.toc-trigger-line {
-  transition:
-    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.2s ease-in-out;
-}
-
-.toc-trigger-line-1 {
-  transform-origin: 9px 4px;
-}
-.toc-trigger-line-2 {
-  transform-origin: 9px 9px;
-}
-.toc-trigger-line-3 {
-  transform-origin: 6px 14px;
-}
-
-/* === 打开态：变形为 × === */
-/* line-1 (top, 长 16)  ——  绕自身中心旋转 45° 再整体下移到 SVG 中心 (9,9) */
-.toc-popover[data-toc-open="1"] .toc-trigger-line-1 {
-  transform: translateY(5px) rotate(45deg);
-}
-/* line-2 (middle, 长 16)  ——  淡出 */
-.toc-popover[data-toc-open="1"] .toc-trigger-line-2 {
-  opacity: 0;
-}
-/* line-3 (bottom, 原长 10)  ——  scaleX(1.7) 拉长到约 17，再旋转 -45°、
-   translate 使中心从 (6,14) 移到 (9,9)，构成 × 的反对角斜线。
-   vector-effect: non-scaling-stroke（在 SVG attribute 里已加）让 stroke
-   粗细不被 scaleX 拉扁。 */
-.toc-popover[data-toc-open="1"] .toc-trigger-line-3 {
-  transform: translate(3px, -5px) rotate(-45deg) scaleX(1.7);
-}
-
-/* 打开面板时 trigger 不再隐藏，而是由内部三条 bar 的 CSS 变形规则
-   （见上面的 "=== 打开态：× ===" 段）切换为 × 图标，同一个按钮承担关闭角色。 */
-
-/* ===== 弹出面板 ===== */
-.toc-popover-panel[hidden] {
-  /* 覆盖浏览器默认的 [hidden] { display: none }：
-     HTML 原生的 display:none 会让 panel 在打开 / 关闭时瞬间 pop 进 / 出渲染树，
-     transition 无法跨越 display 切换，所以 opacity / transform 的动画都白写。
-     这里让 panel 始终 display: flex，视觉显隐由 opacity + transform + pointer-events
-     控制；a11y 仍靠 hidden 属性（屏幕阅读器默认会跳过带 hidden 的节点）。 */
-  display: flex;
-}
-
-.toc-popover-panel {
-  position: absolute;
-  left: 0;
-  bottom: calc(100% + 0.4rem);
-  width: max-content;
-  min-width: 10rem;
-  max-width: min(19rem, calc(100vw - 2rem));
-  max-height: min(60vh, 26rem);
-  display: flex;
-  flex-direction: column;
-  background: var(--color-bg-primary);
-  border: 1px solid color-mix(in srgb, var(--color-text-muted) 22%, transparent);
-  border-radius: 0.85rem;
-  box-shadow:
-    0 0.8rem 2.2rem color-mix(in srgb, var(--color-text-primary) 12%, transparent),
-    0 0.15rem 0.4rem color-mix(in srgb, var(--color-text-primary) 6%, transparent);
-  padding: 0.5rem 0.4rem 0.5rem 0.5rem;
-  box-sizing: border-box;
-  transform-origin: bottom left;
-  transform: translateY(0.3rem) scale(0.985);
-  opacity: 0;
-  pointer-events: none;
-  transition:
-    opacity 180ms ease,
-    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform, opacity;
-}
-
-.toc-popover[data-toc-open="1"] .toc-popover-panel {
-  transform: translateY(0) scale(1);
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* 面板内部的 TOC 列表
-   注意：不要给 .toc-list 设 `flex: 1 1 0` 之类的 flex 基准——
-   panel 没有显式 height，只有 max-height 约束；flex-basis:0 会让 list 对
-   panel 的自然高度贡献为 0，panel 因此塌到只剩 close 按钮那一行，
-   list 就被整个"压扁"成 0 高然后被 overflow-y:auto 裁掉了。
-   正确做法是让 list 按自然尺寸撑起 panel，超出 max-height 时由自身滚动。 */
-.toc-popover-panel .toc-list {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  margin: 0;
-  padding: 0 0.1rem;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-text-muted) 24%, transparent) transparent;
-}
-
-.toc-popover-panel .toc-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.toc-popover-panel .toc-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.toc-popover-panel .toc-list::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--color-text-muted) 24%, transparent);
-  border-radius: 999px;
-}
-
-.toc-popover-panel .toc-list li {
-  margin: 0;
-}
-
-.toc-popover-panel .toc-list a {
-  position: relative;
+body[data-page-kind="article"] .toc-inline {
   display: block;
-  padding: 0.32rem 0.55rem 0.32rem 0.85rem;
-  margin: 0;
-  color: color-mix(in srgb, var(--color-text-muted) 88%, var(--color-text-primary) 12%);
-  font-size: 0.82rem;
-  line-height: 1.42;
-  border-radius: 0.4rem;
-  transition:
-    background-color 160ms ease,
-    color 160ms ease,
-    padding-left 180ms ease;
 }
 
-.toc-popover-panel .toc-list a::before {
-  color: color-mix(in srgb, var(--color-text-muted) 60%, transparent);
-  margin-right: 0.3em;
-  font-variant-numeric: tabular-nums;
+body[data-page-kind="article"] .toc-desktop {
+  display: none;
 }
 
-.toc-popover-panel .toc-list a:hover {
-  color: var(--color-text-primary);
-  background: color-mix(in srgb, var(--color-text-muted) 10%, transparent);
+@media (max-width: 768px) {
+  body[data-page-kind="article"] .toc-inline {
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    padding: 0.75rem var(--spacing-md) 0.9rem;
+    border-radius: 0;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list a,
+  body[data-page-kind="article"] .toc-inline .toc-list a::before {
+    color: var(--color-text-primary);
+  }
 }
 
-.toc-popover-panel .toc-list a:focus-visible {
-  outline: 2px solid var(--color-text-primary);
-  outline-offset: 1px;
-}
+@media (min-width: 769px) {
+  body[data-page-kind="article"] .toc-inline {
+    --toc-rail-height: clamp(10rem, 36vh, 22rem);
+    --toc-hit-width: min(14rem, calc(100vw - 3rem));
+    position: fixed;
+    top: 50%;
+    left: max(0.85rem, env(safe-area-inset-left));
+    z-index: 35;
+    box-sizing: border-box;
+    width: var(--toc-hit-width);
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    transform: translateY(-50%);
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    pointer-events: auto;
+    user-select: none;
+    transition: transform 180ms ease;
+  }
 
-.toc-popover-panel .toc-list a.active {
-  color: var(--color-text-primary);
-  background: color-mix(in srgb, var(--color-text-muted) 12%, transparent);
-}
+  body[data-page-kind="article"] .toc-inline::before {
+    content: "";
+    position: absolute;
+    inset: -0.4rem -0.65rem;
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--color-bg-primary) 92%, var(--color-bg-tertiary) 8%);
+    border: 1px solid color-mix(in srgb, var(--color-text-muted) 16%, transparent);
+    box-shadow: 0 0.4rem 1.2rem color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+    opacity: 0;
+    transform: scale(0.985);
+    transform-origin: left center;
+    transition: opacity 200ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+    z-index: 0;
+  }
 
-.toc-popover-panel .toc-list a.active::before {
-  color: var(--color-text-primary);
-}
+  body[data-page-kind="article"] .toc-inline::after {
+    content: none;
+  }
 
-.toc-popover-panel .toc-list a.active::after {
-  content: "";
-  position: absolute;
-  left: 0.1rem;
-  top: 0.45rem;
-  bottom: 0.45rem;
-  width: 2px;
-  background: var(--color-text-primary);
-  border-radius: 999px;
-}
+  body[data-page-kind="article"] .toc-inline:hover::before,
+  body[data-page-kind="article"] .toc-inline:focus-within::before,
+  body[data-page-kind="article"] .toc-inline.is-expanded::before {
+    opacity: 1;
+    transform: scale(1);
+  }
 
-/* 紧缩层级缩进，避免弹层过宽 */
-.toc-popover-panel .toc-list .toc-h3 {
-  padding-left: 0.6em;
-}
+  body[data-page-kind="article"] .toc-inline:hover,
+  body[data-page-kind="article"] .toc-inline:focus-within {
+    transform: translateY(-50%);
+  }
 
-.toc-popover-panel .toc-list .toc-h4,
-.toc-popover-panel .toc-list .toc-h5,
-.toc-popover-panel .toc-list .toc-h6 {
-  padding-left: 1.2em;
-}
+  body[data-page-kind="article"] .toc-inline .toc-title {
+    display: none;
+  }
 
-/* 小屏微调 */
-@media (max-width: 480px) {
-  .toc-popover-panel {
-    max-width: min(17rem, calc(100vw - 2.5rem));
-    max-height: min(60vh, 26rem);
+  body[data-page-kind="article"] .toc-inline .toc-list {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.55rem;
+    margin: 0;
+    padding: 0;
+    max-height: var(--toc-rail-height);
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list li {
+    width: 100%;
+    min-height: 1rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list a {
+    position: relative;
+    display: block;
+    min-height: 1rem;
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    border-bottom: none;
+    color: transparent;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-indent: 0;
+    transform: translateX(0.16rem);
+    letter-spacing: 0.01em;
+    pointer-events: auto;
+    transition:
+      color 220ms ease,
+      transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+      letter-spacing 220ms ease;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list a::before {
+    content: attr(data-toc-number) " ";
+    color: transparent;
+    transition:
+      color 220ms ease,
+      opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list li.toc-item-unnumbered > a::before {
+    content: none !important;
+    margin-right: 0 !important;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: var(--toc-line-width, 1rem);
+    height: 1.5px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-text-muted) 66%, transparent);
+    transform: translateY(-50%) scaleX(1);
+    transform-origin: left center;
+    transition:
+      width 200ms ease,
+      height 200ms ease,
+      background-color 180ms ease,
+      opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list a.active::before {
+    color: transparent;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list a.active::after {
+    width: calc(var(--toc-line-width, 1rem) + 0.3rem);
+    height: 2px;
+    background: var(--color-text-primary);
+  }
+
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a {
+    color: color-mix(in srgb, var(--color-text-muted) 84%, var(--color-text-primary) 16%);
+    transform: translateX(0);
+    letter-spacing: 0;
+  }
+
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a::before,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a::before,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a::before {
+    color: color-mix(in srgb, var(--color-text-muted) 84%, var(--color-text-primary) 16%);
+  }
+
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a.active,
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a:hover,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a.active,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a:hover,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a.active,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a:hover {
+    color: var(--color-text-primary);
+  }
+
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a.active::before,
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a:hover::before,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a.active::before,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a:hover::before,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a.active::before,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a:hover::before {
+    color: var(--color-text-primary);
+  }
+
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a::before,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a::before,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a::before {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  body[data-page-kind="article"] .toc-inline:hover .toc-list a::after,
+  body[data-page-kind="article"] .toc-inline:focus-within .toc-list a::after,
+  body[data-page-kind="article"] .toc-inline.is-expanded .toc-list a::after {
+    opacity: 0;
+    transform: translateY(-50%) scaleX(0.72);
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list .toc-h3 {
+    margin-left: 0.7rem;
+  }
+
+  body[data-page-kind="article"] .toc-inline .toc-list .toc-h4,
+  body[data-page-kind="article"] .toc-inline .toc-list .toc-h5,
+  body[data-page-kind="article"] .toc-inline .toc-list .toc-h6 {
+    margin-left: 0.5rem;
   }
 }

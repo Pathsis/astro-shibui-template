@@ -33,40 +33,30 @@ export const registerArticleRuntime = function(runtimeInput) {
     return document.body?.dataset?.pageKind === 'article';
   };
 
-  let tocScrollSpyHandler = null;
+  let tocObserver = null;
+  let tocScrollHandler = null;
   let tocOutsideHandler = null;
-  let tocKeyHandler = null;
   let tocResizeHandler = null;
-  let tocPlayerResizeObserver = null;
-  let tocPlayerMutationObserver = null;
   let selectionTimer = null;
   let mermaidThemeListener = false;
   let mermaidLoading = false;
 
   const cleanupTocBindings = function() {
-    if (tocScrollSpyHandler) {
-      window.removeEventListener('scroll', tocScrollSpyHandler);
-      tocScrollSpyHandler = null;
+    if (tocObserver) {
+      tocObserver.disconnect();
+      tocObserver = null;
+    }
+    if (tocScrollHandler) {
+      window.removeEventListener('scroll', tocScrollHandler);
+      tocScrollHandler = null;
     }
     if (tocOutsideHandler) {
       document.removeEventListener('pointerdown', tocOutsideHandler);
       tocOutsideHandler = null;
     }
-    if (tocKeyHandler) {
-      document.removeEventListener('keydown', tocKeyHandler);
-      tocKeyHandler = null;
-    }
     if (tocResizeHandler) {
       window.removeEventListener('resize', tocResizeHandler);
       tocResizeHandler = null;
-    }
-    if (tocPlayerResizeObserver) {
-      tocPlayerResizeObserver.disconnect();
-      tocPlayerResizeObserver = null;
-    }
-    if (tocPlayerMutationObserver) {
-      tocPlayerMutationObserver.disconnect();
-      tocPlayerMutationObserver = null;
     }
   };
 
@@ -78,47 +68,24 @@ export const registerArticleRuntime = function(runtimeInput) {
       return;
     }
 
-    const popover = document.querySelector('.toc-popover');
-    const trigger = popover?.querySelector('[data-toc-trigger]');
-    const panel = popover?.querySelector('[data-toc-panel]');
-    if (!popover || !(trigger instanceof HTMLElement) || !(panel instanceof HTMLElement)) {
-      cleanupTocBindings();
-      return;
-    }
-
-    const closePanel = function(options) {
-      if (popover.getAttribute('data-toc-open') !== '1') return;
-      popover.setAttribute('data-toc-open', '0');
-      panel.hidden = true;
-      trigger.setAttribute('aria-expanded', 'false');
-      if (!options?.keepFocus) {
-        try { trigger.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
-      }
+    const tocContainers = document.querySelectorAll('.toc-widget, .toc-inline');
+    const isTouchDesktopToc = function() {
+      return window.matchMedia('(min-width: 769px)').matches
+        && (window.matchMedia('(hover: none)').matches || window.matchMedia('(pointer: coarse)').matches);
     };
-
-    const openPanel = function() {
-      if (popover.getAttribute('data-toc-open') === '1') return;
-      popover.setAttribute('data-toc-open', '1');
-      panel.hidden = false;
-      trigger.setAttribute('aria-expanded', 'true');
-      requestAnimationFrame(function() {
-        const activeLink = panel.querySelector('.toc-link.active') || panel.querySelector('.toc-link');
-        if (!(activeLink instanceof HTMLElement)) return;
-        try { activeLink.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
-        const listEl = activeLink.closest('.toc-list');
-        if (!(listEl instanceof HTMLElement)) return;
-        const linkRect = activeLink.getBoundingClientRect();
-        const listRect = listEl.getBoundingClientRect();
-        listEl.scrollTop += (linkRect.top - listRect.top) - listRect.height / 2 + linkRect.height / 2;
+    const isMobileTocViewport = function() {
+      return window.matchMedia('(max-width: 768px)').matches;
+    };
+    const isPrintTocContext = function() {
+      const footnoteHeading = content.querySelector('.footnotes h2');
+      return content.classList.contains('has-print-materials')
+        || footnoteHeading?.dataset?.printHeadingActive === '1'
+        || window.matchMedia('print').matches;
+    };
+    const collapseExpandedToc = function() {
+      document.querySelectorAll('.toc-inline.is-expanded').forEach(function(container) {
+        container.classList.remove('is-expanded');
       });
-    };
-
-    const togglePanel = function() {
-      if (popover.getAttribute('data-toc-open') === '1') {
-        closePanel();
-      } else {
-        openPanel();
-      }
     };
     const getHeadingText = function(heading) {
       const clone = heading.cloneNode(true);
@@ -135,14 +102,8 @@ export const registerArticleRuntime = function(runtimeInput) {
       return heading.id;
     };
     const syncGeneratedSections = function() {
-      const isVisibleHeading = function(el) {
-        if (!el) return false;
-        const rect = el.getBoundingClientRect();
-        return rect.width !== 0 || rect.height !== 0;
-      };
-
       const footnoteHeading = content.querySelector('.footnotes h2');
-      const notesSection = footnoteHeading && isVisibleHeading(footnoteHeading)
+      const notesSection = footnoteHeading
         ? {
             id: ensureHeadingId(footnoteHeading, 'article-notes'),
             text: getHeadingText(footnoteHeading),
@@ -151,13 +112,14 @@ export const registerArticleRuntime = function(runtimeInput) {
         : null;
 
       const materialsHeading = content.querySelector('.mobile-hanging-figures h2, .print-article-materials h2');
-      const materialsSection = materialsHeading && isVisibleHeading(materialsHeading)
+      const materialsSection = materialsHeading
         ? {
             id: ensureHeadingId(materialsHeading, 'article-materials'),
             text: getHeadingText(materialsHeading),
             key: 'materials',
           }
         : null;
+      const shouldShowGeneratedSections = isMobileTocViewport() || isPrintTocContext();
       const shouldNumberNotes = content.dataset.notesNumbered !== '0';
 
       let totalItemCount = 0;
@@ -168,8 +130,12 @@ export const registerArticleRuntime = function(runtimeInput) {
         });
 
         const generatedSections = [];
-        if (notesSection) generatedSections.push(notesSection);
-        if (materialsSection) generatedSections.push(materialsSection);
+        if (shouldShowGeneratedSections && notesSection) {
+          generatedSections.push(notesSection);
+        }
+        if (shouldShowGeneratedSections && materialsSection) {
+          generatedSections.push(materialsSection);
+        }
 
         const baseItems = Array.from(tocList.querySelectorAll('li')).filter(function(item) {
           return !item.classList.contains('toc-generated-section');
@@ -212,6 +178,7 @@ export const registerArticleRuntime = function(runtimeInput) {
             a.dataset.tocNumber = `${nextH2Index}.`;
           }
 
+          li.style.setProperty('--toc-line-width', '1.35rem');
           a.href = `#${section.id}`;
           a.textContent = section.text;
           a.className = 'toc-link';
@@ -223,13 +190,16 @@ export const registerArticleRuntime = function(runtimeInput) {
       });
 
       if (totalItemCount === 0) {
-        popover.setAttribute('data-toc-visible', '0');
-        popover.style.display = 'none';
+        tocContainers.forEach(function(el) {
+          el.style.display = 'none';
+        });
         return [];
       }
 
-      popover.style.removeProperty('display');
-      popover.style.setProperty('--toc-item-count', String(totalItemCount));
+      tocContainers.forEach(function(el) {
+        el.style.removeProperty('display');
+        el.style.setProperty('--toc-item-count', String(totalItemCount));
+      });
 
       const primaryList = tocLists[0];
       if (!primaryList) return [];
@@ -239,11 +209,7 @@ export const registerArticleRuntime = function(runtimeInput) {
           const targetId = link.getAttribute('href')?.slice(1);
           return targetId ? document.getElementById(targetId) : null;
         })
-        .filter(function(heading) {
-          if (!heading) return false;
-          const rect = heading.getBoundingClientRect();
-          return rect.width !== 0 || rect.height !== 0;
-        });
+        .filter(Boolean);
     };
 
     const validHeadings = syncGeneratedSections();
@@ -256,97 +222,96 @@ export const registerArticleRuntime = function(runtimeInput) {
       if (link.dataset.tocBound === '1') return;
       link.dataset.tocBound = '1';
       link.addEventListener('click', function(e) {
+        const tocContainer = this.closest('.toc-inline');
+        if (tocContainer && isTouchDesktopToc() && !tocContainer.classList.contains('is-expanded')) {
+          e.preventDefault();
+          tocContainer.classList.add('is-expanded');
+          return;
+        }
+
         e.preventDefault();
         const targetId = this.getAttribute('href').slice(1);
         const target = document.getElementById(targetId);
-        if (!target) return;
-        try {
-          const newHash = '#' + targetId;
-          if (window.location.hash !== newHash) {
-            history.pushState(history.state, '', newHash);
+        if (target) {
+          // 补回浏览器默认行为里被 preventDefault 吞掉的那一半：往 history 里
+          // push 一条 hash entry。否则 back 会直接跳到上一页，而不是只弹 hash。
+          // 只有当目标 hash 和当前 hash 不同才 push，避免重复点同一项堆叠 entry。
+          try {
+            const newHash = '#' + targetId;
+            if (window.location.hash !== newHash) {
+              history.pushState(history.state, '', newHash);
+            }
+          } catch (err) {
+            // ignore
           }
-        } catch (err) { /* ignore */ }
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          collapseExpandedToc();
+          if (window.innerWidth <= 689) {
+            document.body.classList.remove('menu-open');
+          }
+        }
       });
     });
 
-    if (trigger.dataset.tocTriggerBound !== '1') {
-      trigger.dataset.tocTriggerBound = '1';
-      trigger.addEventListener('click', function() {
-        togglePanel();
-      });
-    }
+    const setActiveToc = function() {
+      if (isMobileTocViewport()) {
+        document.querySelectorAll('.toc-link.active').forEach(function(link) {
+          link.classList.remove('active');
+        });
+        return;
+      }
 
-    const firstHeading = validHeadings[0];
-    const getAbsoluteTop = function(el) {
-      return el.getBoundingClientRect().top + window.pageYOffset;
-    };
-    const updateScrollState = function() {
       const scrollY = window.pageYOffset;
       let currentId = '';
       validHeadings.forEach(function(heading) {
-        if (scrollY >= getAbsoluteTop(heading) - 120) {
+        if (scrollY >= heading.offsetTop - 100) {
           currentId = heading.id;
         }
       });
       if (!currentId) {
-        currentId = firstHeading?.id || '';
+        currentId = validHeadings[0]?.id || '';
       }
       document.querySelectorAll('.toc-link').forEach(function(link) {
         const isActive = link.getAttribute('href') === '#' + currentId;
         link.classList.toggle('active', isActive);
       });
-
-      popover.setAttribute('data-toc-visible', '1');
     };
 
     cleanupTocBindings();
 
     let tocTicking = false;
-    tocScrollSpyHandler = function() {
-      if (tocTicking) return;
-      tocTicking = true;
-      requestAnimationFrame(function() {
-        updateScrollState();
-        tocTicking = false;
-      });
+    tocScrollHandler = function() {
+      if (!tocTicking) {
+        requestAnimationFrame(function() {
+          setActiveToc();
+          tocTicking = false;
+        });
+        tocTicking = true;
+      }
     };
-    window.addEventListener('scroll', tocScrollSpyHandler, { passive: true });
+    window.addEventListener('scroll', tocScrollHandler);
+
+    tocOutsideHandler = function(event) {
+      if (!isTouchDesktopToc()) {
+        collapseExpandedToc();
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest('.toc-inline')) {
+        collapseExpandedToc();
+      }
+    };
+    document.addEventListener('pointerdown', tocOutsideHandler);
 
     tocResizeHandler = function() {
-      syncGeneratedSections();
-      updateScrollState();
+      if (!isTouchDesktopToc()) {
+        collapseExpandedToc();
+      }
     };
     window.addEventListener('resize', tocResizeHandler);
 
-    const playerContainer = document.getElementById('podcast-player-container');
-    const syncPlayerOffset = function() {
-      if (!playerContainer) {
-        popover.style.setProperty('--toc-player-offset', '0px');
-        return;
-      }
-      const style = window.getComputedStyle(playerContainer);
-      const visible = style.display !== 'none' && style.visibility !== 'hidden';
-      const h = visible ? playerContainer.offsetHeight : 0;
-      popover.style.setProperty('--toc-player-offset', `${h}px`);
-    };
-    if (playerContainer) {
-      if (typeof ResizeObserver !== 'undefined') {
-        tocPlayerResizeObserver = new ResizeObserver(syncPlayerOffset);
-        tocPlayerResizeObserver.observe(playerContainer);
-      }
-      if (typeof MutationObserver !== 'undefined') {
-        tocPlayerMutationObserver = new MutationObserver(syncPlayerOffset);
-        tocPlayerMutationObserver.observe(playerContainer, {
-          attributes: true,
-          attributeFilter: ['style', 'class', 'hidden'],
-          subtree: true,
-        });
-      }
-    }
-    syncPlayerOffset();
-
-    updateScrollState();
+    setActiveToc();
   };
   articleApi.initTOC = initTOC;
 
