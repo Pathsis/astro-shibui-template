@@ -1,6 +1,6 @@
 /* TOC Popover Module (Content Layer)
- * 统一桌面 / 移动端的文章目录：左下角一个低调的胶囊按钮，点击后弹出
- * 小面板。按钮上显示当前章节编号 + 底部一条窄进度条（阅读进度）。
+ * 左下角一个无背景的菜单图标按钮，点击后弹出面板。
+ * 面板展开后按钮隐藏，右上角显示关闭按钮。
  */
 
 /* 基础 list 结构（面板内部 + 打印展开态复用） */
@@ -91,14 +91,14 @@ body[data-page-kind="article"] .gh-content h2.mobile-heading-unnumbered::before 
   content: none !important;
 }
 
-/* ===== Popover 容器（按钮入口） ===== */
+/* ===== Popover 容器 ===== */
 .toc-popover {
-  --toc-trigger-height: 28px;
+  --toc-trigger-size: 32px;
   position: fixed;
   left: max(var(--floating-chrome-inset-x), env(safe-area-inset-left));
   bottom: calc(
     max(var(--floating-chrome-inset-y), calc(env(safe-area-inset-bottom) + var(--floating-chrome-inset-y)))
-    + (var(--floating-chrome-size) - var(--toc-trigger-height)) / 2
+    + (var(--floating-chrome-size) - var(--toc-trigger-size)) / 2
     + var(--toc-player-offset, 0px)
   );
   z-index: 120;
@@ -114,108 +114,67 @@ body[data-page-kind="article"] .gh-content h2.mobile-heading-unnumbered::before 
   pointer-events: auto;
 }
 
-/* 按钮：低调胶囊，图标 + 当前编号 + 细进度条 */
+/* 按钮：无背景的菜单图标
+   视觉风格与 Header 的 .gh-burger 保持一致——同样的 text-primary 颜色、
+   同样 2px 粗线、18px 跨度，避免 "左上 / 右上汉堡 + 左下 TOC" 三个按钮
+   同站不同"体重"的问题。保留 3 条线（最下一条短）作为 "目录" 的语义区分。 */
 .toc-popover-trigger {
-  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  min-height: var(--toc-trigger-height);
-  padding: 0 0.7rem 0.22rem 0.55rem;
-  color: var(--color-text-muted);
-  background: color-mix(in srgb, var(--color-bg-primary) 94%, var(--color-bg-tertiary) 6%);
-  border: 1px solid color-mix(in srgb, var(--color-text-muted) 18%, transparent);
-  border-radius: 999px;
-  box-shadow: 0 0.35rem 1rem color-mix(in srgb, var(--color-text-primary) 7%, transparent);
-  font-family: var(--font-family-sans);
-  font-size: 0.75rem;
-  line-height: 1;
-  letter-spacing: 0.01em;
+  justify-content: center;
+  width: var(--toc-trigger-size);
+  height: var(--toc-trigger-size);
+  padding: 0;
+  color: var(--color-text-primary);
+  background: none;
+  border: none;
+  border-radius: 0.5rem;
   cursor: pointer;
   user-select: none;
-  transition:
-    color 180ms ease,
-    border-color 180ms ease,
-    background-color 180ms ease,
-    transform 180ms ease,
-    box-shadow 180ms ease;
   -webkit-tap-highlight-color: transparent;
-}
-
-.toc-popover-trigger-icon svg {
-  width: 12px;
-  height: 12px;
+  transition: color 180ms ease, opacity 200ms ease, transform 200ms ease;
 }
 
 .toc-popover-trigger:hover {
   color: var(--color-text-primary);
-  border-color: color-mix(in srgb, var(--color-text-muted) 36%, transparent);
-  background: color-mix(in srgb, var(--color-bg-primary) 88%, var(--color-bg-tertiary) 12%);
+  opacity: 0.78;
 }
 
 .toc-popover-trigger:active {
-  transform: translateY(1px);
+  transform: scale(0.92);
 }
 
 .toc-popover-trigger:focus-visible {
   outline: 2px solid var(--color-text-primary);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
+.toc-popover-trigger svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 打开面板时隐藏触发按钮 */
 .toc-popover[data-toc-open="1"] .toc-popover-trigger {
-  color: var(--color-text-primary);
-  border-color: color-mix(in srgb, var(--color-text-muted) 42%, transparent);
-  background: color-mix(in srgb, var(--color-bg-primary) 84%, var(--color-bg-tertiary) 16%);
-}
-
-.toc-popover-trigger-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: inherit;
-  opacity: 0.85;
-}
-
-.toc-popover-trigger-number {
-  min-width: 1.6rem;
-  color: inherit;
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
-  text-align: left;
-  letter-spacing: 0;
-}
-
-/* 底部窄进度条 */
-.toc-popover-trigger-progress {
-  position: absolute;
-  left: 0.55rem;
-  right: 0.55rem;
-  bottom: 0.28rem;
-  height: 1.5px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-text-muted) 18%, transparent);
-  overflow: hidden;
+  opacity: 0;
   pointer-events: none;
-}
-
-.toc-popover-trigger-progress-bar {
-  display: block;
-  height: 100%;
-  width: var(--toc-progress, 0%);
-  border-radius: inherit;
-  background: color-mix(in srgb, var(--color-text-primary) 70%, transparent);
-  transition: width 160ms ease, background-color 180ms ease;
+  transform: scale(0.8);
 }
 
 /* ===== 弹出面板 ===== */
 .toc-popover-panel[hidden] {
-  display: none;
+  /* 覆盖浏览器默认的 [hidden] { display: none }：
+     HTML 原生的 display:none 会让 panel 在打开 / 关闭时瞬间 pop 进 / 出渲染树，
+     transition 无法跨越 display 切换，所以 opacity / transform 的动画都白写。
+     这里让 panel 始终 display: flex，视觉显隐由 opacity + transform + pointer-events
+     控制；a11y 仍靠 hidden 属性（屏幕阅读器默认会跳过带 hidden 的节点）。 */
+  display: flex;
 }
 
 .toc-popover-panel {
   position: absolute;
   left: 0;
-  bottom: calc(100% + 0.55rem);
+  bottom: calc(100% + 0.4rem);
   width: max-content;
   min-width: 10rem;
   max-width: min(19rem, calc(100vw - 2rem));
@@ -233,6 +192,7 @@ body[data-page-kind="article"] .gh-content h2.mobile-heading-unnumbered::before 
   transform-origin: bottom left;
   transform: translateY(0.3rem) scale(0.985);
   opacity: 0;
+  pointer-events: none;
   transition:
     opacity 180ms ease,
     transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -242,9 +202,45 @@ body[data-page-kind="article"] .gh-content h2.mobile-heading-unnumbered::before 
 .toc-popover[data-toc-open="1"] .toc-popover-panel {
   transform: translateY(0) scale(1);
   opacity: 1;
+  pointer-events: auto;
 }
 
-/* 面板内部的 TOC 列表 */
+/* 面板关闭按钮 */
+.toc-panel-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  margin-bottom: 0.25rem;
+  padding: 0;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.toc-panel-close:hover {
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-text-muted) 10%, transparent);
+}
+
+.toc-panel-close:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 1px;
+}
+
+/* 面板内部的 TOC 列表
+   注意：不要给 .toc-list 设 `flex: 1 1 0` 之类的 flex 基准——
+   panel 没有显式 height，只有 max-height 约束；flex-basis:0 会让 list 对
+   panel 的自然高度贡献为 0，panel 因此塌到只剩 close 按钮那一行，
+   list 就被整个"压扁"成 0 高然后被 overflow-y:auto 裁掉了。
+   正确做法是让 list 按自然尺寸撑起 panel，超出 max-height 时由自身滚动。 */
 .toc-popover-panel .toc-list {
   position: relative;
   display: flex;
@@ -337,7 +333,7 @@ body[data-page-kind="article"] .gh-content h2.mobile-heading-unnumbered::before 
   padding-left: 1.2em;
 }
 
-/* 小屏微调：只约束面板尺寸，字号/行高与桌面保持一致 */
+/* 小屏微调 */
 @media (max-width: 480px) {
   .toc-popover-panel {
     max-width: min(17rem, calc(100vw - 2.5rem));

@@ -81,7 +81,7 @@ export const registerArticleRuntime = function(runtimeInput) {
     const popover = document.querySelector('.toc-popover');
     const trigger = popover?.querySelector('[data-toc-trigger]');
     const panel = popover?.querySelector('[data-toc-panel]');
-    const activeNumberEl = popover?.querySelector('[data-toc-active-number]');
+    const closeBtn = popover?.querySelector('[data-toc-close]');
     if (!popover || !(trigger instanceof HTMLElement) || !(panel instanceof HTMLElement)) {
       cleanupTocBindings();
       return;
@@ -268,7 +268,6 @@ export const registerArticleRuntime = function(runtimeInput) {
           }
         } catch (err) { /* ignore */ }
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        closePanel({ keepFocus: true });
       });
     });
 
@@ -279,6 +278,13 @@ export const registerArticleRuntime = function(runtimeInput) {
       });
     }
 
+    if (closeBtn instanceof HTMLElement && closeBtn.dataset.tocCloseBound !== '1') {
+      closeBtn.dataset.tocCloseBound = '1';
+      closeBtn.addEventListener('click', function() {
+        closePanel();
+      });
+    }
+
     const firstHeading = validHeadings[0];
     const getAbsoluteTop = function(el) {
       return el.getBoundingClientRect().top + window.pageYOffset;
@@ -286,7 +292,6 @@ export const registerArticleRuntime = function(runtimeInput) {
     const updateScrollState = function() {
       const scrollY = window.pageYOffset;
       let currentId = '';
-      let currentTocNumber = '—';
       validHeadings.forEach(function(heading) {
         if (scrollY >= getAbsoluteTop(heading) - 120) {
           currentId = heading.id;
@@ -298,25 +303,8 @@ export const registerArticleRuntime = function(runtimeInput) {
       document.querySelectorAll('.toc-link').forEach(function(link) {
         const isActive = link.getAttribute('href') === '#' + currentId;
         link.classList.toggle('active', isActive);
-        if (isActive) {
-          const num = link.dataset.tocNumber || '';
-          currentTocNumber = num.replace(/\.$/, '') || '—';
-        }
       });
-      if (activeNumberEl) {
-        activeNumberEl.textContent = currentTocNumber;
-      }
 
-      const contentTop = getAbsoluteTop(content);
-      const contentHeight = content.scrollHeight;
-      const viewportHeight = window.innerHeight;
-      const span = Math.max(contentHeight - viewportHeight * 0.6, 1);
-      const progressed = Math.min(Math.max(scrollY - contentTop + viewportHeight * 0.4, 0), span);
-      const pct = Math.min(Math.max((progressed / span) * 100, 0), 100);
-      popover.style.setProperty('--toc-progress', `${pct.toFixed(2)}%`);
-
-      // 目录按钮在桌面 / 移动端都保持常驻可见，不再根据滚动位置切换；
-      // 保留 data-toc-visible 这个属性及其 CSS 绑定，方便未来如需再启用条件显示。
       popover.setAttribute('data-toc-visible', '1');
     };
 
