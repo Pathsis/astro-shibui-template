@@ -11,9 +11,6 @@ const readStorageJson = function(key) {
 };
 
 export const shouldAutoloadPodcastPlayer = function() {
-  const min = readStorageJson('podcast-player-minimized');
-  if (!min || min.minimized !== true) return false;
-
   const dis = readStorageJson('podcast-player-dismissed');
   if (dis && dis.timestamp && Date.now() - dis.timestamp < DAY_MS) return false;
 

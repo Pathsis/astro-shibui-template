@@ -8,8 +8,6 @@ import {
   saveCurrentEpisode,
   getSavedEpisode,
   getPlaybackRateForLang,
-  getPlayerMinimized,
-  setPlayerMinimized,
   savePlaybackRateForLang,
   getPlayIntent,
   setPlayIntent,
@@ -86,14 +84,7 @@ function formatPlaybackRateLabel(rate: number): string {
 }
 
 export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
-  const isCoverMinimizeEnabled = false;
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return getPlayerMinimized();
-    }
-    return false;
-  });
   const [hasEnded, setHasEnded] = useState(false);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [pageLang, setPageLang] = useState<PodcastEpisode['lang']>(() => getPageLang());
@@ -224,9 +215,6 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     root.style.setProperty('--cover-rotation', `${angle}deg`);
   }, []);
 
-  useEffect(() => {
-    setPlayerMinimized(isMinimized);
-  }, [isMinimized]);
   const lastSavedTimeRef = useRef<number>(-5);
 
   const syncMediaSessionPosition = useCallback(
@@ -699,8 +687,6 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
         slug: currentEpisode?.slug ?? '',
         message: errorMsg || 'unknown',
       });
-      // 出错时自动恢复主播放器，避免最小化态下错误提示不可见或难以操作。
-      setIsMinimized((prev) => (prev ? false : prev));
       setError(errorMsg || errorDefaultLabel);
       updatePlayerState({ isPlaying: false });
       setIsBuffering(false);
@@ -1193,7 +1179,6 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       const movedEnough = typeof startClientX !== 'number'
         || Math.abs(clientX - startClientX) >= SCRUB_ACTIVATION_THRESHOLD_PX;
       if (!movedEnough) return;
-      if (isMinimized) return;
       if (!scrubbingRef.current) {
         scrubbingRef.current = true;
         wasPlayingRef.current = stateRef.current.isPlaying;
@@ -1208,7 +1193,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       scrubMovedRef.current = true;
     }
     updateScrubFromClientX(clientX);
-  }, [isMinimized, updateScrubFromClientX]);
+  }, [updateScrubFromClientX]);
 
   const endScrub = useCallback(() => {
     if (!scrubTrackingRef.current) return;
@@ -1301,7 +1286,6 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   }, [state.duration]);
 
   const handleProgressStart = useCallback((event: ScrubStartEvent) => {
-    if (isMinimized) return;
     if (scrubTrackingRef.current) return;
     if (isExpanded) {
       setIsExpanded(false);
@@ -1331,7 +1315,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     window.addEventListener('touchend', endScrub);
     window.addEventListener('touchcancel', endScrub);
     window.addEventListener('touchmove', handleScrubMove as any, { passive: false });
-  }, [endScrub, handleScrubMove, isExpanded, isMinimized]);
+  }, [endScrub, handleScrubMove, isExpanded]);
   
   const togglePlaybackRate = useCallback(() => {
     const rates = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -1359,21 +1343,6 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     setPlayIntent(false);
     onClose?.();
   }, [onClose, currentEpisode?.slug, persistProgressSnapshot]);
-
-  const toggleMinimize = useCallback(() => {
-    setIsMinimized(prev => {
-      const newVal = !prev;
-      trackUmami(newVal ? 'podcast-minimize' : 'podcast-restore', {
-        source: 'player',
-        slug: currentEpisode?.slug ?? '',
-      });
-      // 最小化时同时关闭展开状态，避免播放列表残留
-      if (newVal) {
-        setIsExpanded(false);
-      }
-      return newVal;
-    });
-  }, [currentEpisode?.slug]);
 
   const toggleExpanded = useCallback(() => {
     setIsExpanded(prev => {
@@ -1512,9 +1481,6 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     ? `${formatTime(clampedProgress)} / ${formatTime(currentDuration)}`
     : '0:00';
   const remainingTimeLabel = activePlaybackLang === 'en' ? 'Remaining time' : '剩余时间';
-  const coverExpandLabel = isMinimized
-    ? (activePlaybackLang === 'en' ? 'Expand player' : '展开播放器')
-    : (activePlaybackLang === 'en' ? 'Minimize player' : '最小化播放器');
   const playPauseLabel = state.isPlaying
     ? (activePlaybackLang === 'en' ? 'Pause' : '暂停')
     : (activePlaybackLang === 'en' ? 'Play' : '播放');
@@ -1533,25 +1499,11 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   return (
     <div
       ref={playerRootRef}
-      className={`podcast-player ${isExpanded ? 'expanded' : ''} ${isMinimized ? 'minimized' : ''} ${state.isPlaying ? 'playing' : ''} ${isScrubbing ? 'scrubbing' : ''} ${isBuffering ? 'buffering' : ''}`}
+      className={`podcast-player ${isExpanded ? 'expanded' : ''} ${state.isPlaying ? 'playing' : ''} ${isScrubbing ? 'scrubbing' : ''} ${isBuffering ? 'buffering' : ''}`}
       style={{ '--progress-percent': progressPercent, '--rotation-duration': rotationDuration } as any}
     >
           <div className="podcast-player-mini">
-          {/* 封面图 - 点击切换最大化/最小化 */}
-          <div
-            className={`player-cover ${isCoverMinimizeEnabled ? '' : 'player-cover-static'}`}
-            onClick={isCoverMinimizeEnabled ? toggleMinimize : undefined}
-            onKeyDown={(event) => {
-              if (!isCoverMinimizeEnabled) return;
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                toggleMinimize();
-              }
-            }}
-            role={isCoverMinimizeEnabled ? 'button' : undefined}
-            tabIndex={isCoverMinimizeEnabled ? 0 : undefined}
-            aria-label={isCoverMinimizeEnabled ? coverExpandLabel : undefined}
-          >
+          <div className="player-cover">
             <img
               ref={coverImageRef}
               src={currentEpisode.coverImage ?? siteConfig.images.podcastDefaultCover}
