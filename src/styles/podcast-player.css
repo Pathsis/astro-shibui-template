@@ -48,10 +48,10 @@
 
 .podcast-player:not(.minimized) {
   position: fixed;
-  left: auto;
-  right: var(--player-floating-inset-x);
+  left: 50%;
+  right: auto;
   bottom: var(--player-floating-inset-y);
-  transform: none;
+  transform: translateX(-50%);
   width: min(var(--player-max-width), calc(100vw - (var(--player-floating-inset-x) * 2)));
   max-width: calc(100vw - (var(--player-floating-inset-x) * 2));
 }
@@ -60,7 +60,9 @@
 .podcast-player.minimized {
   position: fixed;
   bottom: var(--player-minimized-bottom);
-  right: var(--player-minimized-right);
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
   width: var(--player-minimized-shell-size);
   height: var(--player-minimized-shell-size);
   border-radius: 50%;
@@ -147,6 +149,15 @@
 .player-cover:hover {
   border-color: var(--player-cover-border-color-hover);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.player-cover.player-cover-static {
+  cursor: default;
+}
+
+.player-cover.player-cover-static:hover {
+  border-color: var(--player-cover-border-color);
+  box-shadow: none;
 }
 
 .player-cover:focus-visible {
@@ -882,9 +893,6 @@
   .playlist {
     max-height: 280px;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
 }
 
 /* 错误提示样式 */

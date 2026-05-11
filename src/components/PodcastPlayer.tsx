@@ -86,6 +86,7 @@ function formatPlaybackRateLabel(rate: number): string {
 }
 
 export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
+  const isCoverMinimizeEnabled = false;
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMinimized, setIsMinimized] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -1538,17 +1539,18 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
           <div className="podcast-player-mini">
           {/* 封面图 - 点击切换最大化/最小化 */}
           <div
-            className="player-cover"
-            onClick={toggleMinimize}
+            className={`player-cover ${isCoverMinimizeEnabled ? '' : 'player-cover-static'}`}
+            onClick={isCoverMinimizeEnabled ? toggleMinimize : undefined}
             onKeyDown={(event) => {
+              if (!isCoverMinimizeEnabled) return;
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
                 toggleMinimize();
               }
             }}
-            role="button"
-            tabIndex={0}
-            aria-label={coverExpandLabel}
+            role={isCoverMinimizeEnabled ? 'button' : undefined}
+            tabIndex={isCoverMinimizeEnabled ? 0 : undefined}
+            aria-label={isCoverMinimizeEnabled ? coverExpandLabel : undefined}
           >
             <img
               ref={coverImageRef}
