@@ -12,50 +12,88 @@
   position: relative;
   pointer-events: auto;
   background: var(--color-bg-secondary);
-  border-top: 1px solid var(--color-border);
+  border: 1px solid var(--color-border);
+  border-radius: var(--player-bar-radius);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --player-pad-y: var(--floating-chrome-inset-y);
-  --player-pad-x: var(--floating-chrome-inset-x);
-  --player-cover-size: var(--floating-chrome-size);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transition:
+    background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    backdrop-filter 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    -webkit-backdrop-filter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --player-pad-y: 0px;
+  --player-pad-x: 0px;
+  --player-cover-size: 38px;
+  --player-control-size: 38px;
+  --player-bar-inset-x: 4px;
+  --player-bar-inset-y: 2px;
+  --player-floating-inset-x: 20px;
+  --player-floating-inset-y: 16px;
+  --player-row-height: calc(var(--player-cover-size) + 4px);
+  --player-bar-radius: calc((var(--player-row-height) + (var(--player-bar-inset-y) * 2) + 2px) / 2);
+  --player-width-ratio: 10.85;
+  --player-max-width: calc(var(--player-row-height) * var(--player-width-ratio));
+  --player-cover-gap: 12px;
+  --player-title-font-size: 0.8125rem;
+  --player-minimized-right: var(--player-floating-inset-x);
+  --player-minimized-bottom: var(--player-floating-inset-y);
+  --player-minimized-shell-size: calc(var(--player-cover-size) + (var(--player-bar-inset-x) * 2) + 2px);
   --player-cover-border-color: light-dark(rgba(0, 0, 0, 0.28), rgba(255, 255, 255, 0.38));
   --player-cover-border-color-hover: light-dark(rgba(0, 0, 0, 0.42), rgba(255, 255, 255, 0.56));
   --player-buffer-ring-color: light-dark(rgba(0, 0, 0, 0.68), rgba(255, 255, 255, 0.82));
   --player-buffer-glow-color: light-dark(rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.2));
 }
 
+.podcast-player:not(.minimized) {
+  position: fixed;
+  left: auto;
+  right: var(--player-floating-inset-x);
+  bottom: var(--player-floating-inset-y);
+  transform: none;
+  width: min(var(--player-max-width), calc(100vw - (var(--player-floating-inset-x) * 2)));
+  max-width: calc(100vw - (var(--player-floating-inset-x) * 2));
+}
+
 /* 最小化状态 - 右下角圆圈，位置与展开时对齐 */
 .podcast-player.minimized {
   position: fixed;
-  bottom: var(--player-pad-y);
-  /* 与展开时的 padding-right (20px) 对齐，封面宽度 40px，容器 40px */
-  right: var(--player-pad-x);
-  width: var(--player-cover-size);
-  height: var(--player-cover-size);
+  bottom: var(--player-minimized-bottom);
+  right: var(--player-minimized-right);
+  width: var(--player-minimized-shell-size);
+  height: var(--player-minimized-shell-size);
   border-radius: 50%;
-  border: none;
+  border: 1px solid var(--color-border);
   padding: 0;
-  /* 清除父级的样式，使用柔和的阴影 */
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15) !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  background: var(--color-bg-secondary);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  overflow: hidden;
 }
 
 .podcast-player.minimized .podcast-player-mini {
-  padding: 0;
+  padding: var(--player-bar-inset-y) var(--player-bar-inset-x);
   gap: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .podcast-player.minimized .player-cover {
   width: var(--player-cover-size);
   height: var(--player-cover-size);
-  /* 最小化时移除所有阴影和效果 */
+  position: relative;
+  order: 0;
   box-shadow: none !important;
   transform: none !important;
 }
@@ -93,6 +131,7 @@
 .player-cover {
   width: var(--player-cover-size);
   height: var(--player-cover-size);
+  box-sizing: border-box;
   border-radius: 50%;
   border: 1px solid var(--player-cover-border-color);
   background: var(--color-bg-secondary);
@@ -101,13 +140,11 @@
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   position: relative;
-  /* 使用 order 将封面移到最右边 */
   order: 999;
   z-index: 3;
 }
 
 .player-cover:hover {
-  transform: scale(1.05);
   border-color: var(--player-cover-border-color-hover);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
@@ -233,6 +270,11 @@
   opacity: 1;
 }
 
+.podcast-player.expanded {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
 /* 移除统一进度条层，改用列表项进度条 */
 
 /* 迷你播放器 */
@@ -240,10 +282,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--player-pad-y) var(--player-pad-x);
-  gap: 16px;
+  padding: var(--player-bar-inset-y) var(--player-bar-inset-x);
+  gap: 12px;
   position: relative;
   z-index: 2;
+  overflow: hidden;
+  border-radius: inherit;
+  min-height: calc(var(--player-row-height) + (var(--player-bar-inset-y) * 2));
 }
 
 /* 恢复主播放器进度条（使用 --progress-percent） */
@@ -260,6 +305,10 @@
   opacity: 0.6;
   pointer-events: none;
   z-index: 0;
+  border-top-left-radius: inherit;
+  border-bottom-left-radius: inherit;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 /* 进度条包装器（包含标题、进度条、时间） */
@@ -268,7 +317,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
   pointer-events: none;
 }
 
@@ -277,8 +326,8 @@
   position: relative;
   z-index: 3;
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: var(--player-control-size);
+  height: var(--player-control-size);
   border-radius: 50%;
   border: none;
   background: var(--color-text-primary);
@@ -293,7 +342,6 @@
 }
 
 .play-btn:hover {
-  transform: scale(1.05);
   background: var(--color-text-primary);
   color: var(--color-bg-primary);
   opacity: 1;
@@ -328,10 +376,10 @@
 /* 音频信息 */
 .track-info {
   cursor: default;
-  padding: 2px 4px;
+  padding: 0 4px 0 0;
   border-radius: var(--border-radius);
   transition: background-color 0.2s ease;
-  margin-bottom: 2px;
+  margin-bottom: 0;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -344,7 +392,7 @@
 
 .track-title {
   display: block;
-  font-size: var(--font-size-small);
+  font-size: var(--player-title-font-size);
   font-weight: 500;
   color: var(--color-text-primary);
   white-space: nowrap;
@@ -356,41 +404,10 @@
 }
 
 .track-title-text {
-  display: inline-block;
-  will-change: transform;
-}
-
-.track-title-text.static {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.track-title-marquee {
-  display: inline-flex;
-  align-items: baseline;
-  white-space: nowrap;
-  width: max-content;
-  will-change: transform;
-}
-
-.track-title-gap {
-  flex: 0 0 var(--scroll-gap, 28px);
-  width: var(--scroll-gap, 28px);
-}
-
-@keyframes track-title-marquee {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(calc(-1 * (var(--scroll-distance, 0px) + var(--scroll-gap, 28px))));
-  }
-}
-
-.track-title-marquee.scrolling {
-  animation: track-title-marquee var(--scroll-duration, 12s) linear infinite;
 }
 
 .track-time {
@@ -436,8 +453,8 @@
 
 /* 倍速按钮 */
 .rate-btn {
-  width: 40px;
-  height: 40px;
+  width: var(--player-control-size);
+  height: var(--player-control-size);
   padding: 0;
   display: inline-flex;
   align-items: center;
@@ -466,8 +483,8 @@
 /* 展开/关闭按钮 */
 .expand-btn,
 .close-btn {
-  width: 40px;
-  height: 40px;
+  width: var(--player-control-size);
+  height: var(--player-control-size);
   border: none;
   background: transparent;
   color: var(--color-text-muted);
@@ -503,7 +520,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  cursor: pointer;
+  cursor: grab;
   z-index: 2;
 }
 
@@ -520,7 +537,7 @@
   -webkit-appearance: none;
   appearance: none;
   border: none;
-  cursor: pointer;
+  cursor: grab;
 }
 
 .progress-bar::-webkit-slider-thumb {
@@ -564,10 +581,12 @@
   right: 0;
   top: 0;
   bottom: 0;
+  cursor: grabbing;
 }
 
 .podcast-player.scrubbing .progress-bar {
   height: 100%;
+  cursor: grabbing;
 }
 
 /* 缓冲状态脉动动画 */
@@ -589,19 +608,20 @@
 /* 播放列表 */
 .playlist {
   position: absolute;
-  bottom: 100%;
-  left: 0;
-  right: 0;
+  bottom: calc(100% - 1px);
+  left: -1px;
+  right: -1px;
   /* 固定高度：约5个列表项的高度 (每个约50px + padding) */
   max-height: 320px;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
-  padding: 16px 20px;
+  padding: 10px 20px 6px;
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-bottom: none;
+  border-radius: var(--player-bar-radius) var(--player-bar-radius) 0 0;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
   transform: translateY(100%);
   opacity: 0;
@@ -639,7 +659,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 12px 0;
+  min-height: var(--player-row-height);
+  padding: 0 0 6px;
   font-size: var(--font-size-small);
   font-weight: 500;
   color: var(--color-text-muted);
@@ -667,7 +688,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 20px;
+  min-height: var(--player-row-height);
+  padding: 0 20px;
   border-bottom: 1px solid var(--color-border);
   transition: background-color 0.2s ease;
   overflow: hidden;
@@ -708,8 +730,8 @@
 
 .item-play-btn {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  width: var(--player-control-size);
+  height: var(--player-control-size);
   border: none;
   background: transparent;
   color: var(--color-text-muted);
@@ -736,7 +758,7 @@
 
 .item-title {
   flex: 1;
-  font-size: var(--font-size-small);
+  font-size: var(--player-title-font-size);
   color: var(--color-text-primary);
   text-decoration: none;
   border-bottom: none;
@@ -758,16 +780,16 @@
 }
 
 /* 移动端适配 */
-@media (max-width: 689px) {
+@media (max-width: 768px) {
   .podcast-player {
-    --player-pad-y: 12px;
-    --player-pad-x: 18px;
-    --player-cover-size: 36px;
+    --player-floating-inset-x: 16px;
+    --player-floating-inset-y: 14px;
   }
 
-  .podcast-player-mini {
-    padding: var(--player-pad-y) var(--player-pad-x);
-    gap: 8px;
+  .podcast-player:not(.minimized) {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
   }
 
   /* 统一进度条在移动端的高度调整 */
@@ -775,29 +797,15 @@
     height: 64px; /* 移动端主播放器高度 */
   }
 
-  .play-btn {
-    width: 36px;
-    height: 36px;
-  }
-
   .track-title {
-    font-size: 0.9rem;
     flex: 1 1 auto;
     min-width: 0;
   }
 
   .rate-btn {
-    width: 36px;
-    height: 36px;
     font-size: 0.55rem;
     line-height: 1;
     padding: 0;
-  }
-
-  .expand-btn,
-  .close-btn {
-    width: 36px;
-    height: 36px;
   }
 
   .track-info {
@@ -873,26 +881,10 @@
 
   .playlist {
     max-height: 280px;
-    padding: 12px 16px;
-  }
-
-  .playlist-item {
-    padding: 10px 16px;
-    margin-left: -16px;
-    margin-right: -16px;
-  }
-
-  /* 移动端列表项进度条 */
-  .playlist-item::before {
-    right: -6px;
-    width: calc(min(100, var(--progress-percent, 0)) / 100 * (100% + 6px));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .track-title-marquee.scrolling {
-    animation: none;
-  }
 }
 
 /* 错误提示样式 */

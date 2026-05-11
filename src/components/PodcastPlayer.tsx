@@ -94,15 +94,12 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     return false;
   });
   const [hasEnded, setHasEnded] = useState(false);
-  const [titleScroll, setTitleScroll] = useState({ enabled: false, distance: 0, duration: 0 });
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [pageLang, setPageLang] = useState<PodcastEpisode['lang']>(() => getPageLang());
 
   // Refs for scrolling to current episode
   const playlistContainerRef = useRef<HTMLUListElement>(null);
   const currentEpisodeRef = useRef<HTMLLIElement>(null);
-  const titleWrapRef = useRef<HTMLSpanElement>(null);
-  const titleTextRef = useRef<HTMLSpanElement>(null);
   const progressWrapperRef = useRef<HTMLDivElement>(null);
   const playerRootRef = useRef<HTMLDivElement>(null);
   const playlistPanelRef = useRef<HTMLDivElement>(null);
@@ -203,34 +200,6 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   const scrubMovedRef = useRef(false);
   const playlistTouchStartYRef = useRef<number | null>(null);
 
-  const updateTitleScroll = useCallback(() => {
-    const wrap = titleWrapRef.current;
-    const text = titleTextRef.current;
-    if (!wrap || !text) return;
-    const wrapWidth = wrap.clientWidth;
-    const textWidth = text.scrollWidth;
-    if (!wrapWidth || !textWidth) {
-      setTitleScroll((prev) =>
-        prev.enabled ? { enabled: false, distance: 0, duration: 0 } : prev
-      );
-      return;
-    }
-    const overflow = Math.ceil(textWidth - wrapWidth);
-    if (overflow > 8) {
-      // 使用文本全宽作为滚动距离，配合克隆文本实现无缝循环。
-      const distance = Math.ceil(textWidth);
-      const duration = Math.min(36, Math.max(10, distance / 14));
-      setTitleScroll((prev) => {
-        if (prev.enabled && prev.distance === distance && prev.duration === duration) return prev;
-        return { enabled: true, distance, duration };
-      });
-      return;
-    }
-    setTitleScroll((prev) =>
-      prev.enabled ? { enabled: false, distance: 0, duration: 0 } : prev
-    );
-  }, []);
-
   const syncCoverRotation = useCallback(() => {
     const img = coverImageRef.current;
     const root = playerRootRef.current;
@@ -255,31 +224,8 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const rafId = window.requestAnimationFrame(updateTitleScroll);
-    return () => window.cancelAnimationFrame(rafId);
-  }, [updateTitleScroll, currentEpisode?.title, isBuffering, isExpanded, isMinimized]);
-
-  useEffect(() => {
     setPlayerMinimized(isMinimized);
   }, [isMinimized]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const handleResize = () => updateTitleScroll();
-    window.addEventListener('resize', handleResize);
-    let observer: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== 'undefined') {
-      observer = new ResizeObserver(handleResize);
-      if (titleWrapRef.current) {
-        observer.observe(titleWrapRef.current);
-      }
-    }
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      observer?.disconnect();
-    };
-  }, [updateTitleScroll]);
   const lastSavedTimeRef = useRef<number>(-5);
 
   const syncMediaSessionPosition = useCallback(
@@ -1356,6 +1302,9 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   const handleProgressStart = useCallback((event: ScrubStartEvent) => {
     if (isMinimized) return;
     if (scrubTrackingRef.current) return;
+    if (isExpanded) {
+      setIsExpanded(false);
+    }
     if ('touches' in event) {
       if (event.cancelable) event.preventDefault();
     }
@@ -1381,7 +1330,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     window.addEventListener('touchend', endScrub);
     window.addEventListener('touchcancel', endScrub);
     window.addEventListener('touchmove', handleScrubMove as any, { passive: false });
-  }, [endScrub, handleScrubMove, isMinimized]);
+  }, [endScrub, handleScrubMove, isExpanded, isMinimized]);
   
   const togglePlaybackRate = useCallback(() => {
     const rates = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -1630,26 +1579,8 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
 
           <div className="progress-wrapper" ref={progressWrapperRef}>
             <div className="track-info">
-              <span
-                className="track-title"
-                ref={titleWrapRef}
-                style={
-                  {
-                    '--scroll-distance': `${titleScroll.distance}px`,
-                    '--scroll-duration': `${titleScroll.duration}s`,
-                    '--scroll-gap': '28px',
-                  } as any
-                }
-              >
-                {titleScroll.enabled ? (
-                  <span className="track-title-marquee scrolling">
-                    <span ref={titleTextRef} className="track-title-text">{titleText}</span>
-                    <span className="track-title-gap" aria-hidden="true"></span>
-                    <span className="track-title-text track-title-text-clone" aria-hidden="true">{titleText}</span>
-                  </span>
-                ) : (
-                  <span ref={titleTextRef} className="track-title-text static">{titleText}</span>
-                )}
+              <span className="track-title">
+                <span className="track-title-text">{titleText}</span>
               </span>
               <span className="track-time track-time-remaining" aria-label={remainingTimeLabel}>
                 <span className="track-time-prefix" aria-hidden="true">-</span>
