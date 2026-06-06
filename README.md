@@ -63,6 +63,7 @@ pnpm dev
 - Giscus 评论
 - Umami 统计
 - Microsoft Clarity
+- ImageKit / 图片 CDN
 
 如果这些变量留空，博客依然可以运行，只是对应功能不会启用。
 
@@ -119,6 +120,14 @@ https://cdn.example.com/podcast/my-first-note.en.m4a
 
 Umami 和 Clarity 都是可选的。
 只在对应环境变量存在时才会加载。
+
+### 图片 CDN
+
+模板默认不会强制启用 ImageKit。
+
+- 把 `PUBLIC_ENABLE_IMAGE_CDN=false` 保持为默认值时，所有图片继续走本地路径
+- 如果你要启用 ImageKit，把 `PUBLIC_ENABLE_IMAGE_CDN` 改为 `true`，再填写 `PUBLIC_IMAGEKIT_URL_ENDPOINT`
+- 即使已经填写了 `PUBLIC_IMAGEKIT_URL_ENDPOINT`，只要开关还是 `false`，模板也不会改写图片 URL
 
 ## 部署到 Vercel
 
