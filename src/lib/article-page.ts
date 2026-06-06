@@ -2,6 +2,7 @@ import { getCollection } from "astro:content";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import { getLocalizedBlogPathById } from "./post-url";
 import { extractFirstImageFromMarkdown, normalizeImagePath } from "./image-path";
+import { toCdnImageUrl } from "./image-cdn";
 import { getExplicitRelatedPosts } from "./related-posts";
 import type { CollectionEntry } from "astro:content";
 import type { SocialImageSource } from "./social-image";
@@ -130,10 +131,11 @@ export async function buildRelatedPosts(
 }
 
 export function getPostCover(entry: BlogEntry): string {
-  if (entry.data.images?.length) {
-    return normalizeImagePath(entry.data.images[0]) || siteConfig.images.defaultOg;
-  }
-  return extractFirstImageFromMarkdown(entry.body ?? "") || siteConfig.images.defaultOg;
+  const rawCover = entry.data.images?.length
+    ? normalizeImagePath(entry.data.images[0])
+    : extractFirstImageFromMarkdown(entry.body ?? "");
+  const fallbackCover = toCdnImageUrl(siteConfig.images.defaultOg) || siteConfig.images.defaultOg;
+  return toCdnImageUrl(rawCover) || rawCover || fallbackCover;
 }
 
 export function resolveSocialImage(

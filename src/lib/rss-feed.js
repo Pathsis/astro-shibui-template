@@ -88,7 +88,7 @@ export function buildSiteRss({ posts, lang, title, description, context, feedPat
       `<webMaster>${branding.rss.webMaster}</webMaster>`,
       `<ttl>60</ttl>`,
       `<generator>Astro</generator>`,
-      `<copyright>Copyright ${new Date().getFullYear()} ${branding.title}</copyright>`,
+      `<copyright>Copyright ${new Date().getFullYear()} ${title}</copyright>`,
     );
   }
 

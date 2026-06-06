@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "preact/hooks";
 import { liteClient } from "algoliasearch/lite";
-import { navigate } from "astro:transitions/client";
+import { performImmediateNavigation } from "../client/runtime-navigation.js";
 
 interface Props {
   lang: "zh-cn" | "en";
@@ -62,16 +62,7 @@ export default function SearchWidget({ lang, appId, searchKey, indexName }: Prop
   const restoreScrollTopRef = useRef<number | null>(null);
   const latestSearchRequestRef = useRef(0);
   const navigateToSearchResult = useCallback((url: string) => {
-    try {
-      const resolved = new URL(url, window.location.href);
-      if (resolved.origin === window.location.origin && typeof navigate === "function") {
-        navigate(`${resolved.pathname}${resolved.search}${resolved.hash}`);
-        return;
-      }
-      window.location.href = resolved.href;
-    } catch {
-      window.location.href = url;
-    }
+    performImmediateNavigation(url);
   }, []);
 
   const detectShortcutPrimaryKey = useCallback(() => {

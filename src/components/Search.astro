@@ -16,7 +16,7 @@ const unavailablePlaceholder = lang === "en" ? "Search is not configured" : "搜
 
 {hasSearchConfig ? (
   <SearchWidget
-    client:load
+    client:idle
     lang={lang}
     appId={ALGOLIA_APP_ID}
     searchKey={ALGOLIA_SEARCH_KEY}

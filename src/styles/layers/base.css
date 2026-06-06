@@ -180,6 +180,37 @@ a {
   color: var(--color-text-primary);
 }
 
+a[data-nav-pending="true"] {
+  color: transparent;
+  background-image: linear-gradient(
+    90deg,
+    var(--color-nav-pending-base) 0%,
+    var(--color-nav-pending-highlight) 25%,
+    var(--color-nav-pending-base) 50%,
+    var(--color-nav-pending-highlight) 75%,
+    var(--color-nav-pending-base) 100%
+  );
+  background-size: 200% 100%;
+  background-position: 200% 0;
+  background-repeat: repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  animation: nav-link-text-sheen 2.5s linear infinite;
+}
+
+@keyframes nav-link-text-sheen {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 /* 纯图标链接（如 GitHub、RSS 等）不显示下划线 */
 a.icon-link,
 a.icon-link:hover,

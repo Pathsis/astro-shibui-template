@@ -1,3 +1,14 @@
+const scheduleNonCriticalTask = function(task) {
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    window.requestIdleCallback(function() {
+      task();
+    }, { timeout: 2000 });
+    return;
+  }
+
+  window.setTimeout(task, 1200);
+};
+
 export const installUmamiAnalytics = function(runtime, config) {
   if (runtime.flags.umamiAnalyticsInstalled) return;
   runtime.flags.umamiAnalyticsInstalled = true;
@@ -7,11 +18,14 @@ export const installUmamiAnalytics = function(runtime, config) {
     return;
   }
 
-  const script = document.createElement('script');
-  script.defer = true;
-  script.src = config.umamiScriptSrc;
-  script.setAttribute('data-website-id', config.umamiWebsiteId);
-  document.head.appendChild(script);
+  scheduleNonCriticalTask(function() {
+    if (document.querySelector(`script[src="${config.umamiScriptSrc}"]`)) return;
+    const script = document.createElement('script');
+    script.defer = true;
+    script.src = config.umamiScriptSrc;
+    script.setAttribute('data-website-id', config.umamiWebsiteId);
+    document.head.appendChild(script);
+  });
 };
 
 export const installClarityAnalytics = function(runtime, config) {
@@ -27,8 +41,12 @@ export const installClarityAnalytics = function(runtime, config) {
     (window.clarity.q = window.clarity.q || []).push(arguments);
   };
 
-  const script = document.createElement('script');
-  script.async = true;
-  script.src = 'https://www.clarity.ms/tag/' + config.clarityProjectId;
-  document.head.appendChild(script);
+  scheduleNonCriticalTask(function() {
+    const src = 'https://www.clarity.ms/tag/' + config.clarityProjectId;
+    if (document.querySelector(`script[src="${src}"]`)) return;
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = src;
+    document.head.appendChild(script);
+  });
 };

@@ -85,6 +85,13 @@ figure.mermaid-figure.align-center {
 }
 
 /* ===== 确保 figure 内的图片正确显示 ===== */
+
+/* <picture> 是行内元素，需设为 block 以免破坏浮动布局 */
+figure picture {
+  display: block;
+  width: 100%;
+}
+
 figure img {
   display: block;
   width: 100%;

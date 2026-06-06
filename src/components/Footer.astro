@@ -17,6 +17,8 @@ const leftMeta = currentLang === "en"
   : `${numberFmt.format(postCount)} 篇文章 · ${numberFmt.format(totalWords)} 字 · 自 ${firstYear} 年`;
 const homeUrl = getRelativeLocaleUrl(currentLang, "/");
 const homeTopUrl = `${homeUrl}#top`;
+const siteTitle = currentLang === "en" ? siteConfig.titleEn : siteConfig.title;
+const copyrightSeparator = currentLang === "en" ? ". " : "。";
 const copyrightText = currentLang === "en"
   ? "All rights reserved."
   : "保留所有权利。";
@@ -32,7 +34,7 @@ const templateRepoUrl = siteConfig.branding.templateRepoUrl;
   <div class="gh-foot-inner">
     <div class="gh-foot-meta">
       <span class="gh-foot-copy">
-        &copy; <a href={homeTopUrl} class="js-home-link">{siteConfig.title}</a>. {copyrightText}
+        &copy; <a href={homeTopUrl} class="js-home-link">{siteTitle}</a>{copyrightSeparator}{copyrightText}
       </span>
       <span class="gh-foot-stats">{leftMeta}</span>
     </div>

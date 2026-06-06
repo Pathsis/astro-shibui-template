@@ -52,6 +52,14 @@ const hasGiscusConfig = Boolean(
       (() => {
         if (typeof window === "undefined") return;
 
+        const schedule = (task) => {
+          if ("requestIdleCallback" in window) {
+            window.requestIdleCallback(() => task(), { timeout: 2500 });
+            return;
+          }
+          window.setTimeout(task, 1200);
+        };
+
         const initGiscus = () => {
           const container = document.querySelector(".giscus-container");
           if (!(container instanceof HTMLElement)) return;
@@ -113,15 +121,41 @@ const hasGiscusConfig = Boolean(
           container.appendChild(script);
         };
 
+        const observeGiscus = () => {
+          const container = document.querySelector(".giscus-container");
+          if (!(container instanceof HTMLElement)) return;
+
+          if (container.dataset.giscusObserved === "1") return;
+          container.dataset.giscusObserved = "1";
+
+          const start = () => schedule(initGiscus);
+
+          if (!("IntersectionObserver" in window)) {
+            start();
+            return;
+          }
+
+          const observer = new IntersectionObserver((entries) => {
+            const visible = entries.some((entry) => entry.isIntersecting);
+            if (!visible) return;
+            observer.disconnect();
+            start();
+          }, {
+            rootMargin: "800px 0px",
+          });
+
+          observer.observe(container);
+        };
+
         if (!window.__pathosGiscusComponentBound) {
           window.__pathosGiscusComponentBound = true;
-          document.addEventListener("astro:page-load", initGiscus);
+          document.addEventListener("astro:page-load", observeGiscus);
         }
 
         if (document.readyState === "loading") {
-          document.addEventListener("DOMContentLoaded", initGiscus, { once: true });
+          document.addEventListener("DOMContentLoaded", observeGiscus, { once: true });
         } else {
-          initGiscus();
+          observeGiscus();
         }
       })();
     </script>

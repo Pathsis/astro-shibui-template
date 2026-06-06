@@ -7,3 +7,4 @@ node_modules/
 .DS_Store
 public/generated/social/
 public/generated/media/
+public/generated/img/

@@ -220,9 +220,42 @@
   color: var(--color-text-muted);
 }
 
+.home-loadmore[data-loading="true"] {
+  cursor: progress;
+  color: var(--color-text-primary);
+  border-color: color-mix(in srgb, var(--color-text-primary) 28%, var(--color-border) 72%);
+  background: color-mix(in srgb, var(--color-bg-secondary) 74%, var(--color-bg-tertiary) 26%);
+}
+
+.home-loadmore[data-loading="true"]::after {
+  content: "...";
+  display: inline-block;
+  width: 0;
+  margin-left: 0.1em;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  animation: loadmore-ellipsis 1.1s steps(4, end) infinite;
+}
+
 .home-loadmore:disabled:hover {
   border-color: var(--color-text-muted);
   background: var(--color-bg-primary);
+}
+
+.home-loadmore[data-loading="true"]:disabled:hover {
+  border-color: color-mix(in srgb, var(--color-text-primary) 28%, var(--color-border) 72%);
+  background: color-mix(in srgb, var(--color-bg-secondary) 74%, var(--color-bg-tertiary) 26%);
+}
+
+@keyframes loadmore-ellipsis {
+  0% {
+    width: 0;
+  }
+
+  100% {
+    width: 3ch;
+  }
 }
 
 .featured-page-header {

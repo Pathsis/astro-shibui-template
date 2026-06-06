@@ -3,6 +3,7 @@ import { ensurePathosRuntime } from './runtime-core.js';
 export const registerPaginationRuntime = function(runtimeInput) {
   // 主存储键：挂在 history.state 上，与当前 history entry 绑定
   const PAGINATION_KEY = 'pathosPagination';
+  const NAV_PENDING_LINK_ATTR = 'data-nav-pending';
 
   // iOS Chrome 的全站 SPA/MPA 降级开关由 main.js 维护
   // (IS_IOS_CHROME_SHELL / syncIosShellSpaGuard)；这里仅在 loadmore
@@ -70,6 +71,21 @@ export const registerPaginationRuntime = function(runtimeInput) {
     return `${FALLBACK_PREFIX}${getLang()}:${normalizePathname(path || getCurrentPaginationPath())}`;
   }
 
+  function createSanitizedFeedHtml(feed) {
+    if (!(feed instanceof Element)) return '';
+
+    const clone = feed.cloneNode(true);
+    if (!(clone instanceof Element)) {
+      return feed.innerHTML;
+    }
+
+    clone.querySelectorAll(`[${NAV_PENDING_LINK_ATTR}]`).forEach(function(node) {
+      node.removeAttribute(NAV_PENDING_LINK_ATTR);
+    });
+
+    return clone.innerHTML;
+  }
+
   function completeLoadMoreButton(button) {
     if (!button) return;
     const completeText = button.getAttribute('data-complete-text');
@@ -82,7 +98,27 @@ export const registerPaginationRuntime = function(runtimeInput) {
     button.disabled = true;
     button.setAttribute('aria-disabled', 'true');
     button.removeAttribute('aria-busy');
+    button.removeAttribute('data-loading');
     button.removeAttribute('data-next-url');
+  }
+
+  function setLoadMoreButtonLoading(button, isLoading) {
+    if (!button) return;
+    const idleText = button.getAttribute('data-idle-text');
+    const loadingText = button.getAttribute('data-loading-text') || idleText || '';
+
+    if (isLoading) {
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      button.setAttribute('data-loading', 'true');
+      if (loadingText) button.textContent = loadingText;
+      return;
+    }
+
+    button.disabled = false;
+    button.removeAttribute('aria-busy');
+    button.removeAttribute('data-loading');
+    if (idleText) button.textContent = idleText;
   }
 
   // ---------- history.state 读写 ----------
@@ -139,7 +175,7 @@ export const registerPaginationRuntime = function(runtimeInput) {
 
     return {
       itemCount: feed.children.length,
-      html: feed.innerHTML,
+      html: createSanitizedFeedHtml(feed),
       signature: feed.getAttribute('data-pagination-signature') || '',
       version: feed.getAttribute('data-pagination-version') || '',
       path: getCurrentPaginationPath(),
@@ -298,11 +334,13 @@ export const registerPaginationRuntime = function(runtimeInput) {
       if (!nextLink || isLoading) return;
       isLoading = true;
       if (loadMoreBtn) {
-        loadMoreBtn.disabled = true;
-        loadMoreBtn.setAttribute('aria-busy', 'true');
+        setLoadMoreButtonLoading(loadMoreBtn, true);
       }
       try {
         const response = await fetch(nextLink.href);
+        if (!response.ok) {
+          throw new Error(`Load more request failed: ${response.status} ${response.statusText}`);
+        }
         const html = await response.text();
         const doc = new DOMParser().parseFromString(html, 'text/html');
         const items = doc.querySelectorAll('.shibui-feed > *');
@@ -331,12 +369,13 @@ export const registerPaginationRuntime = function(runtimeInput) {
         syncIosShellSpaGuard();
       } catch (err) {
         console.error('Load more failed:', err);
-        if (loadMoreBtn) loadMoreBtn.remove();
+        if (loadMoreBtn) {
+          setLoadMoreButtonLoading(loadMoreBtn, false);
+        }
       } finally {
         isLoading = false;
         if (loadMoreBtn && nextLink) {
-          loadMoreBtn.disabled = false;
-          loadMoreBtn.removeAttribute('aria-busy');
+          setLoadMoreButtonLoading(loadMoreBtn, false);
         }
       }
     };

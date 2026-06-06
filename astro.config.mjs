@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig, fontProviders } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
 import { fileURLToPath } from "node:url";
 import preact from "@astrojs/preact";
 import sitemap from "@astrojs/sitemap";
@@ -7,9 +8,12 @@ import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import remarkImageCdn from "./src/lib/remark-image-cdn";
 import rehypeImageFigure from "./src/lib/rehype-image-figure";
 import rehypeImageAlignment from "./src/lib/rehype-image-alignment";
+import rehypeImageOptimize from "./src/lib/rehype-image-optimize";
 import rehypeExternalLinks from "./src/lib/rehype-external-links";
+import rehypeInternalReloadLinks from "./src/lib/rehype-internal-reload-links";
 import rehypeLocalizeFootnotes from "./src/lib/rehype-localize-footnotes";
 import { siteConfig } from "./site.config.js";
 
@@ -38,6 +42,7 @@ const fonts = enableGoogleFonts
 export default defineConfig({
   site: siteConfig.siteUrl,
   compressHTML: true,
+  prefetch: false,
   vite: {
     resolve: {
       alias: {
@@ -74,18 +79,22 @@ export default defineConfig({
   },
   markdown: {
     syntaxHighlight: false,
-    remarkPlugins: [remarkMath],
-    rehypePlugins: [
-      rehypeSlug,
-      [rehypeAutolinkHeadings, {
-        behavior: "wrap",
-        properties: { class: "heading-anchor" },
-      }],
-      rehypeLocalizeFootnotes,
-      rehypeImageFigure,
-      rehypeImageAlignment,
-      [rehypeExternalLinks, { site: siteConfig.siteUrl }],
-      rehypeKatexPlugin,
-    ],
+    processor: unified({
+      remarkPlugins: [remarkImageCdn, remarkMath],
+      rehypePlugins: [
+        rehypeSlug,
+        [rehypeAutolinkHeadings, {
+          behavior: "wrap",
+          properties: { class: "heading-anchor" },
+        }],
+        rehypeLocalizeFootnotes,
+        rehypeImageFigure,
+        rehypeImageAlignment,
+        rehypeImageOptimize,
+        [rehypeInternalReloadLinks, { site: siteConfig.siteUrl }],
+        [rehypeExternalLinks, { site: siteConfig.siteUrl }],
+        rehypeKatexPlugin,
+      ],
+    }),
   },
 });

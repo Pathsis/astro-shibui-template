@@ -11,7 +11,7 @@ export async function GET(context) {
   return buildSiteRss({
     posts: recentPosts,
     lang: 'en',
-    title: siteConfig.title,
+    title: siteConfig.titleEn,
     description: siteConfig.descriptions.en,
     context,
     feedPath: '/en/feed.xml',

@@ -11,6 +11,8 @@ import SingleColumnLayout from "../layouts/SingleColumnLayout.astro";
 import FeaturedCardWall from "./FeaturedCardWall.astro";
 import { extractFirstParagraph, truncateChars } from "../lib/excerpt";
 import { extractFirstImageFromMarkdown, normalizeImagePath } from "../lib/image-path";
+import { toCdnImageUrl } from "../lib/image-cdn";
+import { resolveImageMetadata } from "../lib/image-optimize";
 import { getLocalizedBlogPathById } from "../lib/post-url";
 import { getPodcastEpisodeSlug, getPodcastUrl } from "../lib/podcast";
 import { getFeaturedCardClass } from "../lib/featured-card-layout";
@@ -30,6 +32,7 @@ const pageTitle = isEn ? "Selected Articles" : "精选文章";
 const pageDescription = isEn ? "Selected articles" : "精选阅读文章列表";
 const podcastHint = isEn ? " (Podcast available)" : "（可收听播客）";
 const loadMoreText = isEn ? "Load More" : "加载更多";
+const loadingText = isEn ? "Loading" : "加载中";
 const completeText = isEn ? "All loaded" : "已全部加载";
 const headerIntro = isEn
   ? "A curated list of articles I especially want readers to continue with, including long-form pieces with podcast versions."
@@ -48,8 +51,11 @@ const feedItems = await Promise.all(page.data.map(async (post, index) => {
     extractFirstParagraph(post.body ?? "") || (post.data.description ?? ""),
     excerptLen
   );
-  const coverImage = normalizeImagePath(post.data.images?.[0])
+  const rawCoverImage = normalizeImagePath(post.data.images?.[0])
     ?? extractFirstImageFromMarkdown(post.body ?? "");
+
+  const imageMeta = rawCoverImage ? await resolveImageMetadata(rawCoverImage) : null;
+  const coverImage = rawCoverImage ? toCdnImageUrl(rawCoverImage) : rawCoverImage;
 
   return {
     href: getRelativeLocaleUrl(lang, postPath),
@@ -57,7 +63,9 @@ const feedItems = await Promise.all(page.data.map(async (post, index) => {
     date: post.data.date,
     excerpt,
     coverImage,
-    cardClass: await getFeaturedCardClass(coverImage, index),
+    imgWidth: imageMeta?.width,
+    imgHeight: imageMeta?.height,
+    cardClass: await getFeaturedCardClass(rawCoverImage, index),
     episode: post.data.podcast ? {
       slug: getPodcastEpisodeSlug(post.id, lang),
       title: post.data.title,
@@ -96,6 +104,7 @@ const feedItems = await Promise.all(page.data.map(async (post, index) => {
     paginationKey={page.url.current}
     nextUrl={page.url.next}
     loadMoreText={loadMoreText}
+    loadingText={loadingText}
     completeText={completeText}
     podcastHint={podcastHint}
   />

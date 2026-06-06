@@ -2,7 +2,7 @@ import { getCollection } from "astro:content";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import { getLocalizedBlogPathById } from "./post-url";
 import { normalizeImagePath } from "./image-path";
-import { resolveMediaArtwork, resolveSocialImage } from "./social-image";
+import { resolveGeneratedMediaArtwork, resolveGeneratedSocialImage } from "./social-image";
 import { siteConfig } from "@site-config";
 
 export interface PodcastEpisode {
@@ -34,30 +34,14 @@ function resolvePodcastCoverImage(rawImage: string | undefined, pageUrl: URL): s
   const normalized = normalizeImagePath(rawImage);
   if (!normalized) return undefined;
 
-  const resolved = resolveSocialImage(normalized, {
-    pageUrl,
-    source: "images",
-  });
-
-  // Keep local generated paths origin-agnostic so player works on any host/env.
-  const parsed = new URL(resolved);
-  if (parsed.origin === PODCAST_IMAGE_CANONICAL.origin) {
-    return `${parsed.pathname}${parsed.search}`;
-  }
-  return resolved;
+  return resolveGeneratedSocialImage(normalized, { pageUrl });
 }
 
 function resolvePodcastMediaArtwork(rawImage: string | undefined, pageUrl: URL): string | undefined {
   const normalized = normalizeImagePath(rawImage);
   if (!normalized) return undefined;
 
-  const resolved = resolveMediaArtwork(normalized, { pageUrl });
-
-  const parsed = new URL(resolved);
-  if (parsed.origin === PODCAST_IMAGE_CANONICAL.origin) {
-    return `${parsed.pathname}${parsed.search}`;
-  }
-  return resolved;
+  return resolveGeneratedMediaArtwork(normalized, { pageUrl });
 }
 
 function getPodcastAudioKey(slug: string, lang: "zh-cn" | "en"): string {

@@ -8,6 +8,8 @@ import {
   saveCurrentEpisode,
   getSavedEpisode,
   getPlaybackRateForLang,
+  getPlayerMinimized,
+  setPlayerMinimized,
   savePlaybackRateForLang,
   getPlayIntent,
   setPlayIntent,
@@ -83,8 +85,121 @@ function formatPlaybackRateLabel(rate: number): string {
   return `${trimmed}x`;
 }
 
+type ThemeColor = {
+  r: number;
+  g: number;
+  b: number;
+};
+
+function clampByte(value: number): number {
+  return Math.min(255, Math.max(0, Math.round(value)));
+}
+
+function themeColorToCss(color: ThemeColor | null): string | null {
+  if (!color) return null;
+  return `rgb(${clampByte(color.r)} ${clampByte(color.g)} ${clampByte(color.b)})`;
+}
+
+function getThemeOnPrimary(color: ThemeColor | null): string {
+  if (!color) return 'light-dark(#111111, #f7f7f8)';
+  const srgb = [color.r, color.g, color.b].map((channel) => {
+    const normalized = channel / 255;
+    return normalized <= 0.04045
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4;
+  });
+  const luminance = (0.2126 * srgb[0]) + (0.7152 * srgb[1]) + (0.0722 * srgb[2]);
+  return luminance < 0.24 ? '#f7f7f8' : '#111111';
+}
+
+function extractThemeColorFromImage(image: HTMLImageElement): ThemeColor | null {
+  if (!image.naturalWidth || !image.naturalHeight) return null;
+  const src = image.currentSrc || image.src;
+  if (!src) return null;
+
+  try {
+    const resolvedUrl = new URL(src, window.location.href);
+    const isDataOrBlob = resolvedUrl.protocol === 'data:' || resolvedUrl.protocol === 'blob:';
+    const isCrossOriginImage = !isDataOrBlob && resolvedUrl.origin !== window.location.origin;
+    if (isCrossOriginImage && image.crossOrigin !== 'anonymous') {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+
+  const size = 48;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return null;
+
+  try {
+    context.drawImage(image, 0, 0, size, size);
+    const { data } = context.getImageData(0, 0, size, size);
+    let totalR = 0;
+    let totalG = 0;
+    let totalB = 0;
+    let totalCount = 0;
+    let best: ThemeColor | null = null;
+    let bestScore = -Infinity;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const a = data[i + 3];
+      if (a < 48) continue;
+
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      totalR += r;
+      totalG += g;
+      totalB += b;
+      totalCount += 1;
+
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const chroma = max - min;
+      const lightness = (max + min) / 510;
+      const saturation = max === 0 ? 0 : chroma / max;
+      const warmth = 1 - Math.abs(lightness - 0.55);
+      const score = (chroma * 0.7) + (saturation * 120) + (warmth * 40);
+
+      if (saturation < 0.08 && chroma < 16) continue;
+      if (score > bestScore) {
+        bestScore = score;
+        best = { r, g, b };
+      }
+    }
+
+    const chosen = best ?? (totalCount > 0
+      ? {
+          r: totalR / totalCount,
+          g: totalG / totalCount,
+          b: totalB / totalCount,
+        }
+      : null);
+
+    if (!chosen) return null;
+    return {
+      r: clampByte(chosen.r),
+      g: clampByte(chosen.g),
+      b: clampByte(chosen.b),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return getPlayerMinimized();
+    }
+    return false;
+  });
   const [hasEnded, setHasEnded] = useState(false);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [pageLang, setPageLang] = useState<PodcastEpisode['lang']>(() => getPageLang());
@@ -108,7 +223,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       isPlaying: false,
       currentTime: 0,
       duration: 0,
-      playbackRate: 1,
+      playbackRate: 1.25,
       volume: 1,
     };
   });
@@ -163,6 +278,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   });
   const [isBuffering, setIsBuffering] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [scrubPreviewRatio, setScrubPreviewRatio] = useState<number | null>(null);
   const visibleEpisodes = useMemo(
     () => episodes.filter((episode) => episode.lang === pageLang),
     [episodes, pageLang]
@@ -170,6 +286,21 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   const playlistTitle = pageLang === 'en' ? 'Podcast List' : '播客列表';
   const playlistDateLocale = pageLang === 'en' ? 'en-US' : 'zh-CN';
   const activePlaybackLang = currentEpisode?.lang ?? pageLang;
+  const [coverThemeColor, setCoverThemeColor] = useState<ThemeColor | null>(null);
+  const coverThemeCacheRef = useRef<Record<string, ThemeColor>>({});
+
+  const syncCoverTheme = useCallback(() => {
+    const img = coverImageRef.current;
+    if (!currentEpisode) {
+      setCoverThemeColor(null);
+      return;
+    }
+    if (!img) return;
+    const themeColor = extractThemeColorFromImage(img);
+    if (!themeColor) return;
+    coverThemeCacheRef.current[currentEpisode.slug] = themeColor;
+    setCoverThemeColor(themeColor);
+  }, [currentEpisode]);
 
   // 跟踪是否是首次渲染，避免在页面切换时错误地暂停音频
   // 使用 sessionStorage 中的 playIntent 来判断是否应该恢复播放
@@ -214,6 +345,10 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     lastCoverRotationRef.current = angle;
     root.style.setProperty('--cover-rotation', `${angle}deg`);
   }, []);
+
+  useEffect(() => {
+    setPlayerMinimized(isMinimized);
+  }, [isMinimized]);
 
   const lastSavedTimeRef = useRef<number>(-5);
 
@@ -285,6 +420,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       const clampedTarget = Math.min(Math.max(targetTime ?? 0, 0), Math.max(duration - 0.01, 0));
       setCurrentTime(clampedTarget);
       setProgress(clampedTarget);
+      setScrubPreviewRatio(null);
       updatePlayerState({ currentTime: clampedTarget });
       if (pendingSeekRatio.current != null) {
         saveProgress(clampedTarget, duration);
@@ -451,7 +587,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
 
   useEffect(() => {
     const savedRate = getPlaybackRateForLang(activePlaybackLang);
-    const targetRate = savedRate ?? 1;
+    const targetRate = savedRate ?? 1.25;
     if (savedRate == null) {
       savePlaybackRateForLang(activePlaybackLang, targetRate);
     }
@@ -830,7 +966,23 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     root.style.setProperty('--cover-rotation', '0deg');
     lastCoverRotationRef.current = 0;
   }, [currentEpisode?.slug]);
-  
+
+  useEffect(() => {
+    if (!currentEpisode) {
+      setCoverThemeColor(null);
+      return;
+    }
+    const cachedTheme = coverThemeCacheRef.current[currentEpisode.slug];
+    if (cachedTheme) {
+      setCoverThemeColor(cachedTheme);
+    }
+  }, [currentEpisode]);
+
+  useEffect(() => {
+    if (!currentEpisode) return;
+    syncCoverTheme();
+  }, [currentEpisode?.slug, currentEpisode?.coverImage, currentEpisode?.mediaArtwork, syncCoverTheme]);
+
   useEffect(() => {
     setPlaybackRate(state.playbackRate);
   }, [state.playbackRate]);
@@ -850,31 +1002,44 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       : (src?.endsWith('.webp') ? 'image/webp' : (src?.endsWith('.jpg') || src?.endsWith('.jpeg') ? 'image/jpeg' : undefined));
     const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
     const isTouchMac = /Macintosh/i.test(ua) && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1;
+    const isMobile = /Android|iPad|iPhone|iPod/i.test(ua) || isTouchMac;
     const preferBannerArtwork = /Android/i.test(ua);
     const preferSquareArtwork = /iPad|iPhone|iPod/i.test(ua) || isTouchMac;
-
-    const coverType = getArtworkType(coverImage);
-    const squareType = getArtworkType(squareImage);
-    const squareArtwork = squareImage
-      ? [
-          { src: squareImage, sizes: '1024x1024', type: squareType },
-          { src: squareImage, sizes: '512x512', type: squareType },
-          { src: squareImage, sizes: '384x384', type: squareType },
-          { src: squareImage, sizes: '256x256', type: squareType },
-        ]
-      : undefined;
-    const bannerArtwork = coverImage
-      ? [
-          { src: coverImage, sizes: '1200x630', type: coverType },
-          ...(squareArtwork ?? []),
-        ]
-      : squareArtwork;
 
     setMediaSessionMetadata({
       title: currentEpisode.title,
       artist: siteConfig.branding.podcastArtist,
       album,
-      artwork: preferBannerArtwork && !preferSquareArtwork ? bannerArtwork : squareArtwork,
+      artwork: (() => {
+        if (!isMobile) return undefined;
+
+        const normalized = new Set<string>();
+        const pushArtwork = (
+          list: Array<{ src: string; sizes: string; type?: string }>,
+          src: string | undefined,
+          sizes: string
+        ) => {
+          if (!src) return;
+          const absoluteSrc = typeof window !== 'undefined' ? new URL(src, window.location.href).href : src;
+          if (normalized.has(absoluteSrc)) return;
+          normalized.add(absoluteSrc);
+          list.push({
+            src,
+            sizes,
+            type: getArtworkType(src),
+          });
+        };
+
+        const list: Array<{ src: string; sizes: string; type?: string }> = [];
+        if (preferBannerArtwork && !preferSquareArtwork) {
+          pushArtwork(list, coverImage, '1200x630');
+          pushArtwork(list, squareImage, '512x512');
+        } else {
+          pushArtwork(list, squareImage, '512x512');
+          pushArtwork(list, coverImage !== squareImage ? coverImage : undefined, '1200x630');
+        }
+        return list.length > 0 ? list : undefined;
+      })(),
     });
   }, [currentEpisode?.slug, currentEpisode?.title, currentEpisode?.coverImage, currentEpisode?.mediaArtwork, currentEpisode?.lang]);
 
@@ -1013,6 +1178,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     const time = Math.min(Math.max(rawValue, 0), safeDuration);
     pendingSeekTime.current = null;
     pendingSeekRatio.current = null;
+    setScrubPreviewRatio(null);
     setProgress(time);
     setHasEnded(false);
     const isTail = time >= Math.max(safeDuration - 1, 0);
@@ -1153,6 +1319,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     if (safeDuration > 0) {
       const time = ratio * safeDuration;
       scrubValueRef.current = time;
+      setScrubPreviewRatio(null);
       setProgress(time);
       setHasEnded(false);
       syncMediaSessionPosition(time, safeDuration);
@@ -1160,6 +1327,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       // Metadata may not be ready yet; remember ratio and apply later.
       pendingSeekRatio.current = ratio;
       scrubValueRef.current = null;
+      setScrubPreviewRatio(ratio);
     }
   }, []);
 
@@ -1209,6 +1377,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     if (!scrubbingRef.current) {
       scrubMovedRef.current = false;
       scrubValueRef.current = null;
+      setScrubPreviewRatio(null);
       return;
     }
     scrubbingRef.current = false;
@@ -1219,6 +1388,12 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
         ? duration
         : (Number.isFinite(stateRef.current.duration) ? stateRef.current.duration : 0);
       const time = Math.max(scrubValueRef.current, 0);
+      const currentAudioTime = getGlobalAudio().currentTime;
+      const currentStateTime = stateRef.current.currentTime;
+      const baseFromTime = Number.isFinite(currentAudioTime) && currentAudioTime >= 0
+        ? currentAudioTime
+        : (Number.isFinite(currentStateTime) ? currentStateTime : progress);
+      const fromTime = Math.round(baseFromTime);
       if (safeDuration > 0) {
         const clampedTime = Math.min(time, safeDuration);
         const isTail = clampedTime >= Math.max(safeDuration - 1, 0);
@@ -1240,17 +1415,24 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
           lastSavedTimeRef.current = Math.floor(clampedTime);
           syncMediaSessionPosition(clampedTime, safeDuration, { force: true });
         }
+        trackUmami('podcast-seek', {
+          source: 'scrub',
+          slug: currentEpisode?.slug ?? '',
+          from: fromTime,
+          to: Math.round(isTail ? safeDuration : clampedTime),
+        });
       }
     }
     scrubValueRef.current = null;
     scrubMovedRef.current = false;
+    setScrubPreviewRatio(null);
     if (tailSeekRef.current) {
       tailSeekRef.current = false;
     } else if (wasPlayingRef.current) {
       wasPlayingRef.current = false;
       updatePlayerState({ isPlaying: true });
     }
-  }, [handleScrubMove, syncMediaSessionPosition]);
+  }, [currentEpisode?.slug, handleScrubMove, progress, syncMediaSessionPosition]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1286,6 +1468,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   }, [state.duration]);
 
   const handleProgressStart = useCallback((event: ScrubStartEvent) => {
+    if (isMinimized) return;
     if (scrubTrackingRef.current) return;
     if (isExpanded) {
       setIsExpanded(false);
@@ -1296,12 +1479,12 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     scrubTrackingRef.current = true;
     scrubMovedRef.current = false;
     scrubValueRef.current = null;
-    const preferredRect = progressWrapperRef.current?.getBoundingClientRect?.();
     const fallbackRect = event.currentTarget?.getBoundingClientRect?.();
-    if (preferredRect && preferredRect.width > 0) {
-      scrubRectRef.current = preferredRect;
-    } else if (fallbackRect) {
+    const preferredRect = progressWrapperRef.current?.getBoundingClientRect?.();
+    if (fallbackRect && fallbackRect.width > 0) {
       scrubRectRef.current = fallbackRect;
+    } else if (preferredRect) {
+      scrubRectRef.current = preferredRect;
     }
     const clientX = 'touches' in event
       ? event.touches[0]?.clientX
@@ -1315,7 +1498,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     window.addEventListener('touchend', endScrub);
     window.addEventListener('touchcancel', endScrub);
     window.addEventListener('touchmove', handleScrubMove as any, { passive: false });
-  }, [endScrub, handleScrubMove, isExpanded]);
+  }, [endScrub, handleScrubMove, isExpanded, isMinimized]);
   
   const togglePlaybackRate = useCallback(() => {
     const rates = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -1343,6 +1526,20 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     setPlayIntent(false);
     onClose?.();
   }, [onClose, currentEpisode?.slug, persistProgressSnapshot]);
+
+  const toggleMinimize = useCallback(() => {
+    setIsMinimized((prev) => {
+      const newVal = !prev;
+      trackUmami(newVal ? 'podcast-minimize' : 'podcast-restore', {
+        source: 'player',
+        slug: currentEpisode?.slug ?? '',
+      });
+      if (newVal) {
+        setIsExpanded(false);
+      }
+      return newVal;
+    });
+  }, [currentEpisode?.slug]);
 
   const toggleExpanded = useCallback(() => {
     setIsExpanded(prev => {
@@ -1380,6 +1577,10 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     // 设置待跳转时间，在 loadedmetadata 事件中使用
     pendingSeekTime.current = startTime;
     resumeSeekPendingRef.current = startTime > 0 ? Date.now() : null;
+    const cachedTheme = coverThemeCacheRef.current[episode.slug];
+    if (cachedTheme) {
+      setCoverThemeColor(cachedTheme);
+    }
 
     setCurrentEpisode(episode);
     setAudioSrc(episode.url, { eager: false });
@@ -1474,13 +1675,18 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   const seekValue = seekMax > 0 ? clampedProgress : 0;
   const progressPercent = hasEnded
     ? 100
-    : (currentDuration > 0 ? Math.min((clampedProgress / currentDuration) * 100, 100) : 0);
+    : (currentDuration > 0
+      ? Math.min((clampedProgress / currentDuration) * 100, 100)
+      : (isScrubbing && scrubPreviewRatio != null ? scrubPreviewRatio * 100 : 0));
   const remainingTime = currentDuration > 0 ? Math.max(currentDuration - clampedProgress, 0) : 0;
   const remainingLabel = currentDuration > 0 ? formatTime(remainingTime) : '';
   const ariaProgressText = currentDuration > 0
     ? `${formatTime(clampedProgress)} / ${formatTime(currentDuration)}`
     : '0:00';
   const remainingTimeLabel = activePlaybackLang === 'en' ? 'Remaining time' : '剩余时间';
+  const coverExpandLabel = isMinimized
+    ? (activePlaybackLang === 'en' ? 'Expand player' : '展开播放器')
+    : (activePlaybackLang === 'en' ? 'Minimize player' : '最小化播放器');
   const playPauseLabel = state.isPlaying
     ? (activePlaybackLang === 'en' ? 'Pause' : '暂停')
     : (activePlaybackLang === 'en' ? 'Play' : '播放');
@@ -1499,15 +1705,34 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   return (
     <div
       ref={playerRootRef}
-      className={`podcast-player ${isExpanded ? 'expanded' : ''} ${state.isPlaying ? 'playing' : ''} ${isScrubbing ? 'scrubbing' : ''} ${isBuffering ? 'buffering' : ''}`}
-      style={{ '--progress-percent': progressPercent, '--rotation-duration': rotationDuration } as any}
+      className={`podcast-player ${isExpanded ? 'expanded' : ''} ${isMinimized ? 'minimized' : ''} ${state.isPlaying ? 'playing' : ''} ${isScrubbing ? 'scrubbing' : ''} ${isBuffering ? 'buffering' : ''}`}
+      style={{
+        '--progress-percent': progressPercent,
+        '--rotation-duration': rotationDuration,
+        '--player-theme-accent': themeColorToCss(coverThemeColor) ?? 'var(--color-bg-secondary)',
+        '--player-theme-on-primary': getThemeOnPrimary(coverThemeColor),
+      } as any}
     >
           <div className="podcast-player-mini">
-          <div className="player-cover">
+          <div
+            className="player-cover"
+            onClick={toggleMinimize}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggleMinimize();
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label={coverExpandLabel}
+          >
             <img
               ref={coverImageRef}
+              crossOrigin="anonymous"
               src={currentEpisode.coverImage ?? siteConfig.images.podcastDefaultCover}
               alt={currentEpisode.title}
+              onLoad={syncCoverTheme}
             />
             <span className="player-cover-time" aria-hidden="true">
               {remainingLabel}

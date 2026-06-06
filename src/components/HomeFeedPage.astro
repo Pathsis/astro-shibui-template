@@ -26,9 +26,11 @@ interface Props {
 const { page, lang } = Astro.props as Props;
 
 const isEn = lang === "en";
+const siteTitle = isEn ? siteConfig.titleEn : siteConfig.title;
 const description = isEn ? siteConfig.descriptions.en : siteConfig.descriptions.zh;
 const podcastHint = isEn ? " (Podcast available)" : "（可收听播客）";
 const loadMoreText = isEn ? "Load More" : "加载更多";
+const loadingText = isEn ? "Loading" : "加载中";
 const excerptLen = isEn ? 200 : 100;
 
 const paginationVersion = getBuildVersionToken();
@@ -39,7 +41,7 @@ const isFirstPage = page.currentPage === 1;
 ---
 
 <SingleColumnLayout
-  title={siteConfig.title}
+  title={siteTitle}
   description={description}
   isHome={true}
   pageKind={isFirstPage ? "home" : "page"}
@@ -80,7 +82,13 @@ const isFirstPage = page.currentPage === 1;
     </div>
 
     {page.url.next && (
-      <button class="shibui-loadmore home-loadmore" type="button" data-next-url={page.url.next}>
+      <button
+        class="shibui-loadmore home-loadmore"
+        type="button"
+        data-next-url={page.url.next}
+        data-idle-text={loadMoreText}
+        data-loading-text={loadingText}
+      >
         {loadMoreText}
       </button>
     )}

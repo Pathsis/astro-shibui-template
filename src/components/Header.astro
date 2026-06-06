@@ -36,8 +36,8 @@ const navText = currentLang === "en"
   ? { home: "Home", archive: "Archive", about: "About", tags: "Tags", feed: "Feed" }
   : { home: "首页", archive: "归档", about: "关于", tags: "标签", feed: "订阅" };
 
-// 站点名称
-const siteTitle = siteConfig.title;
+// 站点名称（根据语言切换）
+const siteTitle = currentLang === "en" ? siteConfig.titleEn : siteConfig.title;
 
 // 汉堡菜单提示
 const menuLabel = currentLang === "en" ? "Toggle menu" : "切换菜单";

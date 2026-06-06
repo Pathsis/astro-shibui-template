@@ -1,4 +1,5 @@
-import { navigate } from 'astro:transitions/client';
+import { trackUmami } from '../lib/analytics';
+import { performImmediateNavigation } from './runtime-navigation.js';
 
 export const installOutboundLinkTracking = function(runtime, trackUmami) {
   if (runtime.flags.outboundTrackingInstalled) return;
@@ -38,18 +39,9 @@ export const installPrintTracking = function(runtime) {
     if (now - lastTrackedAt < dedupeMs) return;
     lastTrackedAt = now;
 
-    const analytics = window.umami;
-    if (!analytics || typeof analytics.track !== 'function') return;
-
-    const body = document.body;
-    const pageKind = body?.dataset?.pageKind || 'unknown';
-    const lang = (document.documentElement.lang || '').toLowerCase().startsWith('en') ? 'en' : 'zh';
-
     try {
-      analytics.track('print-page', {
-        path: window.location.pathname,
-        lang,
-        pageKind,
+      trackUmami('print-page', {
+        source: 'browser-print',
       });
     } catch {
       // ignore analytics errors
@@ -85,15 +77,7 @@ export const installSearchShortcut = function(runtime) {
     return window.location.pathname.startsWith('/en/') ? '/en/blog/' : '/blog/';
   };
   const navigateTo = function(pathname) {
-    try {
-      if (typeof navigate === 'function') {
-        navigate(pathname);
-        return;
-      }
-    } catch (e) {
-      // fallback below
-    }
-    window.location.href = pathname;
+    performImmediateNavigation(pathname);
   };
   const isEditableTarget = function(target) {
     if (!(target instanceof Element)) return false;
@@ -164,6 +148,56 @@ export const installSearchShortcut = function(runtime) {
   });
 };
 
+export const installImmediateNavigationGuard = function(runtime) {
+  if (runtime.flags.immediateNavigationGuardInstalled) return;
+  runtime.flags.immediateNavigationGuardInstalled = true;
+
+  const leavesWindow = function(event) {
+    return (event.button && event.button !== 0)
+      || event.metaKey
+      || event.ctrlKey
+      || event.altKey
+      || event.shiftKey;
+  };
+
+  document.addEventListener('click', function(event) {
+    if (event.defaultPrevented || leavesWindow(event)) return;
+
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const anchor = target.closest('a[href]');
+    if (!(anchor instanceof HTMLAnchorElement)) return;
+    if (anchor.hasAttribute('download')) return;
+
+    const rawTarget = (anchor.getAttribute('target') || '').trim().toLowerCase();
+    if (rawTarget && rawTarget !== '_self') return;
+
+    const href = anchor.getAttribute('href');
+    if (!href || href.startsWith('#')) return;
+
+    let url;
+    try {
+      url = new URL(anchor.href, window.location.href);
+    } catch (error) {
+      return;
+    }
+
+    if (url.origin !== window.location.origin) return;
+    if (!/^https?:$/.test(url.protocol)) return;
+
+    const sameDocument = url.pathname === window.location.pathname
+      && url.search === window.location.search
+      && !!url.hash;
+    if (sameDocument) return;
+
+    event.preventDefault();
+    performImmediateNavigation(url.href, {
+      replace: anchor.dataset.astroHistory === 'replace',
+    });
+  }, true);
+};
+
 export const installPrintLinkSanitizer = function(runtime) {
   if (runtime.flags.printLinkSanitizerInstalled) return;
   runtime.flags.printLinkSanitizerInstalled = true;
@@ -225,6 +259,52 @@ export const installPrintLinkSanitizer = function(runtime) {
       });
     }
   }
+};
+
+export const installInternalContentReloadGuard = function(runtime) {
+  if (runtime.flags.internalContentReloadGuardInstalled) return;
+  runtime.flags.internalContentReloadGuardInstalled = true;
+
+  const shouldForceReload = function(anchor) {
+    if (!(anchor instanceof HTMLAnchorElement)) return false;
+    if (anchor.hasAttribute('data-astro-reload')) return false;
+    if (anchor.hasAttribute('download')) return false;
+
+    const target = (anchor.getAttribute('target') || '').trim().toLowerCase();
+    if (target && target !== '_self') return false;
+
+    const href = anchor.getAttribute('href');
+    if (!href || href.startsWith('#')) return false;
+
+    let url;
+    try {
+      url = new URL(href, window.location.href);
+    } catch (e) {
+      return false;
+    }
+
+    if (url.origin !== window.location.origin) return false;
+    if (!/^https?:$/.test(url.protocol)) return false;
+
+    const sameDocument = url.pathname === window.location.pathname
+      && url.search === window.location.search
+      && !!url.hash;
+    if (sameDocument) return false;
+
+    return true;
+  };
+
+  const sync = function() {
+    const anchors = document.querySelectorAll('.gh-content a[href]');
+    anchors.forEach(function(anchor) {
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+      if (!shouldForceReload(anchor)) return;
+      anchor.setAttribute('data-astro-reload', '');
+    });
+  };
+
+  sync();
+  document.addEventListener('astro:page-load', sync);
 };
 
 export const installGithubCornerTouch = function(runtime) {

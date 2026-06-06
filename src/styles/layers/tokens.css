@@ -31,6 +31,8 @@ html {
   --color-border: light-dark(#e5decf, #4a4037);
   --color-text-primary: light-dark(#000, #faf5f9);
   --color-text-muted: light-dark(#888, #a69885);
+  --color-nav-pending-base: var(--color-text-primary);
+  --color-nav-pending-highlight: color-mix(in srgb, white 70%, var(--color-text-primary) 30%);
   --color-selection-bg: light-dark(#e5decf, #4a4037);
   --color-selection-code-bg: light-dark(#e0c9a6, #5d4e3f);
   /* === 颜色定义结束 === */
@@ -55,6 +57,14 @@ html {
   --floating-chrome-inset-x: 20px;
   --floating-chrome-inset-y: 12px;
 }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-nav-pending-base: color-mix(in srgb, var(--color-text-muted) 78%, var(--color-text-primary) 22%);
+    --color-nav-pending-highlight: color-mix(in srgb, white 94%, var(--color-text-primary) 6%);
+  }
+}
+
 /* 大屏幕适配 */
 @media screen and (min-width: 1600px) {
   :root {

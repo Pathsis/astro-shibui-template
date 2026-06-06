@@ -46,7 +46,7 @@ export const detectIosChromeShell = function() {
   }
 };
 
-const isPodcastPlaying = function() {
+export const isPodcastPlaying = function() {
   try {
     const audio = document.getElementById('global-podcast-audio');
     return !!(audio && !audio.paused && !audio.ended);
@@ -55,26 +55,36 @@ const isPodcastPlaying = function() {
   }
 };
 
-export const createIosShellSpaGuardSync = function(isIosChromeShell) {
+export const createIosShellSpaGuardSync = function(_isIosChromeShell) {
   return function syncIosShellSpaGuard() {
-    if (!isIosChromeShell) return;
     const shouldReload = !isPodcastPlaying();
-    const guardAttr = 'data-pathos-ios-shell-reload';
     document.querySelectorAll('a[href]').forEach(function(link) {
+      if (!(link instanceof HTMLAnchorElement)) return;
+      if (link.hasAttribute('download')) return;
+      const target = (link.getAttribute('target') || '').trim().toLowerCase();
+      if (target && target !== '_self') return;
+
+      const rawHref = link.getAttribute('href');
+      if (!rawHref || rawHref.startsWith('#')) return;
+
       try {
         const url = new URL(link.href, window.location.href);
         if (url.origin !== window.location.origin) return;
+        if (!/^https?:$/.test(url.protocol)) return;
+
+        const sameDocument =
+          url.pathname === window.location.pathname &&
+          url.search === window.location.search &&
+          !!url.hash;
+        if (sameDocument) return;
       } catch (e) {
         return;
       }
+
       if (shouldReload) {
-        if (!link.hasAttribute('data-astro-reload')) {
-          link.setAttribute('data-astro-reload', '');
-          link.setAttribute(guardAttr, '');
-        }
-      } else if (link.hasAttribute(guardAttr)) {
+        link.setAttribute('data-astro-reload', '');
+      } else {
         link.removeAttribute('data-astro-reload');
-        link.removeAttribute(guardAttr);
       }
     });
   };

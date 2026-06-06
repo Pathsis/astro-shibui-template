@@ -1,24 +1,33 @@
 ---
 import { getCollection } from "astro:content";
 import CategoryArchivePage from "../../components/CategoryArchivePage.astro";
+import { buildCategoryGroups } from "../../lib/taxonomy";
 
 export async function getStaticPaths() {
   // 中文分类归档路由:只从 blog-zh 收集分类空间
   // 英文侧的对称路由位于 /en/categories/[category].astro
   const postsZh = await getCollection("blog-zh", ({ data }) => !data.draft);
+  const groups = buildCategoryGroups(
+    postsZh.map((post) => post.data.categories),
+    "zh-cn",
+  );
 
-  const categories = new Set<string>();
-  postsZh.forEach((post) => {
-    post.data.categories?.forEach((category) => categories.add(category));
-  });
-
-  return Array.from(categories).map((category) => ({
-    params: { category },
-    props: { category },
+  return groups.map((group) => ({
+    params: { category: group.canonicalLabel },
+    props: {
+      category: group.canonicalLabel,
+      canonicalCategory: group.canonicalLabel,
+      matchedCategories: group.matchValues,
+    },
   }));
 }
 
-const { category } = Astro.props;
+const { category, canonicalCategory, matchedCategories } = Astro.props;
 ---
 
-<CategoryArchivePage category={category} lang="zh-cn" />
+<CategoryArchivePage
+  category={category}
+  canonicalCategory={canonicalCategory}
+  matchedCategories={matchedCategories}
+  lang="zh-cn"
+/>

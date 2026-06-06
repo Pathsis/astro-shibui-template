@@ -9,6 +9,10 @@ interface FeaturedCardItem {
   date: Date;
   excerpt?: string;
   coverImage?: string;
+  /** 原始图片宽度 */
+  imgWidth?: number;
+  /** 原始图片高度 */
+  imgHeight?: number;
   cardClass?: string;
   episode?: PodcastEpisode;
 }
@@ -19,6 +23,7 @@ interface Props {
   paginationSignature: string;
   paginationVersion: string;
   loadMoreText: string;
+  loadingText: string;
   completeText?: string;
   nextUrl?: string;
   podcastHint?: string;
@@ -32,6 +37,7 @@ const {
   paginationSignature,
   paginationVersion,
   loadMoreText,
+  loadingText,
   completeText,
   nextUrl,
   podcastHint = "",
@@ -55,7 +61,16 @@ const {
           <span class="sr-only">{item.title}</span>
         </a>
         {item.coverImage ? (
-          <img class="featured-card-image" src={item.coverImage} alt="" loading="lazy" />
+          <img
+            class="featured-card-image"
+            src={item.coverImage}
+            alt=""
+            loading="lazy"
+            fetchpriority="low"
+            decoding="async"
+            width={item.imgWidth}
+            height={item.imgHeight}
+          />
         ) : (
           <div class="featured-card-image featured-card-image--fallback" aria-hidden="true"></div>
         )}
@@ -72,7 +87,7 @@ const {
         </div>
         {item.episode && (
           <div class="featured-card-action">
-            <PodcastPlayButton episode={item.episode} client:load />
+            <PodcastPlayButton episode={item.episode} client:idle />
           </div>
         )}
       </article>
@@ -84,6 +99,8 @@ const {
       class="shibui-loadmore home-loadmore featured-card-loadmore"
       type="button"
       data-next-url={nextUrl}
+      data-idle-text={loadMoreText}
+      data-loading-text={loadingText}
       data-complete-text={completeText}
     >
       {loadMoreText}

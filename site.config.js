@@ -1,6 +1,7 @@
 export const siteConfig = {
   siteUrl: "https://example.com",
   title: "Astro Shibui",
+  titleEn: "Astro Shibui",
   authorName: "Astro Shibui",
   descriptions: {
     zh: "一个带有悬挂媒体设计的双语 Astro 博客模板",

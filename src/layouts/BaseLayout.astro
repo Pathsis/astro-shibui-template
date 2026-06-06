@@ -20,6 +20,7 @@ interface Props {
   title?: string;
   description?: string;
   image?: string;
+  canonicalPath?: string;
   socialImageSource?: SocialImageSource;
   type?: "website" | "article";
   lang?: "zh-cn" | "en";
@@ -37,6 +38,7 @@ const {
   title = siteConfig.title,
   description = siteConfig.descriptions.zh,
   image = siteConfig.images.defaultOg,
+  canonicalPath,
   socialImageSource = "other",
   type = "website",
   lang = "zh-cn",
@@ -55,7 +57,7 @@ const socialImageVersion =
   import.meta.env.PUBLIC_SOCIAL_IMAGE_VERSION ||
   getDefaultSocialImageVersionSeed();
 
-const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const canonicalURL = new URL(canonicalPath || Astro.url.pathname, Astro.site);
 const sitemapURL = new URL("/sitemap-index.xml", Astro.site);
 const socialImageVersionToken = createSocialImageVersionToken(socialImageVersion);
 const socialImage = resolveSocialImage(image, {
@@ -81,7 +83,7 @@ const alternatePath = pageKind === "page"
   : getLanguageSwitchHref({
       pageKind: pageKind as SwitchablePageKind,
       lang,
-      pathname: Astro.url.pathname,
+      pathname: canonicalURL.pathname,
       hasTranslation,
       targetSlug,
     });

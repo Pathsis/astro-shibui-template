@@ -6,6 +6,7 @@ import net from "node:net";
 import matter from "gray-matter";
 import sharp from "sharp";
 import { pathToFileURL } from "node:url";
+import { ProxyAgent, setGlobalDispatcher } from "undici";
 
 const ROOT = process.cwd();
 const LIB_ROOT = path.join(ROOT, "theme/src/lib");
@@ -46,16 +47,64 @@ function parseNonNegativeNumber(raw: string | undefined, fallback: number): numb
   if (!Number.isFinite(parsed) || parsed < 0) return fallback;
   return parsed;
 }
+
+function parseOptionalNonNegativeNumber(raw: string | undefined): number | null {
+  if (typeof raw !== "string") return null;
+  const normalized = raw.trim();
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return parsed;
+}
+
+function parseBooleanFlag(raw: string | undefined): boolean {
+  if (typeof raw !== "string") return false;
+  const normalized = raw.trim().toLowerCase();
+  if (!normalized) return false;
+  return ["1", "true", "yes", "on"].includes(normalized);
+}
+
+const cliArgs = new Set(process.argv.slice(2));
 const REMOTE_FETCH_TIMEOUT_MS = parseNonNegativeNumber(process.env.SOCIAL_IMAGE_FETCH_TIMEOUT_MS, 12000);
-const REMOTE_IMAGE_REVALIDATE_MS = parseNonNegativeNumber(
-  process.env.SOCIAL_IMAGE_REMOTE_TTL_MS,
-  24 * 60 * 60 * 1000,
-);
+const REMOTE_IMAGE_REVALIDATE_MS = parseOptionalNonNegativeNumber(process.env.SOCIAL_IMAGE_REMOTE_TTL_MS);
+const FORCE_REMOTE_REVALIDATE =
+  cliArgs.has("--revalidate-remote") ||
+  cliArgs.has("--revalidate-all") ||
+  parseBooleanFlag(process.env.SOCIAL_IMAGE_REVALIDATE_REMOTE);
 const REMOTE_MAX_REDIRECTS = parseNonNegativeNumber(process.env.SOCIAL_IMAGE_MAX_REDIRECTS, 5);
 const REMOTE_ALLOWED_HOSTS = (process.env.SOCIAL_IMAGE_ALLOWED_HOSTS || "")
   .split(",")
   .map((host) => host.trim().toLowerCase())
   .filter(Boolean);
+const SOCIAL_IMAGE_PROXY_URL =
+  process.env.SOCIAL_IMAGE_PROXY_URL ||
+  process.env.GLOBAL_AGENT_HTTP_PROXY ||
+  process.env.HTTPS_PROXY ||
+  process.env.HTTP_PROXY ||
+  process.env.ALL_PROXY ||
+  "";
+
+function redactProxyUrl(rawUrl: string): string {
+  const value = rawUrl.trim();
+  if (!value) return value;
+  try {
+    const parsed = new URL(value);
+    const hasAuth = !!parsed.username || !!parsed.password;
+    parsed.username = "";
+    parsed.password = "";
+    const authMarker = hasAuth ? "***@" : "";
+    return `${parsed.protocol}//${authMarker}${parsed.host}`;
+  } catch {
+    return "[redacted-proxy]";
+  }
+}
+
+if (SOCIAL_IMAGE_PROXY_URL) {
+  setGlobalDispatcher(new ProxyAgent(SOCIAL_IMAGE_PROXY_URL));
+  console.log(`[social-image] proxy enabled: ${redactProxyUrl(SOCIAL_IMAGE_PROXY_URL)}`);
+}
+
+const remoteImageCache = new Map<string, Promise<Buffer | null>>();
 
 function normalizeLocalImagePath(input: string): string {
   const [withoutQuery] = input.trim().split(/[?#]/);
@@ -203,6 +252,22 @@ async function fetchRemoteImage(imageRef: string): Promise<Buffer | null> {
   }
 }
 
+async function readRemoteImage(imageRef: string): Promise<Buffer | null> {
+  const cached = remoteImageCache.get(imageRef);
+  if (cached) return cached;
+
+  const promise = fetchRemoteImage(imageRef)
+    .catch(() => null)
+    .finally(() => {
+      if (remoteImageCache.get(imageRef) === promise) {
+        remoteImageCache.delete(imageRef);
+      }
+    });
+
+  remoteImageCache.set(imageRef, promise);
+  return promise;
+}
+
 async function walkMarkdownFiles(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true });
   const files: string[] = [];
@@ -255,7 +320,7 @@ function extractEntryImage(fileContent: string): { image?: string; podcast: bool
 async function readImageInput(imageRef: string): Promise<Buffer | string | null> {
   if (isRemoteSocialImage(imageRef)) {
     try {
-      return await fetchRemoteImage(imageRef);
+      return await readRemoteImage(imageRef);
     } catch {
       return null;
     }
@@ -269,6 +334,8 @@ async function readImageInput(imageRef: string): Promise<Buffer | string | null>
 async function isGeneratedCurrent(outputPath: string, imageRef: string): Promise<boolean> {
   if (!existsSync(outputPath)) return false;
   if (isRemoteSocialImage(imageRef)) {
+    if (FORCE_REMOTE_REVALIDATE) return false;
+    if (REMOTE_IMAGE_REVALIDATE_MS == null) return true;
     const outputStat = await stat(outputPath);
     const maxAge = Math.max(0, REMOTE_IMAGE_REVALIDATE_MS);
     if (maxAge === 0) return false;
@@ -335,6 +402,16 @@ async function main() {
     mkdir(MEDIA_OUTPUT_DIR, { recursive: true }),
   ]);
 
+  if (FORCE_REMOTE_REVALIDATE) {
+    console.log("[social-image] remote images: force revalidation enabled");
+  } else if (REMOTE_IMAGE_REVALIDATE_MS == null) {
+    console.log("[social-image] remote images: reuse existing generated files unless missing");
+  } else {
+    console.log(
+      `[social-image] remote images: ttl revalidation enabled (${REMOTE_IMAGE_REVALIDATE_MS} ms)`,
+    );
+  }
+
   const markdownFiles = (
     await Promise.all(CONTENT_DIRS.map((dir) => walkMarkdownFiles(dir)))
   ).flat();
@@ -353,12 +430,15 @@ async function main() {
     socialImages.set(key, { imageRef: selectedImage, pagePath });
   }
 
+  const entries = [...socialImages.values()];
   let socialGenerated = 0;
   let socialSkipped = 0;
   let mediaGenerated = 0;
   let mediaSkipped = 0;
 
-  for (const { imageRef, pagePath } of socialImages.values()) {
+  for (const [index, { imageRef, pagePath }] of entries.entries()) {
+    const displayPath = pagePath || "unknown-page";
+    console.log(`[social-image] [${index + 1}/${entries.length}] ${displayPath} -> start`);
     try {
       const socialResult = await generateSocial(imageRef, pagePath);
       if (socialResult === "generated") socialGenerated += 1;
@@ -367,8 +447,12 @@ async function main() {
       const mediaResult = await generateMediaArtwork(imageRef, pagePath);
       if (mediaResult === "generated") mediaGenerated += 1;
       else mediaSkipped += 1;
+
+      console.log(
+        `[social-image] [${index + 1}/${entries.length}] ${displayPath} -> social:${socialResult}, media:${mediaResult}`,
+      );
     } catch (error) {
-      console.warn(`[social-image] failed: ${pagePath || "unknown-page"} -> ${imageRef}`);
+      console.warn(`[social-image] [${index + 1}/${entries.length}] ${displayPath} -> failed: ${imageRef}`);
       console.warn(error);
     }
   }

@@ -7,6 +7,7 @@
 import { getCollection } from "astro:content";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import SingleColumnLayout from "../layouts/SingleColumnLayout.astro";
+import { buildCategoryGroups, getCategoryCorePath } from "../lib/taxonomy";
 
 interface Props {
   lang: "zh-cn" | "en";
@@ -17,15 +18,9 @@ const collectionName = lang === "en" ? "blog-en" : "blog-zh";
 
 const allPosts = await getCollection(collectionName, ({ data }) => !data.draft);
 
-const categories = new Map<string, number>();
-allPosts.forEach((post) => {
-  post.data.categories?.forEach((category) => {
-    categories.set(category, (categories.get(category) || 0) + 1);
-  });
-});
-
-const sortedCategories = Array.from(categories.entries()).sort((a, b) =>
-  a[0].localeCompare(b[0])
+const categoryGroups = buildCategoryGroups(
+  allPosts.map((post) => post.data.categories),
+  lang,
 );
 
 const isEn = lang === "en";
@@ -43,10 +38,10 @@ const pageDescription = isEn ? "All categories" : "所有分类";
 
   <div class="terms-list">
     <ul>
-      {sortedCategories.map(([category, count]) => (
+      {categoryGroups.map(({ canonicalLabel, count }) => (
         <li>
-          <a href={getRelativeLocaleUrl(lang, `/categories/${category}/`)}>
-            [{category}] ({count})
+          <a href={getRelativeLocaleUrl(lang, getCategoryCorePath(canonicalLabel))}>
+            [{canonicalLabel}] ({count})
           </a>
         </li>
       ))}

@@ -68,7 +68,12 @@ const navigationLabel = currentLang === "en" ? "Mobile navigation" : "移动端�
       {switchLink && (
         <li class="site-mobile-menu-item">
           <div class="site-mobile-menu-link site-mobile-menu-language">
-            <a href={switchLink} class="site-mobile-menu-language-link" title={switchTitle} aria-label={switchTitle}>
+            <a
+              href={switchLink}
+              class="site-mobile-menu-language-link"
+              title={switchTitle}
+              aria-label={switchTitle}
+            >
               {switchText}
             </a>
           </div>

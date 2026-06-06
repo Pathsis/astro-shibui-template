@@ -116,7 +116,7 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
             lang: currentLang,
             description: post.data.description,
           }}
-          client:load
+          client:idle
         />
       )}
     </h1>
@@ -189,7 +189,9 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
                   />
                 </a>
                 <h3 class="article-suggest-card-title">
-                  <a href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(entry.id, currentLang))}>
+                  <a
+                    href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(entry.id, currentLang))}
+                  >
                     {entry.data.title}
                     {entry.data.podcast && <span class="sr-only">{podcastHint}</span>}
                   </a>
