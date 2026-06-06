@@ -46,17 +46,17 @@ const navigationLabel = currentLang === "en" ? "Mobile navigation" : "移动端�
         </a>
       </li>
       <li class="site-mobile-menu-item">
-        <a href={navLinks.archive} class="site-mobile-menu-link">
+        <a href={navLinks.archive} class="site-mobile-menu-link" data-astro-prefetch="tap">
           {navText.archive}
         </a>
       </li>
       <li class="site-mobile-menu-item">
-        <a href={navLinks.about} class="site-mobile-menu-link">
+        <a href={navLinks.about} class="site-mobile-menu-link" data-astro-prefetch="tap">
           {navText.about}
         </a>
       </li>
       <li class="site-mobile-menu-item">
-        <a href={navLinks.tags} class="site-mobile-menu-link">
+        <a href={navLinks.tags} class="site-mobile-menu-link" data-astro-prefetch="tap">
           {navText.tags}
         </a>
       </li>
@@ -71,6 +71,7 @@ const navigationLabel = currentLang === "en" ? "Mobile navigation" : "移动端�
             <a
               href={switchLink}
               class="site-mobile-menu-language-link"
+              data-astro-prefetch="tap"
               title={switchTitle}
               aria-label={switchTitle}
             >

@@ -33,7 +33,7 @@ const {
       {labelHref ? (
         <>
           {labelPrefix && <span>{labelPrefix}</span>}
-          <a href={labelHref}>{label}</a>
+          <a href={labelHref} data-astro-prefetch="tap">{label}</a>
         </>
       ) : label}
     </p>
@@ -44,7 +44,7 @@ const {
             {formatDate(post.date)}
           </time>
           <h3 class="article-suggest-list-title">
-            <a href={post.href}>
+            <a href={post.href} data-astro-prefetch="tap">
               {post.title}
               {post.podcast && <span class="sr-only">{podcastHint}</span>}
             </a>

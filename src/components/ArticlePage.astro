@@ -166,7 +166,7 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
             {primaryTagHref ? (
               <>
                 <span>{moreFromText}</span>
-                <a href={primaryTagHref}>{primaryTag}</a>
+                <a href={primaryTagHref} data-astro-prefetch>{primaryTag}</a>
               </>
             ) : (
               nextReadText
@@ -178,6 +178,7 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
                 <a
                   href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(entry.id, currentLang))}
                   class="article-suggest-cover-link"
+                  data-astro-prefetch="tap"
                   tabindex="-1"
                 >
                   <img
@@ -191,6 +192,7 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
                 <h3 class="article-suggest-card-title">
                   <a
                     href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(entry.id, currentLang))}
+                    data-astro-prefetch="tap"
                   >
                     {entry.data.title}
                     {entry.data.podcast && <span class="sr-only">{podcastHint}</span>}

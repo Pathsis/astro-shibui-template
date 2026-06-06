@@ -70,7 +70,7 @@ const isFirstPage = page.currentPage === 1;
         return (
           <article class="home-waterfall-item">
             <h2 class="home-waterfall-title">
-              <a href={postUrl}>
+              <a href={postUrl} data-astro-prefetch="tap">
                 {post.data.title}
                 {post.data.podcast && <span class="sr-only">{podcastHint}</span>}
               </a>

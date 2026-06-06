@@ -72,7 +72,7 @@ const podcastHint = isEn ? " (Podcast available)" : "（可收听播客）";
               <li>
                 <span>{formatMonthDay(post.data.date)}</span>
                 <div>
-                  <a href={getRelativeLocaleUrl(lang, getLocalizedBlogPathById(post.id, lang))}>
+                  <a href={getRelativeLocaleUrl(lang, getLocalizedBlogPathById(post.id, lang))} data-astro-prefetch="tap">
                     {post.data.title}
                     {post.data.podcast && <span class="sr-only">{podcastHint}</span>}
                   </a>

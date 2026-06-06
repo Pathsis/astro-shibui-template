@@ -42,7 +42,10 @@ const fonts = enableGoogleFonts
 export default defineConfig({
   site: siteConfig.siteUrl,
   compressHTML: true,
-  prefetch: false,
+  prefetch: {
+    prefetchAll: false,
+    defaultStrategy: "hover",
+  },
   vite: {
     resolve: {
       alias: {

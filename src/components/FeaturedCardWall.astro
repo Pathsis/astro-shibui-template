@@ -57,7 +57,7 @@ const {
   >
     {items.map((item) => (
       <article class={`featured-card ${item.cardClass ?? "featured-card--square"}`}>
-        <a class="featured-card-link" href={item.href} aria-label={item.title}>
+        <a class="featured-card-link" href={item.href} aria-label={item.title} data-astro-prefetch="tap">
           <span class="sr-only">{item.title}</span>
         </a>
         {item.coverImage ? (

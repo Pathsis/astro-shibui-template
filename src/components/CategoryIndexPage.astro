@@ -40,7 +40,7 @@ const pageDescription = isEn ? "All categories" : "所有分类";
     <ul>
       {categoryGroups.map(({ canonicalLabel, count }) => (
         <li>
-          <a href={getRelativeLocaleUrl(lang, getCategoryCorePath(canonicalLabel))}>
+          <a href={getRelativeLocaleUrl(lang, getCategoryCorePath(canonicalLabel))} data-astro-prefetch>
             [{canonicalLabel}] ({count})
           </a>
         </li>

@@ -63,9 +63,9 @@ const homeAriaLabel = currentLang === "en" ? "Back to home" : "返回首页";
   <nav class="gh-head-menu" id="site-menu">
     <div class="gh-head-inner">
       <a class="gh-head-menu-home" href={homeTopUrl}>{navText.home}</a>
-      <a href={navLinks.archive}>{navText.archive}</a>
-      <a href={navLinks.about}>{navText.about}</a>
-      <a href={navLinks.tags}>{navText.tags}</a>
+      <a href={navLinks.archive} data-astro-prefetch>{navText.archive}</a>
+      <a href={navLinks.about} data-astro-prefetch>{navText.about}</a>
+      <a href={navLinks.tags} data-astro-prefetch>{navText.tags}</a>
       <a href={navLinks.feed}>{navText.feed}</a>
 
       <!-- 语言切换器 -->

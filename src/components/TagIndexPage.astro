@@ -52,7 +52,7 @@ const pageDescription = isEn ? "All tags" : "所有标签";
     <ul>
       {sortedTags.map(([tag, info]) => (
         <li>
-          <a href={getRelativeLocaleUrl(lang, `/tags/${tag}/`)}>
+          <a href={getRelativeLocaleUrl(lang, `/tags/${tag}/`)} data-astro-prefetch>
             {tag} ({info.count})
           </a>
         </li>
