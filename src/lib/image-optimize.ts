@@ -13,7 +13,7 @@ import sharp from "sharp";
 import { resolvePublicRoot } from "./public-root";
 
 /** 本地栅格图扩展名（不含 SVG） */
-const LOCAL_RASTER_RE = /\.(?:jpe?g|png)$/i;
+const LOCAL_RASTER_RE = /\.(?:avif|gif|jpe?g|png|webp)$/i;
 
 /** 远程 / 协议 URL */
 const EXTERNAL_RE = /^(?:[a-z][a-z0-9+.-]*:)?\/\//i;

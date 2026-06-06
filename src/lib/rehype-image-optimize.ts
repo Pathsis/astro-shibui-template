@@ -142,5 +142,15 @@ export default function rehypeImageOptimize() {
     if (shouldUseImageKit) {
       rewriteRawHtmlImageSourcesToCdn(tree);
     }
+
+    visit(tree, "element", (node) => {
+      if (node.tagName !== "img") return;
+      if (!node.properties.loading) {
+        node.properties.loading = "lazy";
+      }
+      if (!node.properties.decoding) {
+        node.properties.decoding = "async";
+      }
+    });
   };
 }
