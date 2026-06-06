@@ -42,8 +42,6 @@ export default function rehypeInternalReloadLinks(options: Options = {}) {
 
       if (resolved.origin !== siteUrl.origin) return;
       if (!/^https?:$/.test(resolved.protocol)) return;
-
-      node.properties["data-astro-reload"] = "";
     });
   };
 }

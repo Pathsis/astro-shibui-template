@@ -22,7 +22,6 @@ import {
 import {
   installSearchShortcut,
   installPrintLinkSanitizer,
-  installInternalContentReloadGuard,
   installGithubCornerTouch,
   sanitizeLocationHash,
   installOutboundLinkTracking,
@@ -111,7 +110,6 @@ const bootstrapMainRuntime = function() {
   installPrintTracking(runtime);
   installSearchShortcut(runtime);
   installPrintLinkSanitizer(runtime);
-  installInternalContentReloadGuard(runtime);
   installLifecycleBindings(runtime, {
     startCapabilityRuntimes,
     syncIosShellSpaGuard,

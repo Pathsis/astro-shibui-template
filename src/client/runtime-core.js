@@ -55,8 +55,10 @@ export const isPodcastPlaying = function() {
   }
 };
 
-export const createIosShellSpaGuardSync = function(_isIosChromeShell) {
+export const createIosShellSpaGuardSync = function(isIosChromeShell) {
   return function syncIosShellSpaGuard() {
+    if (!isIosChromeShell) return;
+
     const shouldReload = !isPodcastPlaying();
     document.querySelectorAll('a[href]').forEach(function(link) {
       if (!(link instanceof HTMLAnchorElement)) return;
