@@ -153,8 +153,6 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
 
   </article>
 
-  <Giscus lang={currentLang} />
-
   {relatedPosts.length > 0 && (
     <section
       class="related-read-section article-suggest"
@@ -216,4 +214,6 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
       </div>
     </section>
   )}
+
+  <Giscus lang={currentLang} />
 </SingleColumnLayout>

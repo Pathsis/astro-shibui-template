@@ -10,10 +10,6 @@ interface Props {
 
 const { lang = "zh-cn" } = Astro.props;
 
-const isEn = lang === "en";
-const placeholderTitle = isEn ? "Comments" : "评论";
-const placeholderStatus = isEn ? "Loading comments…" : "评论加载中…";
-
 // Giscus 语言映射
 const giscusLang = lang === "zh-cn" ? "zh-CN" : "en";
 const giscusRepo = (import.meta.env.PUBLIC_GISCUS_REPO || "").trim();
@@ -36,56 +32,25 @@ const hasGiscusConfig = Boolean(
 
 {hasGiscusConfig && (
   <>
-    <link rel="preconnect" href="https://giscus.app" crossorigin />
-    <link rel="preconnect" href="https://github.com" crossorigin />
-
-    <section class="giscus-section" aria-label={placeholderTitle}>
-      <div
-        class="giscus-container"
-        data-repo={giscusRepo}
-        data-repo-id={giscusRepoId}
-        data-category={giscusCategory}
-        data-category-id={giscusCategoryId}
-        data-mapping={giscusMapping}
-        data-strict={giscusStrict}
-        data-reactions-enabled={giscusReactionsEnabled}
-        data-emit-metadata={giscusEmitMetadata}
-        data-input-position={giscusInputPosition}
-        data-theme={giscusTheme}
-        data-lang={giscusLang}
-      >
-        <div class="giscus-placeholder" aria-live="polite">
-          <h2 class="giscus-placeholder-title">{placeholderTitle}</h2>
-          <p class="giscus-placeholder-status">{placeholderStatus}</p>
-        </div>
-      </div>
-    </section>
+    <!-- Giscus 评论容器 -->
+    <div
+      class="giscus-container"
+      data-repo={giscusRepo}
+      data-repo-id={giscusRepoId}
+      data-category={giscusCategory}
+      data-category-id={giscusCategoryId}
+      data-mapping={giscusMapping}
+      data-strict={giscusStrict}
+      data-reactions-enabled={giscusReactionsEnabled}
+      data-emit-metadata={giscusEmitMetadata}
+      data-input-position={giscusInputPosition}
+      data-theme={giscusTheme}
+      data-lang={giscusLang}
+    ></div>
 
     <script is:inline>
       (() => {
         if (typeof window === "undefined") return;
-
-        const hidePlaceholder = (container) => {
-          const placeholder = container.querySelector(".giscus-placeholder");
-          if (placeholder instanceof HTMLElement) {
-            placeholder.hidden = true;
-          }
-        };
-
-        const watchGiscusFrame = (container) => {
-          if (container.querySelector("iframe.giscus-frame")) {
-            hidePlaceholder(container);
-            return;
-          }
-
-          const observer = new MutationObserver(() => {
-            if (!container.querySelector("iframe.giscus-frame")) return;
-            hidePlaceholder(container);
-            observer.disconnect();
-          });
-
-          observer.observe(container, { childList: true, subtree: true });
-        };
 
         const initGiscus = () => {
           const container = document.querySelector(".giscus-container");
@@ -97,7 +62,6 @@ const hasGiscusConfig = Boolean(
           const currentKey = `${resolvedLang}:${currentPath}`;
 
           if (container.dataset.giscusLoaded === currentKey && container.querySelector("iframe.giscus-frame")) {
-            hidePlaceholder(container);
             return;
           }
 
@@ -120,17 +84,11 @@ const hasGiscusConfig = Boolean(
           const iframe = container.querySelector("iframe.giscus-frame");
           const currentScript = container.querySelector('script[src*="giscus.app/client.js"]');
           if (iframe || currentScript) {
-            Array.from(container.children).forEach((node) => {
-              if (!(node instanceof HTMLElement)) return;
-              if (!node.classList.contains("giscus-placeholder")) {
-                node.remove();
-              }
-            });
+            container.innerHTML = "";
           }
 
           container.dataset.lang = resolvedLang;
           container.dataset.giscusLoaded = currentKey;
-          watchGiscusFrame(container);
 
           const script = document.createElement("script");
           script.src = "https://giscus.app/client.js";
@@ -150,12 +108,6 @@ const hasGiscusConfig = Boolean(
           script.setAttribute("data-lang", config.lang);
           script.addEventListener("error", () => {
             delete container.dataset.giscusLoaded;
-            const status = container.querySelector(".giscus-placeholder-status");
-            if (status instanceof HTMLElement) {
-              status.textContent = resolvedLang === "en"
-                ? "Comments failed to load. Please refresh."
-                : "评论加载失败，请刷新页面重试。";
-            }
           }, { once: true });
 
           container.appendChild(script);

@@ -1,34 +1,6 @@
-.giscus-section {
+.giscus-container {
   margin-top: var(--spacing-lg);
   padding-top: var(--spacing-md);
-  border-top: 1px solid color-mix(in srgb, var(--color-text-muted) 22%, transparent);
-}
-
-.giscus-container {
-  min-height: 8rem;
-}
-
-.giscus-placeholder {
-  display: grid;
-  gap: 0.35rem;
-  padding: 0.25rem 0 1rem;
-  color: var(--color-text-muted);
-}
-
-.giscus-placeholder-title {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.giscus-placeholder-status {
-  margin: 0;
-  font-size: 0.9rem;
-}
-
-.giscus-placeholder[hidden] {
-  display: none;
 }
 
 /* 确保深色主题下评论区域可见 */
