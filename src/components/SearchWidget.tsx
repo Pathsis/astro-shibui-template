@@ -533,7 +533,11 @@ const handleMouseMove = () => {
               <a
                 href={hit.url}
                 tabindex={-1}
-                onClick={() => persistReturnSearchState(index)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  persistReturnSearchState(index);
+                  navigateToSearchResult(hit.url);
+                }}
               >
                 <h1
                   dangerouslySetInnerHTML={{

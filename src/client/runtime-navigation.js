@@ -1,4 +1,5 @@
 import { navigate } from 'astro:transitions/client';
+import { detectIosChromeShell, isPodcastPlaying } from './runtime-core.js';
 
 const resolveNavigationUrl = function(target) {
   try {
@@ -45,6 +46,15 @@ export const performImmediateNavigation = function(target, options = {}) {
   }
 
   if (isSameDocumentHashNavigation(resolved)) {
+    if (options.replace) {
+      window.location.replace(nextHref);
+    } else {
+      window.location.href = nextHref;
+    }
+    return;
+  }
+
+  if (detectIosChromeShell() && !isPodcastPlaying()) {
     if (options.replace) {
       window.location.replace(nextHref);
     } else {
