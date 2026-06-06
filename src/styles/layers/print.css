@@ -25,6 +25,7 @@
   body[data-page-kind="article"] .site-mobile-menu,
   body[data-page-kind="article"] .gh-foot,
   body[data-page-kind="article"] .toc-popover-trigger,
+  body[data-page-kind="article"] .giscus-section,
   body[data-page-kind="article"] .giscus-container,
   body[data-page-kind="article"] .related-read-section,
   body[data-page-kind="article"] .article-suggest,

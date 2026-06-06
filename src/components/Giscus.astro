@@ -10,6 +10,10 @@ interface Props {
 
 const { lang = "zh-cn" } = Astro.props;
 
+const isEn = lang === "en";
+const placeholderTitle = isEn ? "Comments" : "评论";
+const placeholderStatus = isEn ? "Loading comments…" : "评论加载中…";
+
 // Giscus 语言映射
 const giscusLang = lang === "zh-cn" ? "zh-CN" : "en";
 const giscusRepo = (import.meta.env.PUBLIC_GISCUS_REPO || "").trim();
@@ -32,32 +36,55 @@ const hasGiscusConfig = Boolean(
 
 {hasGiscusConfig && (
   <>
-    <!-- Giscus 评论容器 -->
-    <div
-      class="giscus-container"
-      data-repo={giscusRepo}
-      data-repo-id={giscusRepoId}
-      data-category={giscusCategory}
-      data-category-id={giscusCategoryId}
-      data-mapping={giscusMapping}
-      data-strict={giscusStrict}
-      data-reactions-enabled={giscusReactionsEnabled}
-      data-emit-metadata={giscusEmitMetadata}
-      data-input-position={giscusInputPosition}
-      data-theme={giscusTheme}
-      data-lang={giscusLang}
-    ></div>
+    <link rel="preconnect" href="https://giscus.app" crossorigin />
+    <link rel="preconnect" href="https://github.com" crossorigin />
+
+    <section class="giscus-section" aria-label={placeholderTitle}>
+      <div
+        class="giscus-container"
+        data-repo={giscusRepo}
+        data-repo-id={giscusRepoId}
+        data-category={giscusCategory}
+        data-category-id={giscusCategoryId}
+        data-mapping={giscusMapping}
+        data-strict={giscusStrict}
+        data-reactions-enabled={giscusReactionsEnabled}
+        data-emit-metadata={giscusEmitMetadata}
+        data-input-position={giscusInputPosition}
+        data-theme={giscusTheme}
+        data-lang={giscusLang}
+      >
+        <div class="giscus-placeholder" aria-live="polite">
+          <h2 class="giscus-placeholder-title">{placeholderTitle}</h2>
+          <p class="giscus-placeholder-status">{placeholderStatus}</p>
+        </div>
+      </div>
+    </section>
 
     <script is:inline>
       (() => {
         if (typeof window === "undefined") return;
 
-        const schedule = (task) => {
-          if ("requestIdleCallback" in window) {
-            window.requestIdleCallback(() => task(), { timeout: 2500 });
+        const hidePlaceholder = (container) => {
+          const placeholder = container.querySelector(".giscus-placeholder");
+          if (placeholder instanceof HTMLElement) {
+            placeholder.hidden = true;
+          }
+        };
+
+        const watchGiscusFrame = (container) => {
+          if (container.querySelector("iframe.giscus-frame")) {
+            hidePlaceholder(container);
             return;
           }
-          window.setTimeout(task, 1200);
+
+          const observer = new MutationObserver(() => {
+            if (!container.querySelector("iframe.giscus-frame")) return;
+            hidePlaceholder(container);
+            observer.disconnect();
+          });
+
+          observer.observe(container, { childList: true, subtree: true });
         };
 
         const initGiscus = () => {
@@ -70,6 +97,7 @@ const hasGiscusConfig = Boolean(
           const currentKey = `${resolvedLang}:${currentPath}`;
 
           if (container.dataset.giscusLoaded === currentKey && container.querySelector("iframe.giscus-frame")) {
+            hidePlaceholder(container);
             return;
           }
 
@@ -92,11 +120,17 @@ const hasGiscusConfig = Boolean(
           const iframe = container.querySelector("iframe.giscus-frame");
           const currentScript = container.querySelector('script[src*="giscus.app/client.js"]');
           if (iframe || currentScript) {
-            container.innerHTML = "";
+            Array.from(container.children).forEach((node) => {
+              if (!(node instanceof HTMLElement)) return;
+              if (!node.classList.contains("giscus-placeholder")) {
+                node.remove();
+              }
+            });
           }
 
           container.dataset.lang = resolvedLang;
           container.dataset.giscusLoaded = currentKey;
+          watchGiscusFrame(container);
 
           const script = document.createElement("script");
           script.src = "https://giscus.app/client.js";
@@ -116,46 +150,31 @@ const hasGiscusConfig = Boolean(
           script.setAttribute("data-lang", config.lang);
           script.addEventListener("error", () => {
             delete container.dataset.giscusLoaded;
+            const status = container.querySelector(".giscus-placeholder-status");
+            if (status instanceof HTMLElement) {
+              status.textContent = resolvedLang === "en"
+                ? "Comments failed to load. Please refresh."
+                : "评论加载失败，请刷新页面重试。";
+            }
           }, { once: true });
 
           container.appendChild(script);
         };
 
-        const observeGiscus = () => {
-          const container = document.querySelector(".giscus-container");
-          if (!(container instanceof HTMLElement)) return;
-
-          if (container.dataset.giscusObserved === "1") return;
-          container.dataset.giscusObserved = "1";
-
-          const start = () => schedule(initGiscus);
-
-          if (!("IntersectionObserver" in window)) {
-            start();
-            return;
-          }
-
-          const observer = new IntersectionObserver((entries) => {
-            const visible = entries.some((entry) => entry.isIntersecting);
-            if (!visible) return;
-            observer.disconnect();
-            start();
-          }, {
-            rootMargin: "800px 0px",
-          });
-
-          observer.observe(container);
+        const bootGiscus = () => {
+          if (document.body?.dataset?.pageKind !== "article") return;
+          initGiscus();
         };
 
         if (!window.__pathosGiscusComponentBound) {
           window.__pathosGiscusComponentBound = true;
-          document.addEventListener("astro:page-load", observeGiscus);
+          document.addEventListener("astro:page-load", bootGiscus);
         }
 
         if (document.readyState === "loading") {
-          document.addEventListener("DOMContentLoaded", observeGiscus, { once: true });
+          document.addEventListener("DOMContentLoaded", bootGiscus, { once: true });
         } else {
-          observeGiscus();
+          bootGiscus();
         }
       })();
     </script>
