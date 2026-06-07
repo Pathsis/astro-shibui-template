@@ -35,7 +35,7 @@ function rewriteRawHtml(value: string): string {
   return value.replace(
     /\b(src|srcset)=("|')([^"'<>]+)\2/gi,
     (full, attrName: string, quote: string, rawValue: string) => {
-      const rewritten = toCdnImageUrl(rawValue);
+      const rewritten = toCdnImageUrl(rawValue, { scene: "body" });
       if (!rewritten || rewritten === rawValue) return full;
       return `${attrName}=${quote}${rewritten}${quote}`;
     },
@@ -44,14 +44,12 @@ function rewriteRawHtml(value: string): string {
 
 function rewriteUrl(url?: string): string | undefined {
   if (!url || !isMappableLocalImagePath(url)) return url;
-  return toCdnImageUrl(url) || url;
+  return toCdnImageUrl(url, { scene: "body" }) || url;
 }
 
 export default function remarkImageCdn() {
-  const shouldUseImageKit = isImageKitEnabled();
-
   return (tree: Root) => {
-    if (!shouldUseImageKit) return;
+    if (!isImageKitEnabled()) return;
 
     visit(tree, (node: Node) => {
       if (isImageLikeNode(node)) {

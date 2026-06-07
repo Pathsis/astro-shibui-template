@@ -1,4 +1,5 @@
 // @ts-check
+import "./env-setup.mjs";
 import { defineConfig, fontProviders } from "astro/config";
 import { unified } from "@astrojs/markdown-remark";
 import { fileURLToPath } from "node:url";

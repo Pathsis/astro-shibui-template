@@ -2,7 +2,12 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { resolvePublicRoot } from "./public-root";
-import { isImageKitEnabled, isMappableLocalImagePath, toCdnImageUrl } from "./image-cdn";
+import {
+  isImageKitEnabled,
+  isMappableLocalImagePath,
+  isUnsplashUrl,
+  toCdnImageUrl,
+} from "./image-cdn";
 
 const LOCAL_TRANSFORMABLE_RE = /\.(?:avif|gif|jpe?g|png|webp|svg)$/i;
 const REMOTE_IMAGE_RE = /^(?:[a-z][a-z0-9+.-]*:)?\/\//i;
@@ -161,9 +166,22 @@ export function resolveSocialImage(
   const resolved = new URL(rawImage, canonicalURL);
   const source = options.source ?? "other";
   const shouldCrop = source === "images";
-  const isUnsplash = resolved.hostname === "images.unsplash.com";
   const variantKey = shouldCrop ? canonicalURL.pathname : undefined;
   const variantToken = createSocialImageVariantToken(variantKey);
+  const generatedPath = getGeneratedSocialImagePath(rawImage, {
+    variantKey,
+  });
+  const publicDir = options.publicDir ?? resolvePublicRoot();
+  const generatedFile = join(publicDir, generatedPath.slice(1));
+
+  if (shouldCrop && existsSync(generatedFile)) {
+    return toGeneratedDeliveryUrl(generatedPath, {
+      pageUrl: canonicalURL,
+      variantToken,
+      versionToken: options.versionToken,
+    });
+  }
+
   const imageKitUrl = resolveImageKitSocialUrl(rawImage, {
     pageUrl: canonicalURL,
     transformation: shouldCrop
@@ -176,20 +194,7 @@ export function resolveSocialImage(
     return imageKitUrl;
   }
 
-  const generatedPath = getGeneratedSocialImagePath(rawImage, {
-    variantKey,
-  });
-  const publicDir = options.publicDir ?? resolvePublicRoot();
-  const generatedFile = join(publicDir, generatedPath.slice(1));
-
-  if (shouldCrop && existsSync(generatedFile)) {
-    return appendImageVersionParams(generatedPath, canonicalURL, {
-      variantToken,
-      versionToken: options.versionToken,
-    });
-  }
-
-  if (shouldCrop && isUnsplash) {
+  if (shouldCrop && isUnsplashUrl(rawImage)) {
     const ixid = resolved.searchParams.get("ixid");
     const ixlib = resolved.searchParams.get("ixlib");
 
@@ -270,7 +275,8 @@ export function resolveMediaArtwork(
   const generatedFile = join(publicDir, generatedPath.slice(1));
 
   if (existsSync(generatedFile)) {
-    return appendImageVersionParams(generatedPath, canonicalURL, {
+    return toGeneratedDeliveryUrl(generatedPath, {
+      pageUrl: canonicalURL,
       variantToken,
     });
   }

@@ -17,7 +17,13 @@ import {
   isLocalRasterImage,
   readImageDimensions,
 } from "./image-optimize";
-import { isImageKitEnabled, isMappableLocalImagePath, toCdnImageUrl } from "./image-cdn";
+import {
+  buildResponsiveSrcSet,
+  isImageKitEnabled,
+  isMappableLocalImagePath,
+  resolveLocalImagePath,
+  toCdnImageUrl,
+} from "./image-cdn";
 import { resolvePublicRoot } from "./public-root";
 
 type Root = {
@@ -59,7 +65,7 @@ function rewriteRawHtmlImageSourcesToCdn(node: Root | Element) {
       child.value = child.value.replace(
         /\b(src|srcset)=("|')([^"'<>]+)\2/gi,
         (full, attrName: string, quote: string, rawValue: string) => {
-          const rewritten = toCdnImageUrl(rawValue);
+          const rewritten = toCdnImageUrl(rawValue, { scene: "body" });
           if (!rewritten || rewritten === rawValue) return full;
           return `${attrName}=${quote}${rewritten}${quote}`;
         },
@@ -72,14 +78,14 @@ function rewriteRawHtmlImageSourcesToCdn(node: Root | Element) {
     if (child.tagName === "img") {
       const src = child.properties.src as string | undefined;
       if (isMappableLocalImagePath(src)) {
-        child.properties.src = toCdnImageUrl(src) || src;
+        child.properties.src = toCdnImageUrl(src, { scene: "body" }) || src;
       }
     }
 
     if (child.tagName === "source") {
       const srcset = getSrcSet(child);
       if (isMappableLocalImagePath(srcset)) {
-        const rewrittenSrcSet = toCdnImageUrl(srcset) || srcset;
+        const rewrittenSrcSet = toCdnImageUrl(srcset, { scene: "body" }) || srcset;
         if (rewrittenSrcSet) {
           setSrcSet(child, rewrittenSrcSet);
         }
@@ -92,33 +98,33 @@ function rewriteRawHtmlImageSourcesToCdn(node: Root | Element) {
 
 export default function rehypeImageOptimize() {
   const publicRoot = resolvePublicRoot();
-  const shouldUseImageKit = isImageKitEnabled();
 
   return async (tree: Root) => {
+    const shouldUseImageKit = isImageKitEnabled();
     const tasks: Array<{
       node: Element;
       filePath: string;
+      localSrc: string;
     }> = [];
 
     visit(tree, "element", (node) => {
       if (node.tagName !== "img") return;
 
       const src = node.properties.src as string | undefined;
-      if (!src || !isLocalRasterImage(src)) return;
+      const localSrc = resolveLocalImagePath(src);
+      if (!src || !localSrc || !isLocalRasterImage(localSrc)) return;
 
-      const normalizedSrc = src.startsWith("/") ? src : `/${src}`;
-      const cleanSrc = normalizedSrc.split(/[?#]/)[0] || normalizedSrc;
+      const cleanSrc = localSrc.split(/[?#]/)[0] || localSrc;
       const filePath = join(publicRoot, cleanSrc.slice(1));
 
       if (!existsSync(filePath)) return;
 
-      tasks.push({ node, filePath });
+      tasks.push({ node, filePath, localSrc: cleanSrc });
     });
 
     if (tasks.length > 0) {
       await Promise.all(
-        tasks.map(async ({ node, filePath }) => {
-          const originalSrc = node.properties.src as string | undefined;
+        tasks.map(async ({ node, filePath, localSrc }) => {
           const dims = await readImageDimensions(filePath);
           if (dims) {
             node.properties.width = dims.width;
@@ -132,8 +138,16 @@ export default function rehypeImageOptimize() {
             node.properties.decoding = "async";
           }
 
-          if (shouldUseImageKit && originalSrc) {
-            node.properties.src = toCdnImageUrl(originalSrc) || originalSrc;
+          if (shouldUseImageKit) {
+            node.properties.src = toCdnImageUrl(localSrc, { scene: "body" }) || localSrc;
+
+            if (dims) {
+              const responsive = buildResponsiveSrcSet(localSrc, dims.width);
+              if (responsive) {
+                setSrcSet(node, responsive.srcset);
+                node.properties.sizes = responsive.sizes;
+              }
+            }
           }
         }),
       );

@@ -11,7 +11,7 @@ import SingleColumnLayout from "../layouts/SingleColumnLayout.astro";
 import FeaturedCardWall from "./FeaturedCardWall.astro";
 import { extractFirstParagraph, truncateChars } from "../lib/excerpt";
 import { extractFirstImageFromMarkdown, normalizeImagePath } from "../lib/image-path";
-import { toCdnImageUrl } from "../lib/image-cdn";
+import { resolveCoverImageUrl } from "../lib/image-cdn";
 import { resolveImageMetadata } from "../lib/image-optimize";
 import { getLocalizedBlogPathById } from "../lib/post-url";
 import { getPodcastEpisodeSlug, getPodcastUrl } from "../lib/podcast";
@@ -55,7 +55,9 @@ const feedItems = await Promise.all(page.data.map(async (post, index) => {
     ?? extractFirstImageFromMarkdown(post.body ?? "");
 
   const imageMeta = rawCoverImage ? await resolveImageMetadata(rawCoverImage) : null;
-  const coverImage = rawCoverImage ? toCdnImageUrl(rawCoverImage) : rawCoverImage;
+  const coverImage = rawCoverImage
+    ? resolveCoverImageUrl(rawCoverImage, { scene: "featuredCover" })
+    : rawCoverImage;
 
   return {
     href: getRelativeLocaleUrl(lang, postPath),
