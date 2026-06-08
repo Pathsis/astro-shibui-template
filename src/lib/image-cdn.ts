@@ -6,6 +6,19 @@ const UNSPLASH_HOST_RE = /(?:^|\.)unsplash\.com$/i;
 const BODY_SRCSET_WIDTHS = [400, 626, 800, 1280] as const;
 const ARTICLE_IMAGE_SIZES = "(max-width: 768px) 100vw, 626px";
 
+/** 相关阅读卡片 srcset 宽度：200w (移动 1×) + 400w (桌面 / 移动 2×) */
+const CARD_COVER_SRCSET_WIDTHS = [200, 400] as const;
+const CARD_COVER_SIZES = "(max-width: 768px) 42vw, 280px";
+
+/** 精选卡片 srcset 宽度：400w (移动) + 800w (桌面 / 高 DPR) */
+const FEATURED_COVER_SRCSET_WIDTHS = [400, 800] as const;
+const FEATURED_COVER_SIZES = "(max-width: 768px) 100vw, 440px";
+
+/** 相关阅读卡片 <picture>：移动端 2:3 裁切宽度档 */
+const CARD_PICTURE_MOBILE_WIDTHS = [200, 400] as const;
+/** 相关阅读卡片 <picture>：桌面端 16:9 裁切宽度档 */
+const CARD_PICTURE_DESKTOP_WIDTHS = [400, 600] as const;
+
 export type ImageKitScene = "body" | "cover" | "featuredCover";
 
 function readEnv(name: string): string {
@@ -256,5 +269,113 @@ export function buildResponsiveSrcSet(
   return {
     srcset: entries.join(", "),
     sizes: ARTICLE_IMAGE_SIZES,
+  };
+}
+
+/**
+ * 为封面/卡片图片生成 srcset + sizes。
+ *
+ * 与 buildResponsiveSrcSet（正文图片专用）不同，此函数使用
+ * 卡片场景对应的转换参数和更少的宽度档位，在移动端显著节省带宽。
+ */
+export function buildCoverSrcSet(
+  src: string,
+  options: {
+    scene: Extract<ImageKitScene, "cover" | "featuredCover">;
+  },
+): { srcset: string; sizes: string } | null {
+  if (!isImageKitEnabled() || !isMappableLocalImagePath(src) || isGifImagePath(src)) {
+    return null;
+  }
+
+  const isFeatured = options.scene === "featuredCover";
+  const widths = isFeatured
+    ? FEATURED_COVER_SRCSET_WIDTHS
+    : CARD_COVER_SRCSET_WIDTHS;
+  const sizes = isFeatured ? FEATURED_COVER_SIZES : CARD_COVER_SIZES;
+  const baseTransformation = getSceneTransformation(options.scene);
+
+  const entries = widths
+    .map((width) => {
+      const url = toCdnImageUrl(src, {
+        transformation: transformationAtWidth(baseTransformation, width),
+      });
+      return url ? `${url} ${width}w` : null;
+    })
+    .filter((entry): entry is string => !!entry);
+
+  if (entries.length < 2) return null;
+
+  return {
+    srcset: entries.join(", "),
+    sizes,
+  };
+}
+
+/** <picture> 内单个 <source> 的数据 */
+export interface CoverPictureSource {
+  media: string;
+  srcset: string;
+  sizes: string;
+}
+
+/** 相关阅读卡片 <picture> 数据 */
+export interface CoverPictureData {
+  /** 移动端（≤768px）：2:3 竖图裁切 */
+  mobile: CoverPictureSource;
+  /** 桌面端（≥769px）：16:9 横图裁切 */
+  desktop: CoverPictureSource;
+  /** <img> fallback src（桌面 16:9） */
+  fallback: string;
+}
+
+/**
+ * 为相关阅读卡片生成 <picture> 数据，按 viewport 裁切不同比例：
+ * - 移动端（≤768px）：2:3 竖图，宽度档 200 / 400
+ * - 桌面端（≥769px）：16:9 横图，宽度档 400 / 600
+ *
+ * ImageKit 使用 ar-{w}-{h} + c-maintain_ratio 按指定比例裁切，
+ * fo-auto 自动聚焦画面主体，避免裁掉关键内容。
+ */
+export function buildCoverPictureData(
+  src: string,
+): CoverPictureData | null {
+  if (!isImageKitEnabled() || !isMappableLocalImagePath(src) || isGifImagePath(src)) {
+    return null;
+  }
+
+  const mobileBase = "f-auto,q-auto,ar-2-3,c-maintain_ratio,fo-auto";
+  const desktopBase = "f-auto,q-auto,ar-16-9,c-maintain_ratio,fo-auto";
+
+  const mobileEntries = [...CARD_PICTURE_MOBILE_WIDTHS]
+    .map((width) => {
+      const url = toCdnImageUrl(src, { transformation: `w-${width},${mobileBase}` });
+      return url ? `${url} ${width}w` : null;
+    })
+    .filter((entry): entry is string => !!entry);
+
+  const desktopEntries = [...CARD_PICTURE_DESKTOP_WIDTHS]
+    .map((width) => {
+      const url = toCdnImageUrl(src, { transformation: `w-${width},${desktopBase}` });
+      return url ? `${url} ${width}w` : null;
+    })
+    .filter((entry): entry is string => !!entry);
+
+  if (mobileEntries.length < 1 || desktopEntries.length < 1) return null;
+
+  const fallback = toCdnImageUrl(src, { transformation: `w-400,${desktopBase}` }) || src;
+
+  return {
+    mobile: {
+      media: "(max-width: 768px)",
+      srcset: mobileEntries.join(", "),
+      sizes: "42vw",
+    },
+    desktop: {
+      media: "(min-width: 769px)",
+      srcset: desktopEntries.join(", "),
+      sizes: "280px",
+    },
+    fallback,
   };
 }

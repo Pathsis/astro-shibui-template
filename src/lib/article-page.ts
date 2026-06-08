@@ -2,7 +2,8 @@ import { getCollection } from "astro:content";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import { getLocalizedBlogPathById } from "./post-url";
 import { extractFirstImageFromMarkdown, normalizeImagePath } from "./image-path";
-import { resolveCoverImageUrl } from "./image-cdn";
+import { resolveCoverImageUrl, buildCoverSrcSet, buildCoverPictureData } from "./image-cdn";
+import type { CoverPictureData } from "./image-cdn";
 import { getExplicitRelatedPosts } from "./related-posts";
 import type { CollectionEntry } from "astro:content";
 import type { SocialImageSource } from "./social-image";
@@ -136,6 +137,34 @@ export function getPostCover(entry: BlogEntry): string {
     : extractFirstImageFromMarkdown(entry.body ?? "");
   const fallbackCover = resolveCoverImageUrl(siteConfig.images.defaultOg) || siteConfig.images.defaultOg;
   return resolveCoverImageUrl(rawCover) || rawCover || fallbackCover;
+}
+
+export function getPostCoverWithSrcset(entry: BlogEntry): {
+  src: string;
+  srcset?: string;
+  sizes?: string;
+  picture?: CoverPictureData;
+} {
+  const rawCover = entry.data.images?.length
+    ? normalizeImagePath(entry.data.images[0])
+    : extractFirstImageFromMarkdown(entry.body ?? "");
+  const fallbackCover = resolveCoverImageUrl(siteConfig.images.defaultOg) || siteConfig.images.defaultOg;
+  const src = resolveCoverImageUrl(rawCover) || rawCover || fallbackCover;
+
+  if (rawCover) {
+    // 优先使用 <picture> 裁切（移动 2:3 / 桌面 16:9）
+    const picture = buildCoverPictureData(rawCover);
+    if (picture) {
+      return { src: picture.fallback, picture };
+    }
+    // 降级到简单 srcset
+    const responsive = buildCoverSrcSet(rawCover, { scene: "cover" });
+    if (responsive) {
+      return { src, srcset: responsive.srcset, sizes: responsive.sizes };
+    }
+  }
+
+  return { src };
 }
 
 export function resolveSocialImage(

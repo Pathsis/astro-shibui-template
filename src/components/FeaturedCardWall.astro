@@ -9,6 +9,8 @@ interface FeaturedCardItem {
   date: Date;
   excerpt?: string;
   coverImage?: string;
+  coverSrcset?: string;
+  coverSizes?: string;
   /** 原始图片宽度 */
   imgWidth?: number;
   /** 原始图片高度 */
@@ -64,6 +66,8 @@ const {
           <img
             class="featured-card-image"
             src={item.coverImage}
+            srcset={item.coverSrcset}
+            sizes={item.coverSizes}
             alt=""
             loading="lazy"
             fetchpriority="low"

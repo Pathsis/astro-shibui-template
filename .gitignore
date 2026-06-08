@@ -5,6 +5,4 @@ node_modules/
 .env.*
 !.env.example
 .DS_Store
-public/generated/social/
-public/generated/media/
 public/generated/img/

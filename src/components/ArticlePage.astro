@@ -17,7 +17,7 @@ import {
   getRecommendedLabelPrefix,
   getRelatedAriaLabel,
   buildRelatedPosts,
-  getPostCover,
+  getPostCoverWithSrcset,
   resolveSocialImage,
 } from "../lib/article-page";
 import type { CollectionEntry } from "astro:content";
@@ -173,7 +173,9 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
             )}
           </p>
           <div class="article-suggest-cards">
-            {relatedPosts.slice(0, 6).map((entry) => (
+            {relatedPosts.slice(0, 6).map((entry) => {
+              const cover = getPostCoverWithSrcset(entry);
+              return (
               <article class="article-suggest-card">
                 <a
                   href={getRelativeLocaleUrl(currentLang, getLocalizedBlogPathById(entry.id, currentLang))}
@@ -181,13 +183,37 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
                   data-astro-prefetch="tap"
                   tabindex="-1"
                 >
-                  <img
-                    class="article-suggest-cover"
-                    src={getPostCover(entry)}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                  />
+                  {cover.picture ? (
+                    <picture>
+                      <source
+                        media={cover.picture.mobile.media}
+                        srcset={cover.picture.mobile.srcset}
+                        sizes={cover.picture.mobile.sizes}
+                      />
+                      <source
+                        media={cover.picture.desktop.media}
+                        srcset={cover.picture.desktop.srcset}
+                        sizes={cover.picture.desktop.sizes}
+                      />
+                      <img
+                        class="article-suggest-cover"
+                        src={cover.picture.fallback}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </picture>
+                  ) : (
+                    <img
+                      class="article-suggest-cover"
+                      src={cover.src}
+                      srcset={cover.srcset}
+                      sizes={cover.sizes}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  )}
                 </a>
                 <h3 class="article-suggest-card-title">
                   <a
@@ -199,7 +225,8 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
                   </a>
                 </h3>
               </article>
-            ))}
+              );
+            })}
           </div>
         </section>
 
