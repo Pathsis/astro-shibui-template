@@ -30,7 +30,7 @@ const siteTitle = isEn ? siteConfig.titleEn : siteConfig.title;
 const description = isEn ? siteConfig.descriptions.en : siteConfig.descriptions.zh;
 const podcastHint = isEn ? " (Podcast available)" : "（可收听播客）";
 const loadMoreText = isEn ? "Load More" : "加载更多";
-const loadingText = isEn ? loadMoreText + "..." : loadMoreText + "...";
+const completeText = isEn ? "All loaded" : "已全部加载";
 const excerptLen = isEn ? 200 : 100;
 
 const paginationVersion = getBuildVersionToken();
@@ -86,8 +86,8 @@ const isFirstPage = page.currentPage === 1;
         class="shibui-loadmore home-loadmore"
         type="button"
         data-next-url={page.url.next}
-        data-idle-text={loadMoreText}
-        data-loading-text={loadingText}
+        data-complete-text={completeText}
+        aria-label={loadMoreText}
       >
         {loadMoreText}
       </button>

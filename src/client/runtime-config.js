@@ -11,6 +11,7 @@ export const getClientRuntimeConfig = function() {
     umamiScriptSrc: dataset.umamiScriptSrc || '',
     umamiWebsiteId: dataset.umamiWebsiteId || '',
     umamiHosts: parseHosts(dataset.umamiHosts),
+    umamiPerformance: dataset.umamiPerformance !== 'false',
     clarityProjectId: dataset.clarityProjectId || '',
     clarityHosts: parseHosts(dataset.clarityHosts),
   };

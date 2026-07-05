@@ -113,14 +113,29 @@ export function setMediaSessionMetadata(input: MediaSessionMetadataInput | null)
       return;
     }
 
+    const artwork = input.artwork?.map((a) => ({
+      ...a,
+      src: resolveToAbsoluteUrl(a.src),
+    }));
+
+    // iOS/iPadOS Safari 的 Now Playing（控制中心/锁屏媒体组件）不会自行 fetch
+    // artwork URL，它只读取「已被浏览器缓存」的图片。如果 artwork 没被预热进缓存，
+    // 就会显示灰色占位框。这里在设置 MediaMetadata 之前，用 Image() 把每张 artwork
+    // 预加载进缓存。对桌面/Android 无副作用（它们能直接 fetch URL）。
+    // 参考：David Bushell《iOS Web Apps and Media Session API》
+    if (artwork && artwork.length > 0) {
+      for (const a of artwork) {
+        const preload = new Image();
+        preload.decoding = 'async';
+        preload.src = a.src;
+      }
+    }
+
     session.metadata = new MediaMetadata({
       title: input.title,
       artist: input.artist,
       album: input.album,
-      artwork: input.artwork?.map((a) => ({
-        ...a,
-        src: resolveToAbsoluteUrl(a.src),
-      })),
+      artwork,
     });
   } catch {
     // ignore

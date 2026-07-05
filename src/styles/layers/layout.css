@@ -9,22 +9,10 @@
  *   - 目录在桌面 / 平板 / 移动之间的显隐切换
  */
 
+/* 字体仅在 tokens.css 定义一次，此处不再重复声明。 */
+
 /* Mobile optimization */
 @media (max-width: 768px) {
-  /* 仅在 iOS 设备上使用网络字体（解决 iOS Safari 强制使用苹方的问题） */
-  @supports (-webkit-touch-callout: default) {
-    :root {
-      --font-family-primary: var(--font-noto-serif-sc);
-    }
-  }
-
-  /* Android 和其他移动设备使用系统衬线字体 */
-  @supports not (-webkit-touch-callout: default) {
-    :root {
-      --font-family-primary: Georgia, serif;
-    }
-  }
-
   html, body {
     overflow-x: hidden;
   }

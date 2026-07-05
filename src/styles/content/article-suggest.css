@@ -115,7 +115,7 @@ body[data-page-kind="article"] .article-suggest-list-title a {
   text-decoration-style: dotted;
   text-decoration-color: transparent;
   text-decoration-thickness: 1px;
-  text-underline-offset: 0.14em;
+  text-underline-offset: 0.12em;
   border-bottom: none;
   transition: text-decoration-color 160ms ease;
 }

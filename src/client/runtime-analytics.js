@@ -24,6 +24,9 @@ export const installUmamiAnalytics = function(runtime, config) {
     script.defer = true;
     script.src = config.umamiScriptSrc;
     script.setAttribute('data-website-id', config.umamiWebsiteId);
+    if (config.umamiPerformance) {
+      script.setAttribute('data-performance', 'true');
+    }
     document.head.appendChild(script);
   });
 };

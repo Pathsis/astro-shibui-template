@@ -140,6 +140,7 @@
   display: block;
   color: var(--color-text-primary);
   text-decoration: none;
+  border-bottom: none;
 }
 
 .searchResultItem h1 {

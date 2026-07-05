@@ -1,8 +1,12 @@
 ---
 /**
- * Giscus 评论组件
- * 基于 GitHub Discussions 的评论系统
- * https://giscus.app
+ * Giscus 评论组件（按需加载）
+ *
+ * 用户点击「查看评论」按钮后才加载 giscus，避免每次进入页面都请求
+ * giscus.app 的脚本和 iframe。按钮样式复用站点设计 token，与 .home-loadmore
+ * 视觉一致。换页（ClientRouter）后容器重建，按钮自动重新渲染。
+ *
+ * 基于 GitHub Discussions: https://giscus.app
  */
 interface Props {
   lang?: "zh-cn" | "en";
@@ -10,8 +14,13 @@ interface Props {
 
 const { lang = "zh-cn" } = Astro.props;
 
+// 按钮文案
+const isEn = lang === "en";
+const btnIdle = isEn ? "View Comments" : "查看评论";
+const btnAria = isEn ? "Load comments via Giscus" : "通过 Giscus 加载评论";
+
 // Giscus 语言映射
-const giscusLang = lang === "zh-cn" ? "zh-CN" : "en";
+const giscusLang = isEn ? "en" : "zh-CN";
 const giscusRepo = (import.meta.env.PUBLIC_GISCUS_REPO || "").trim();
 const giscusRepoId = (import.meta.env.PUBLIC_GISCUS_REPO_ID || "").trim();
 const giscusCategory = (import.meta.env.PUBLIC_GISCUS_CATEGORY || "").trim();
@@ -32,7 +41,6 @@ const hasGiscusConfig = Boolean(
 
 {hasGiscusConfig && (
   <>
-    <!-- Giscus 评论容器 -->
     <div
       class="giscus-container"
       data-repo={giscusRepo}
@@ -46,22 +54,75 @@ const hasGiscusConfig = Boolean(
       data-input-position={giscusInputPosition}
       data-theme={giscusTheme}
       data-lang={giscusLang}
-    ></div>
+    >
+      <button
+        type="button"
+        class="giscus-load-btn"
+        aria-label={btnAria}
+        aria-busy="false"
+        disabled={false}
+      >{btnIdle}</button>
+    </div>
+
+    <style>
+      .giscus-load-btn {
+        width: 100%;
+        padding: var(--spacing-sm) var(--spacing-md);
+        border: 1px solid var(--color-text-muted);
+        border-radius: var(--border-radius);
+        background: var(--color-bg-primary);
+        color: var(--color-text-primary);
+        font-family: var(--font-family-sans);
+        font-weight: 400;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-user-select: none;
+        user-select: none;
+        transition: border-color 0.2s ease, background-color 0.2s ease;
+      }
+      .giscus-load-btn:hover {
+        border-color: var(--color-text-muted);
+        background: var(--color-bg-tertiary);
+      }
+      .giscus-load-btn[data-loading="true"] {
+        cursor: progress;
+        color: var(--color-text-primary);
+        border-color: color-mix(in srgb, var(--color-text-primary) 28%, var(--color-border) 72%);
+        background: color-mix(in srgb, var(--color-bg-secondary) 74%, var(--color-bg-tertiary) 26%);
+      }
+      .giscus-load-btn[data-loading="true"]::after {
+        content: "....";
+        display: inline-block;
+        width: 0;
+        margin-left: 0.1em;
+        overflow: hidden;
+        white-space: nowrap;
+        vertical-align: bottom;
+        animation: giscus-ellipsis 1.1s steps(4, end) infinite;
+      }
+      .giscus-load-btn[hidden] {
+        display: none;
+      }
+      @keyframes giscus-ellipsis {
+        0% { width: 0; }
+        100% { width: 4ch; }
+      }
+    </style>
 
     <script is:inline>
       (() => {
         if (typeof window === "undefined") return;
 
-        const initGiscus = () => {
-          const container = document.querySelector(".giscus-container");
-          if (!(container instanceof HTMLElement)) return;
-
+        // 加载 giscus：注入 client.js，注册 iframe load/error 监听
+        const initGiscus = (container, btn) => {
           const currentPath = window.location.pathname;
           const pageLang = (document.documentElement.lang || "").toLowerCase();
           const resolvedLang = pageLang.startsWith("en") ? "en" : "zh-CN";
           const currentKey = `${resolvedLang}:${currentPath}`;
 
+          // 幂等：同一页已加载且有 iframe，直接隐藏按钮
           if (container.dataset.giscusLoaded === currentKey && container.querySelector("iframe.giscus-frame")) {
+            if (btn) btn.hidden = true;
             return;
           }
 
@@ -81,10 +142,13 @@ const hasGiscusConfig = Boolean(
             lang: resolvedLang,
           };
 
-          const iframe = container.querySelector("iframe.giscus-frame");
-          const currentScript = container.querySelector('script[src*="giscus.app/client.js"]');
-          if (iframe || currentScript) {
+          // 清理旧 iframe/script（如有）
+          const oldIframe = container.querySelector("iframe.giscus-frame");
+          const oldScript = container.querySelector('script[src*="giscus.app/client.js"]');
+          if (oldIframe || oldScript) {
             container.innerHTML = "";
+            // 重新插入按钮（innerHTML 清空后按钮没了）
+            if (btn) container.appendChild(btn);
           }
 
           container.dataset.lang = resolvedLang;
@@ -106,16 +170,76 @@ const hasGiscusConfig = Boolean(
           script.setAttribute("data-input-position", config.inputPosition);
           script.setAttribute("data-theme", config.theme);
           script.setAttribute("data-lang", config.lang);
+
+          // 超时兜底：5 秒后无论 iframe load 是否触发都隐藏按钮
+          let hideTimer = setTimeout(() => {
+            if (btn && !btn.hidden) btn.hidden = true;
+          }, 5000);
+
+          // iframe 加载完成后隐藏按钮
+          const hideOnLoad = () => {
+            clearTimeout(hideTimer);
+            if (btn && !btn.hidden) btn.hidden = true;
+          };
+
           script.addEventListener("error", () => {
+            clearTimeout(hideTimer);
             delete container.dataset.giscusLoaded;
+            // 恢复按钮为 idle，允许重试（文本未改过，无需重置）
+            if (btn) {
+              btn.hidden = false;
+              btn.removeAttribute("data-loading");
+              btn.setAttribute("aria-busy", "false");
+              btn.disabled = false;
+            }
           }, { once: true });
 
           container.appendChild(script);
+
+          // 监听后续动态插入的 iframe 的 load 事件
+          const observer = new MutationObserver(() => {
+            const iframe = container.querySelector("iframe.giscus-frame");
+            if (iframe) {
+              observer.disconnect();
+              iframe.addEventListener("load", hideOnLoad, { once: true });
+              iframe.addEventListener("error", () => {
+                script.dispatchEvent(new Event("error"));
+              }, { once: true });
+            }
+          });
+          observer.observe(container, { childList: true, subtree: true });
+        };
+
+        // 给按钮绑定 click → 切换 loading 态 → initGiscus
+        const bindButton = (container) => {
+          const btn = container.querySelector(".giscus-load-btn");
+          if (!btn) return;
+
+          // 如果评论已加载（换页回来场景：容器是新的，不会有已加载状态，此处保留以防万一）
+          if (container.querySelector("iframe.giscus-frame")) {
+            btn.hidden = true;
+            return;
+          }
+
+          if (btn.dataset.giscusBound === "1") return;
+          btn.dataset.giscusBound = "1";
+
+          btn.addEventListener("click", () => {
+            if (btn.getAttribute("data-loading") === "true") return;
+            btn.setAttribute("data-loading", "true");
+            btn.setAttribute("aria-busy", "true");
+            btn.disabled = true;
+            // 不切换文本：保留 idle 文案，由 CSS ::after 追加省略号动画（与首页 home-loadmore 一致）
+            initGiscus(container, btn);
+          });
         };
 
         const bootGiscus = () => {
-          if (document.body?.dataset?.pageKind !== "article") return;
-          initGiscus();
+          const kind = document.body?.dataset?.pageKind;
+          if (kind !== "article" && kind !== "section") return;
+          const container = document.querySelector(".giscus-container");
+          if (!container) return;
+          bindButton(container);
         };
 
         if (!window.__pathosGiscusComponentBound) {

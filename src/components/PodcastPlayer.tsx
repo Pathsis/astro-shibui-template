@@ -38,6 +38,7 @@ import {
   isPlaying,
 } from '../lib/audio-player';
 import type { PodcastEpisode } from '../lib/podcast';
+import type { MediaSessionMetadataInput } from '../lib/media-session';
 import { trackUmami } from '../lib/analytics';
 import {
   bindMediaSessionHandlers,
@@ -212,6 +213,8 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
   const playlistPanelRef = useRef<HTMLDivElement>(null);
   const coverImageRef = useRef<HTMLImageElement>(null);
   const lastCoverRotationRef = useRef<number | null>(null);
+  // 保存当前单集的 MediaSession metadata，供音频 playing 事件后重设（iOS 兼容）
+  const nowPlayingMetadataRef = useRef<MediaSessionMetadataInput | null>(null);
 
   // 从 localStorage 恢复状态
   const [state, setState] = useState<PlayerState>(() => {
@@ -837,6 +840,12 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
       if (!stateRef.current.isPlaying) {
         updatePlayerState({ isPlaying: true });
       }
+      // iOS：metadata 必须在音频播放会话激活后再设一次才会被系统稳定采纳，
+      // 否则锁屏/灵动岛/控制中心会回退到 apple-touch-icon（站点图标）。
+      if (nowPlayingMetadataRef.current) {
+        setMediaSessionMetadata(nowPlayingMetadataRef.current);
+        setMediaSessionPlaybackState('playing');
+      }
     });
     const unsubPause = onPause(() => {
       const audio = getGlobalAudio();
@@ -989,6 +998,7 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
 
   useEffect(() => {
     if (!currentEpisode) {
+      nowPlayingMetadataRef.current = null;
       setMediaSessionMetadata(null);
       setMediaSessionPlaybackState('none');
       return;
@@ -997,50 +1007,54 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
     // Always provide a cover image; fallback to site logo when article has no images.
     const coverImage = currentEpisode.coverImage ?? siteConfig.images.podcastDefaultCover;
     const squareImage = currentEpisode.mediaArtwork ?? coverImage;
-    const getArtworkType = (src: string | undefined) => src?.endsWith('.png')
-      ? 'image/png'
-      : (src?.endsWith('.webp') ? 'image/webp' : (src?.endsWith('.jpg') || src?.endsWith('.jpeg') ? 'image/jpeg' : undefined));
+    const getArtworkType = (src: string | undefined): string | undefined => {
+      if (!src) return undefined;
+      const pathname = (() => { try { return new URL(src, 'https://x').pathname; } catch { return src; } })();
+      if (pathname.endsWith('.png')) return 'image/png';
+      if (pathname.endsWith('.webp')) return 'image/webp';
+      if (pathname.endsWith('.jpg') || pathname.endsWith('.jpeg')) return 'image/jpeg';
+      // 无扩展名的远程图（unsplash / ImageKit CDN 等）按 jpeg 处理。
+      // iOS/iPadOS 要求 type 必须是有效 MIME，空 type 会让 artwork 乃至整个 metadata 被忽略。
+      return 'image/jpeg';
+    };
     const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
     const isTouchMac = /Macintosh/i.test(ua) && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1;
-    const isMobile = /Android|iPad|iPhone|iPod/i.test(ua) || isTouchMac;
-    const preferBannerArtwork = /Android/i.test(ua);
     const preferSquareArtwork = /iPad|iPhone|iPod/i.test(ua) || isTouchMac;
 
-    setMediaSessionMetadata({
+    const coverType = getArtworkType(coverImage);
+    const squareType = getArtworkType(squareImage);
+
+    // 同一张方形封面声明多个 sizes：iOS/iPadOS 会按锁屏/控制中心场景挑合适尺寸。
+    // 这是「以前 iPad 能正常显示」时验证过的结构，不要改成「不同图混排」——
+    // 浏览器按列表顺序选第一个可用项，混排会导致真实封面被默认封面盖掉。
+    const squareArtwork = squareImage
+      ? [
+          { src: squareImage, sizes: '1024x1024', type: squareType },
+          { src: squareImage, sizes: '512x512', type: squareType },
+          { src: squareImage, sizes: '384x384', type: squareType },
+          { src: squareImage, sizes: '256x256', type: squareType },
+        ]
+      : undefined;
+    // 横图列表：横图在前，方形多尺寸在后（Android 等宽幅场景用）。
+    const bannerArtwork = coverImage
+      ? [
+          { src: coverImage, sizes: '1200x630', type: coverType },
+          ...(squareArtwork ?? []),
+        ]
+      : squareArtwork;
+
+    // iOS/iPadOS：用纯方形多尺寸列表（锁屏/灵动岛/控制中心都是方形）。
+    // 其余平台（桌面 Chrome/Edge、Android）：用横图列表（横图在前 + 方形保底）。
+    const resolvedArtwork = preferSquareArtwork ? squareArtwork : bannerArtwork;
+
+    const metadataInput: MediaSessionMetadataInput = {
       title: currentEpisode.title,
       artist: siteConfig.branding.podcastArtist,
       album,
-      artwork: (() => {
-        if (!isMobile) return undefined;
-
-        const normalized = new Set<string>();
-        const pushArtwork = (
-          list: Array<{ src: string; sizes: string; type?: string }>,
-          src: string | undefined,
-          sizes: string
-        ) => {
-          if (!src) return;
-          const absoluteSrc = typeof window !== 'undefined' ? new URL(src, window.location.href).href : src;
-          if (normalized.has(absoluteSrc)) return;
-          normalized.add(absoluteSrc);
-          list.push({
-            src,
-            sizes,
-            type: getArtworkType(src),
-          });
-        };
-
-        const list: Array<{ src: string; sizes: string; type?: string }> = [];
-        if (preferBannerArtwork && !preferSquareArtwork) {
-          pushArtwork(list, coverImage, '1200x630');
-          pushArtwork(list, squareImage, '512x512');
-        } else {
-          pushArtwork(list, squareImage, '512x512');
-          pushArtwork(list, coverImage !== squareImage ? coverImage : undefined, '1200x630');
-        }
-        return list.length > 0 ? list : undefined;
-      })(),
-    });
+      artwork: resolvedArtwork,
+    };
+    nowPlayingMetadataRef.current = metadataInput;
+    setMediaSessionMetadata(metadataInput);
   }, [currentEpisode?.slug, currentEpisode?.title, currentEpisode?.coverImage, currentEpisode?.mediaArtwork, currentEpisode?.lang]);
 
   useEffect(() => {
@@ -1844,8 +1858,8 @@ export function PodcastPlayer({ episodes, onClose }: PodcastPlayerProps) {
         <div className="playlist" id="podcast-playlist" ref={playlistPanelRef}>
           <div className="playlist-header">
             <span>{playlistTitle} ({visibleEpisodes.length})</span>
-            {/* 展开态下的关闭按钮：显示在 playlist-header 右上角；
-                Dock 态（未展开）时本按钮不渲染，关闭操作由主行 .player-controls 里的 close-btn 承担。 */}
+            {/* 关闭按钮仅在展开态（playlist-header）渲染。
+                Dock 态（未展开）无独立关闭按钮，用户通过封面点击最小化、或展开后再关闭。 */}
             <button
               className="close-btn playlist-close-btn"
               onClick={handleClose}

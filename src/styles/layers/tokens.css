@@ -10,9 +10,11 @@ html {
   --font-size-base: 1em; /* = 18px */
   --font-size-small: 0.933em; /* ≈ 16.8px */
   --font-family-mono: monospace;
-  --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
-  /* 默认字体栈（桌面端）：Georgia + serif 回退 */
-  --font-family-primary:Georgia, serif;
+  --font-family-sans: "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
+  /* 字体栈：本地 STSong → 自托管 STSong 子集 → 思源宋体 → Georgia → serif。
+     dev 模式 @font-face 不注入时，回退到 Georgia（英文）+ STSong（本地中文）。
+     当 enableWebFonts 为 false 时，跳过网络字体，直接使用系统字体回退。 */
+  --font-family-primary: "STSong", var(--font-stsong, Georgia), var(--font-noto-serif-sc, Georgia), serif;
 
   /* Spacing */
   --spacing-base: 1.6em;

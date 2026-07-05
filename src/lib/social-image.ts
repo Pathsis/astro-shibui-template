@@ -19,9 +19,12 @@ const IMAGEKIT_SOCIAL_FALLBACK_TRANSFORMATION = (
   process.env.PUBLIC_IMAGEKIT_SOCIAL_FALLBACK_TRANSFORMATION ||
   "f-auto,q-auto"
 ).trim();
+// 强制 f-jpg：iOS 锁屏/灵动岛的 MediaSession artwork 由 MediaPlayer 框架渲染，
+// 对 webp/avif 解码支持差。f-auto 会按 Accept 头给 iOS 返回 webp → 封面变灰/不显示。
+// 强制 JPEG 保证 iOS 一定能解码；JPEG 对方形封面无透明需求，无副作用。
 const IMAGEKIT_MEDIA_TRANSFORMATION = (
   process.env.PUBLIC_IMAGEKIT_MEDIA_TRANSFORMATION ||
-  "f-auto,q-auto,w-1024,h-1024,fo-auto"
+  "f-jpg,q-auto,w-1024,h-1024,fo-auto"
 ).trim();
 
 export type SocialImageSource = "images" | "other";
@@ -251,6 +254,32 @@ export function resolveGeneratedSocialImage(
   });
 }
 
+// Unsplash 外链图：ImageKit 只处理本地 /images/，远程图会 fallback 到 social 的
+// 1200×630 横图。媒体中心需要方形，这里直接用 Unsplash 自己的方形裁切参数生成
+// 1024×1024 JPEG。
+//
+// 关键：绝对不能加 auto=format。auto=format 优先级高于 fm=jpg，会按 iOS 的
+// Accept 头返回 avif/webp，而 iOS 锁屏/灵动岛的 MediaPlayer 框架不解码 avif/webp
+// → 封面变灰。只设 fm=jpg 才能强制返回 iOS 可解码的 JPEG。
+function toSquareUnsplashUrl(rawImage: string, size: number): string {
+  try {
+    const parsed = new URL(rawImage);
+    const ixid = parsed.searchParams.get("ixid");
+    const ixlib = parsed.searchParams.get("ixlib");
+    parsed.search = "";
+    parsed.searchParams.set("fit", "crop");
+    parsed.searchParams.set("w", String(size));
+    parsed.searchParams.set("h", String(size));
+    parsed.searchParams.set("q", "80");
+    parsed.searchParams.set("fm", "jpg");
+    if (ixlib) parsed.searchParams.set("ixlib", ixlib);
+    if (ixid) parsed.searchParams.set("ixid", ixid);
+    return parsed.toString();
+  } catch {
+    return rawImage;
+  }
+}
+
 export function resolveMediaArtwork(
   rawImage: string,
   options: {
@@ -277,6 +306,12 @@ export function resolveMediaArtwork(
   if (existsSync(generatedFile)) {
     return toGeneratedDeliveryUrl(generatedPath, {
       pageUrl: canonicalURL,
+      variantToken,
+    });
+  }
+
+  if (isUnsplashUrl(rawImage)) {
+    return appendImageVersionParams(toSquareUnsplashUrl(rawImage, 1024), canonicalURL, {
       variantToken,
     });
   }

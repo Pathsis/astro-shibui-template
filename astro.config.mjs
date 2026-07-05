@@ -26,17 +26,43 @@ const notoSerifSubsets = /** @type {[string, ...string[]]} */ (["latin"]);
 const notoSerifFallbacks = /** @type {[string, ...string[]]} */ (["Georgia", "serif"]);
 
 const enableGoogleFonts = process.env.PUBLIC_ENABLE_GOOGLE_FONTS === "true";
+// 总开关：设为 false 禁用所有网络字体（包括自托管本地字体），仅使用系统字体栈
+const enableWebFonts = (process.env.PUBLIC_ENABLE_WEB_FONTS ?? "true").toLowerCase() !== "false";
 
-const fonts = enableGoogleFonts
+// 自托管本地子集字体（如 STSong）：模板不含字体文件，用户自行放置到
+// src/assets/fonts/ 后开启 PUBLIC_ENABLE_WEB_FONTS=true 即可启用。
+// 文件不存在时 local provider 会跳过，不影响构建。
+const localFontPath = fileURLToPath(new URL("./src/assets/fonts/STSong.woff2", import.meta.url));
+
+const fonts = enableWebFonts
   ? [
       {
-        name: "Noto Serif SC",
-        cssVariable: "--font-noto-serif-sc",
-        provider: fontProviders.google(),
-        weights: notoSerifWeights,
-        subsets: notoSerifSubsets,
-        fallbacks: notoSerifFallbacks,
+        name: "STSong",
+        cssVariable: "--font-stsong",
+        provider: fontProviders.local(),
+        fallbacks: ["Georgia", "serif"],
+        options: {
+          variants: [
+            {
+              weight: 400,
+              style: "normal",
+              src: [localFontPath],
+            },
+          ],
+        },
       },
+      ...(enableGoogleFonts
+        ? [
+            {
+              name: "Noto Serif SC",
+              cssVariable: "--font-noto-serif-sc",
+              provider: fontProviders.google(),
+              weights: notoSerifWeights,
+              subsets: notoSerifSubsets,
+              fallbacks: notoSerifFallbacks,
+            },
+          ]
+        : []),
     ]
   : [];
 

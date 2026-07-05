@@ -24,17 +24,17 @@ const homeUrl = getRelativeLocaleUrl(currentLang, "/");
 const homeTopUrl = `${homeUrl}#top`;
 
 // 导航链接配置
-const navLinks = {
-  archive: getRelativeLocaleUrl(currentLang, "/blog/"),
-  about: getRelativeLocaleUrl(currentLang, "/about/"),
-  tags: getRelativeLocaleUrl(currentLang, "/tags/"),
-  feed: getRelativeLocaleUrl(currentLang, "/about/") + "#subscribe",
-};
+  const navLinks = {
+    archive: getRelativeLocaleUrl(currentLang, "/blog/"),
+    about: getRelativeLocaleUrl(currentLang, "/about/"),
+    tags: getRelativeLocaleUrl(currentLang, "/tags/"),
+        feed: getRelativeLocaleUrl(currentLang, "/about/") + "#subscribe",
+  };
 
-// 导航文字（根据语言）
-const navText = currentLang === "en"
-  ? { home: "Home", archive: "Archive", about: "About", tags: "Tags", feed: "Feed" }
-  : { home: "首页", archive: "归档", about: "关于", tags: "标签", feed: "订阅" };
+  // 导航文字（根据语言）
+  const navText = currentLang === "en"
+    ? { home: "Home", archive: "Archive", about: "About", tags: "Tags", feed: "Feed" }
+    : { home: "首页", archive: "归档", about: "关于", tags: "标签", feed: "订阅" };
 
 // 站点名称（根据语言切换）
 const siteTitle = currentLang === "en" ? siteConfig.titleEn : siteConfig.title;
@@ -86,7 +86,7 @@ const homeAriaLabel = currentLang === "en" ? "Back to home" : "返回首页";
 
   /* CSS 变量 */
   :root {
-    --head-nav-gap: 2.8rem;
+    --head-nav-gap: 2.2rem;
     --head-nav-content-max: 52rem;
   }
 

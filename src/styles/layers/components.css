@@ -150,7 +150,7 @@
 .home-waterfall-list {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: var(--spacing-lg);
   position: relative;
 }
 
@@ -158,19 +158,12 @@
   padding-bottom: 0;
 }
 
-.home-waterfall-meta {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--gap-small);
-  font-size: var(--font-size-small);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0;
-}
-
-.home-waterfall-meta time {
-  font-size: 1em;
-  margin-bottom: 0;
+/*
+ * 单条文章内部的间距统一在此管理，显式清掉 h2 的全局默认 margin，
+ * 避免它和容器 gap 叠加导致间距不可控。标题→摘要 用 spacing-base；摘要→下一篇由 list gap 负责。
+ */
+.home-waterfall-item .home-waterfall-title {
+  margin: 0 0 var(--spacing-base);
 }
 
 .home-waterfall-title::before {
@@ -185,15 +178,22 @@
   border-bottom-color: var(--color-text-muted);
 }
 
-.home-waterfall-list > .home-waterfall-item:first-child .home-waterfall-title {
-  margin-top: 0;
-}
-
 .home-waterfall-desc {
+  /* 末元素：底 margin 由 list 的 gap 统一负责，这里清零避免叠加 */
   margin: 0;
-  color: var(--color-text-muted);
+  color: var(--color-text-primary);
   font-size: var(--font-size-base);
   line-height: 1.6;
+}
+
+/* 文章页文末日期 */
+.article-meta-time {
+  display: inline;
+  margin: 0;
+  font-size: var(--font-size-small);
+  font-family: var(--font-family-sans);
+  color: var(--color-text-muted);
+  letter-spacing: 0.01em;
 }
 
 .home-loadmore {
@@ -207,6 +207,9 @@
   font-family: var(--font-family-sans);
   font-weight: 400;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
@@ -228,7 +231,7 @@
 }
 
 .home-loadmore[data-loading="true"]::after {
-  content: "...";
+  content: "....";
   display: inline-block;
   width: 0;
   margin-left: 0.1em;
@@ -254,7 +257,7 @@
   }
 
   100% {
-    width: 3ch;
+    width: 4ch;
   }
 }
 

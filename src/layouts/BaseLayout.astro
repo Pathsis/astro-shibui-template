@@ -71,6 +71,8 @@ const umamiHosts = (import.meta.env.PUBLIC_UMAMI_HOSTS || "")
   .split(",")
   .map((item: string) => item.trim())
   .filter(Boolean);
+const umamiPerformance =
+  (import.meta.env.PUBLIC_UMAMI_PERFORMANCE ?? "true").toLowerCase() === "true";
 const clarityProjectId = (import.meta.env.PUBLIC_CLARITY_PROJECT_ID || "").trim();
 const clarityHosts = (import.meta.env.PUBLIC_CLARITY_HOSTS || "")
   .split(",")
@@ -101,8 +103,9 @@ const alternateLinks = alternatePath
     ]
   : [];
 
-// 字体优化：通过环境变量控制（Vercel 等平台可设置为 true）
+// 字体优化：通过环境变量控制
 const enableGoogleFonts = import.meta.env.PUBLIC_ENABLE_GOOGLE_FONTS === "true";
+const enableWebFonts = (import.meta.env.PUBLIC_ENABLE_WEB_FONTS ?? "true").toLowerCase() !== "false";
 ---
 
 <!DOCTYPE html>
@@ -133,12 +136,17 @@ const enableGoogleFonts = import.meta.env.PUBLIC_ENABLE_GOOGLE_FONTS === "true";
     <meta name="theme-color" content="#2d2520" media="(prefers-color-scheme: dark)">
 
     <!-- Fonts: 使用 Astro 字体 API -->
-    {
-      enableGoogleFonts && (
-        // @ts-expect-error - Astro Font component type inference issue
-        <Font cssVariable={"--font-noto-serif-sc" as any} />
-      )
-    }
+    {enableWebFonts && (
+      <>
+        {/* STSong 本地子集字体，Mac 本地命中，其他设备走自托管 */}
+        {/* @ts-expect-error - Astro Font component type inference issue */}
+        <Font cssVariable={"--font-stsong" as any} />
+        {enableGoogleFonts && (
+          // @ts-expect-error - Astro Font component type inference issue
+          <Font cssVariable={"--font-noto-serif-sc" as any} />
+        )}
+      </>
+    )}
 
     <!-- PWA -->
     <meta name="mobile-web-app-capable" content="yes">
@@ -157,6 +165,8 @@ const enableGoogleFonts = import.meta.env.PUBLIC_ENABLE_GOOGLE_FONTS === "true";
     <meta property="og:description" content={description} />
     <meta property="og:image" content={socialImage} />
     <meta property="og:image:secure_url" content={socialImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     {type === "article" && publishDate && (
       <meta property="article:published_time" content={publishDate.toISOString()} />
     )}
@@ -210,6 +220,7 @@ const enableGoogleFonts = import.meta.env.PUBLIC_ENABLE_GOOGLE_FONTS === "true";
     data-umami-script-src={umamiScriptSrc}
     data-umami-website-id={umamiWebsiteId}
     data-umami-hosts={umamiHosts.join(",")}
+    data-umami-performance={umamiPerformance ? "true" : "false"}
     data-clarity-project-id={clarityProjectId}
     data-clarity-hosts={clarityHosts.join(",")}
   >

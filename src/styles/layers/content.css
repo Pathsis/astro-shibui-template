@@ -56,7 +56,7 @@ a[data-footnote-ref] {
 
 .footnote-ref a:hover,
 a[data-footnote-ref]:hover {
-  text-decoration: underline;
+  border-bottom: 1px dotted var(--color-text-primary);
   color: var(--color-text-primary);
 }
 

@@ -53,6 +53,7 @@ body[data-page-kind="article"] .gh-content .heading-anchor {
   opacity: 1;
   margin-left: 0;
   text-decoration: none;
+  border-bottom: none;
 }
 
 /* TL;DR */

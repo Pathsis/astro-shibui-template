@@ -64,18 +64,9 @@ pnpm dev
 - Umami 统计
 - Microsoft Clarity
 - ImageKit / 图片 CDN
+- 网络字体（STSong 子集 + Google Fonts）
 
 如果这些变量留空，博客依然可以运行，只是对应功能不会启用。
-
-### 5. 字体（可选）
-
-模板默认使用网络字体（STSong 子集 + 可选 Google Fonts）以获得更好的排版效果。如果你希望禁用所有网络字体、仅使用系统字体栈以提升加载速度或隐私性，编辑 `site.config.js`：
-
-```js
-enableWebFonts: false,
-```
-
-设为 `false` 后，模板不会注入任何 `@font-face`，正文将回退到 `Georgia` + 系统 serif 字体栈。
 
 ## 配置说明
 
@@ -138,6 +129,23 @@ Umami 和 Clarity 都是可选的。
 - 把 `PUBLIC_ENABLE_IMAGE_CDN=false` 保持为默认值时，所有图片继续走本地路径
 - 如果你要启用 ImageKit，把 `PUBLIC_ENABLE_IMAGE_CDN` 改为 `true`，再填写 `PUBLIC_IMAGEKIT_URL_ENDPOINT`
 - 即使已经填写了 `PUBLIC_IMAGEKIT_URL_ENDPOINT`，只要开关还是 `false`，模板也不会改写图片 URL
+
+### 字体
+
+模板支持两层网络字体开关：
+
+- `PUBLIC_ENABLE_WEB_FONTS`（默认 `true`）：总开关，控制所有网络字体（含自托管本地字体）
+- `PUBLIC_ENABLE_GOOGLE_FONTS`（默认 `false`）：Google 开源字体（Noto Serif SC）
+
+**自托管本地字体**：模板的 `astro.config.mjs` 已配置好 local provider（默认指向 `src/assets/fonts/STSong.woff2`），但**模板不含字体文件**——出于体积和版权考虑，字体文件不会上传到公开仓库。如果你想使用自托管字体：
+
+1. 将字体文件（`.woff2`）放到 `src/assets/fonts/` 目录
+2. 保持 `PUBLIC_ENABLE_WEB_FONTS=true`
+3. 修改 `astro.config.mjs` 里 `localFontPath` 指向你的文件
+
+不放置字体文件时，local provider 会因找不到文件而跳过，模板回退到系统字体（Georgia + 系统衬线），不影响构建。
+
+**Google 字体**：如果你倾向使用 Google 开源字体（如 Noto Serif SC），设置 `PUBLIC_ENABLE_GOOGLE_FONTS=true` 即可，无需额外文件。
 
 ## 部署到 Vercel
 

@@ -25,7 +25,6 @@ interface Props {
   paginationSignature: string;
   paginationVersion: string;
   loadMoreText: string;
-  loadingText: string;
   completeText?: string;
   nextUrl?: string;
   podcastHint?: string;
@@ -39,7 +38,6 @@ const {
   paginationSignature,
   paginationVersion,
   loadMoreText,
-  loadingText,
   completeText,
   nextUrl,
   podcastHint = "",
@@ -103,9 +101,8 @@ const {
       class="shibui-loadmore home-loadmore featured-card-loadmore"
       type="button"
       data-next-url={nextUrl}
-      data-idle-text={loadMoreText}
-      data-loading-text={loadingText}
       data-complete-text={completeText}
+      aria-label={loadMoreText}
     >
       {loadMoreText}
     </button>

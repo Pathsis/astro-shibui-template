@@ -104,21 +104,18 @@ export const registerPaginationRuntime = function(runtimeInput) {
 
   function setLoadMoreButtonLoading(button, isLoading) {
     if (!button) return;
-    const idleText = button.getAttribute('data-idle-text');
-    const loadingText = button.getAttribute('data-loading-text') || idleText || '';
 
     if (isLoading) {
       button.disabled = true;
       button.setAttribute('aria-busy', 'true');
       button.setAttribute('data-loading', 'true');
-      if (loadingText) button.textContent = loadingText;
+      // 不切换文本：保留 idle 文案，由 CSS ::after 追加省略号动画
       return;
     }
 
     button.disabled = false;
     button.removeAttribute('aria-busy');
     button.removeAttribute('data-loading');
-    if (idleText) button.textContent = idleText;
   }
 
   // ---------- history.state 读写 ----------
