@@ -27,14 +27,17 @@ const notoSerifFallbacks = /** @type {[string, ...string[]]} */ (["Georgia", "se
 
 const enableGoogleFonts = process.env.PUBLIC_ENABLE_GOOGLE_FONTS === "true";
 // 总开关：设为 false 禁用所有网络字体（包括自托管本地字体），仅使用系统字体栈
-const enableWebFonts = (process.env.PUBLIC_ENABLE_WEB_FONTS ?? "true").toLowerCase() !== "false";
+// 模板默认 false，因为不含字体文件；用户自行放置后开启 PUBLIC_ENABLE_WEB_FONTS=true
+const enableWebFonts = (process.env.PUBLIC_ENABLE_WEB_FONTS ?? "false").toLowerCase() !== "false";
 
 // 自托管本地子集字体（如 STSong）：模板不含字体文件，用户自行放置到
 // src/assets/fonts/ 后开启 PUBLIC_ENABLE_WEB_FONTS=true 即可启用。
-// 文件不存在时 local provider 会跳过，不影响构建。
+// 文件不存在时 local provider 会因找不到文件而报错，因此需要存在性检查。
+import { existsSync } from "node:fs";
 const localFontPath = fileURLToPath(new URL("./src/assets/fonts/STSong.woff2", import.meta.url));
+const hasLocalFont = existsSync(localFontPath);
 
-const fonts = enableWebFonts
+const fonts = enableWebFonts && hasLocalFont
   ? [
       {
         name: "STSong",
