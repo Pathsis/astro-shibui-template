@@ -67,6 +67,16 @@ pnpm dev
 
 如果这些变量留空，博客依然可以运行，只是对应功能不会启用。
 
+### 5. 字体（可选）
+
+模板默认使用网络字体（STSong 子集 + 可选 Google Fonts）以获得更好的排版效果。如果你希望禁用所有网络字体、仅使用系统字体栈以提升加载速度或隐私性，编辑 `site.config.js`：
+
+```js
+enableWebFonts: false,
+```
+
+设为 `false` 后，模板不会注入任何 `@font-face`，正文将回退到 `Georgia` + 系统 serif 字体栈。
+
 ## 配置说明
 
 ### 搜索
