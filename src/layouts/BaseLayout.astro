@@ -105,7 +105,7 @@ const alternateLinks = alternatePath
 
 // 字体优化：通过环境变量控制
 const enableGoogleFonts = import.meta.env.PUBLIC_ENABLE_GOOGLE_FONTS === "true";
-const enableWebFonts = (import.meta.env.PUBLIC_ENABLE_WEB_FONTS ?? "true").toLowerCase() !== "false";
+const enableWebFonts = (import.meta.env.PUBLIC_ENABLE_WEB_FONTS ?? "false").toLowerCase() !== "false";
 ---
 
 <!DOCTYPE html>
