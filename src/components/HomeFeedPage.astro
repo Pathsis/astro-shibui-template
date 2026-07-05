@@ -30,7 +30,7 @@ const siteTitle = isEn ? siteConfig.titleEn : siteConfig.title;
 const description = isEn ? siteConfig.descriptions.en : siteConfig.descriptions.zh;
 const podcastHint = isEn ? " (Podcast available)" : "（可收听播客）";
 const loadMoreText = isEn ? "Load More" : "加载更多";
-const loadingText = isEn ? "Loading" : "加载中";
+const loadingText = isEn ? loadMoreText + "..." : loadMoreText + "...";
 const excerptLen = isEn ? 200 : 100;
 
 const paginationVersion = getBuildVersionToken();
