@@ -212,7 +212,7 @@ figure figcaption {
 }
 
 body[data-page-kind="article"] .mobile-article-section-title {
-  font-size: var(--font-size-base);
+  font-size: 1.25em;
 }
 
 body[data-page-kind="article"] .hanging-figure-ref {
