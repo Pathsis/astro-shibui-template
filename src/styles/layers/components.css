@@ -39,14 +39,17 @@
 
 .widget-list a {
   color: var(--color-text-primary);
-  text-decoration: none;
-  border-bottom: 1px dotted var(--color-text-muted);
-  transition: color 0.2s ease, border-bottom-color 0.2s ease;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--color-text-muted);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.12em;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
 }
 
 .widget-list a:hover {
   color: var(--color-text-primary);
-  border-bottom-color: var(--color-text-primary);
+  text-decoration-color: var(--color-text-primary);
 }
 
 /* Continue reading card */
@@ -132,14 +135,17 @@
 /* Time list links - 添加与标签链接相同的样式 */
 .time-list div a {
   color: var(--color-text-primary);
-  text-decoration: none;
-  border-bottom: 1px dotted var(--color-text-muted);
-  transition: color 0.2s ease, border-bottom-color 0.2s ease;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--color-text-muted);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.12em;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
 }
 
 .time-list div a:hover {
   color: var(--color-text-primary);
-  border-bottom-color: var(--color-text-primary);
+  text-decoration-color: var(--color-text-primary);
 }
 
 /* Home feed */
@@ -171,11 +177,16 @@
 }
 
 .home-waterfall-title a {
-  border-bottom: 1px dotted transparent;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.12em;
+  transition: text-decoration-color 0.2s ease;
 }
 
 .home-waterfall-title a:hover {
-  border-bottom-color: var(--color-text-muted);
+  text-decoration-color: var(--color-text-muted);
 }
 
 .home-waterfall-desc {

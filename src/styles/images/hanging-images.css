@@ -267,7 +267,11 @@ body[data-page-kind="article"] .hanging-figure-label a {
 
   body[data-page-kind="article"] .hanging-figure-ref a,
   body[data-page-kind="article"] .mobile-hanging-figures .hanging-figure-label a {
-    border-bottom: 1px dotted currentColor;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: currentColor;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.12em;
   }
 }
 

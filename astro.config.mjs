@@ -37,6 +37,7 @@ import { existsSync } from "node:fs";
 const localFontPath = fileURLToPath(new URL("./src/assets/fonts/STSong.woff2", import.meta.url));
 const hasLocalFont = existsSync(localFontPath);
 
+/** @type {any} */
 const fonts = enableWebFonts && hasLocalFont
   ? [
       {
