@@ -1,5 +1,6 @@
 ---
 import SingleColumnLayout from "../layouts/SingleColumnLayout.astro";
+import FontFamilySwitcher from "./FontFamilySwitcher.astro";
 import Giscus from "./Giscus.astro";
 import RecommendedPosts from "./RecommendedPosts.astro";
 import { PodcastPlayButton } from "./PodcastPlayButton";
@@ -119,6 +120,7 @@ const { socialImage, socialImageSource } = resolveSocialImage(post);
           client:idle
         />
       )}
+      <span class="article-font-family-switcher"><FontFamilySwitcher /></span>
     </h1>
 
     {toc && (

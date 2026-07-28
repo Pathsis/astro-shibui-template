@@ -28,6 +28,7 @@ const commitSha = process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_COMMIT ||
 const shortSha = commitSha ? commitSha.slice(0, 7) : "";
 const displayBranch = branch || "main";
 const templateRepoUrl = siteConfig.branding.templateRepoUrl;
+
 ---
 
 <footer class="gh-foot">

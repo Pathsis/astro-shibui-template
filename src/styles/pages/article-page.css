@@ -20,12 +20,20 @@
 .gh-content .article-title-heading {
   /* margin-top 清零，与首页第一篇文章标题起始位置一致，避免点击进入时抖动 */
   margin: 0 0 var(--spacing-base);
+  position: relative;
 }
 
 .gh-content .article-title-heading.has-podcast {
-  position: relative;
   /* 播放按钮 font-size:0.72em × min-width:2.9em ≈ 2.1em，加间距留 2.5em */
   padding-right: 2.5em;
+}
+
+.gh-content .article-font-family-switcher {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--spacing-xs);
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .gh-content .article-title-heading.has-podcast .podcast-play-button {

@@ -106,10 +106,11 @@ const alternateLinks = alternatePath
 // 字体优化：通过环境变量控制
 const enableGoogleFonts = import.meta.env.PUBLIC_ENABLE_GOOGLE_FONTS === "true";
 const enableWebFonts = (import.meta.env.PUBLIC_ENABLE_WEB_FONTS ?? "false").toLowerCase() !== "false";
+const defaultFontFamily: string = "stsong";
 ---
 
 <!DOCTYPE html>
-<html lang={lang} dir="ltr">
+<html lang={lang} dir="ltr" data-font-family={defaultFontFamily === "sans" ? "sans" : undefined}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -147,6 +148,49 @@ const enableWebFonts = (import.meta.env.PUBLIC_ENABLE_WEB_FONTS ?? "false").toLo
         )}
       </>
     )}
+
+    <!-- 字体切换：尽早应用用户偏好，避免闪烁。默认使用 STSong。 -->
+    <script is:inline>
+      (function () {
+        const key = "shibui-font-family";
+        const root = document.documentElement;
+        const defaultFontFamily = "stsong";
+
+        const apply = function (name) {
+          if (name === "sans") {
+            root.dataset.fontFamily = "sans";
+          } else {
+            delete root.dataset.fontFamily;
+          }
+          try {
+            localStorage.setItem(key, name);
+          } catch {}
+        };
+
+        const syncFromStorage = function () {
+          const saved = (function () {
+            try {
+              return localStorage.getItem(key);
+            } catch {
+              return null;
+            }
+          })();
+          if (saved === "sans") {
+            root.dataset.fontFamily = "sans";
+          } else {
+            delete root.dataset.fontFamily;
+          }
+        };
+
+        // 初始加载和 ClientRouter 每次页面切换后都同步持久化偏好
+        syncFromStorage();
+        document.addEventListener("astro:page-load", syncFromStorage);
+
+        window.switchFontFamily = function (name) {
+          apply(name || defaultFontFamily);
+        };
+      })();
+    </script>
 
     <!-- PWA -->
     <meta name="mobile-web-app-capable" content="yes">

@@ -148,6 +148,75 @@ export const installSearchShortcut = function(runtime) {
   });
 };
 
+export const installRssCopyButtons = function(runtime) {
+  if (runtime.flags.rssCopyButtonsInstalled) return;
+  runtime.flags.rssCopyButtonsInstalled = true;
+
+  const resetTimers = new WeakMap();
+  const writeClipboard = async function(text) {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(text);
+        return;
+      } catch {
+        // Fall through to the legacy copy path when browser permissions reject.
+      }
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    const didCopy = document.execCommand('copy');
+    textarea.remove();
+    if (!didCopy) {
+      throw new Error('Clipboard copy failed');
+    }
+  };
+  const showResult = function(button, state) {
+    const label = button.querySelector('.rss-copy-button-label');
+    if (!label) return;
+
+    const previousTimer = resetTimers.get(button);
+    if (previousTimer) window.clearTimeout(previousTimer);
+
+    const isSuccess = state === 'success';
+    label.textContent = isSuccess
+      ? button.dataset.copiedLabel
+      : button.dataset.copyFailedLabel;
+    button.dataset.copyState = state;
+
+    const timer = window.setTimeout(function() {
+      label.textContent = button.dataset.copyLabel || '';
+      delete button.dataset.copyState;
+      resetTimers.delete(button);
+    }, 1800);
+    resetTimers.set(button, timer);
+  };
+
+  document.addEventListener('click', async function(event) {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const button = target.closest('button[data-rss-copy]');
+    if (!(button instanceof HTMLButtonElement)) return;
+
+    const feedPath = button.dataset.rssCopy;
+    if (!feedPath) return;
+
+    try {
+      const feedUrl = new URL(feedPath, window.location.origin).href;
+      await writeClipboard(feedUrl);
+      showResult(button, 'success');
+    } catch {
+      showResult(button, 'error');
+    }
+  });
+};
+
 export const installImmediateNavigationGuard = function(runtime) {
   if (runtime.flags.immediateNavigationGuardInstalled) return;
   runtime.flags.immediateNavigationGuardInstalled = true;

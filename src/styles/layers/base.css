@@ -88,6 +88,11 @@ select:focus-visible {
 
 /* Global reset and base styles.
    Keep html root typography from tokens layer; don't reset root font. */
+html {
+  /* Keep centered layouts fixed when overlays temporarily lock body scrolling. */
+  scrollbar-gutter: stable;
+}
+
 *:not(html) {
   margin: 0;
   padding: 0;

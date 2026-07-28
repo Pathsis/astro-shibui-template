@@ -37,6 +37,7 @@ export const registerArticleRuntime = function(runtimeInput) {
   let tocScrollHandler = null;
   let tocOutsideHandler = null;
   let tocResizeHandler = null;
+  let tocKeyHandler = null;
   let selectionTimer = null;
   let mermaidThemeListener = false;
   let mermaidLoading = false;
@@ -58,6 +59,10 @@ export const registerArticleRuntime = function(runtimeInput) {
       window.removeEventListener('resize', tocResizeHandler);
       tocResizeHandler = null;
     }
+    if (tocKeyHandler) {
+      document.removeEventListener('keydown', tocKeyHandler);
+      tocKeyHandler = null;
+    }
   };
 
   const initTOC = function() {
@@ -65,6 +70,7 @@ export const registerArticleRuntime = function(runtimeInput) {
     const content = document.querySelector('.gh-content');
     if (!isArticlePage() || tocLists.length === 0 || !content) {
       cleanupTocBindings();
+      document.body.classList.remove('toc-active');
       return;
     }
 
@@ -86,6 +92,25 @@ export const registerArticleRuntime = function(runtimeInput) {
       document.querySelectorAll('.toc-inline.is-expanded').forEach(function(container) {
         container.classList.remove('is-expanded');
       });
+      document.body.classList.remove('toc-active');
+    };
+    const expandToc = function(container) {
+      if (document.body.classList.contains('toc-out-of-content')) {
+        collapseExpandedToc();
+        return;
+      }
+      container.classList.add('is-expanded');
+      document.body.classList.add('toc-active');
+    };
+    const ensureTocOverlay = function() {
+      let overlay = document.querySelector('.toc-overlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'toc-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(overlay);
+      }
+      return overlay;
     };
     const getHeadingText = function(heading) {
       const clone = heading.cloneNode(true);
@@ -225,7 +250,7 @@ export const registerArticleRuntime = function(runtimeInput) {
         const tocContainer = this.closest('.toc-inline');
         if (tocContainer && isTouchDesktopToc() && !tocContainer.classList.contains('is-expanded')) {
           e.preventDefault();
-          tocContainer.classList.add('is-expanded');
+          expandToc(tocContainer);
           return;
         }
 
@@ -245,7 +270,6 @@ export const registerArticleRuntime = function(runtimeInput) {
             // ignore
           }
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          collapseExpandedToc();
           if (window.innerWidth <= 689) {
             document.body.classList.remove('menu-open');
           }
@@ -278,6 +302,39 @@ export const registerArticleRuntime = function(runtimeInput) {
     };
 
     cleanupTocBindings();
+    const tocOverlay = ensureTocOverlay();
+    if (tocOverlay && tocOverlay.dataset.tocOverlayBound !== '1') {
+      tocOverlay.dataset.tocOverlayBound = '1';
+      tocOverlay.addEventListener('click', function() {
+        collapseExpandedToc();
+      });
+    }
+
+    tocContainers.forEach(function(container) {
+      if (container.dataset.tocHoverBound === '1') return;
+      container.dataset.tocHoverBound = '1';
+      container.addEventListener('mouseenter', function() {
+        expandToc(container);
+      });
+      container.addEventListener('mouseleave', function() {
+        collapseExpandedToc();
+      });
+      container.addEventListener('focusin', function() {
+        expandToc(container);
+      });
+      container.addEventListener('focusout', function(event) {
+        if (!(event.relatedTarget instanceof Element) || !container.contains(event.relatedTarget)) {
+          collapseExpandedToc();
+        }
+      });
+    });
+
+    tocKeyHandler = function(event) {
+      if (event.key === 'Escape') {
+        collapseExpandedToc();
+      }
+    };
+    document.addEventListener('keydown', tocKeyHandler);
 
     let tocTicking = false;
     tocScrollHandler = function() {
@@ -312,6 +369,31 @@ export const registerArticleRuntime = function(runtimeInput) {
     window.addEventListener('resize', tocResizeHandler);
 
     setActiveToc();
+
+    const contentElement = document.querySelector('.gh-content');
+    const relatedSection = document.querySelector('.related-read-section');
+    const observedElements = [contentElement, relatedSection].filter(Boolean);
+    if (observedElements.length && 'IntersectionObserver' in window) {
+      const isInViewport = function(element) {
+        const rect = element.getBoundingClientRect();
+        return rect.bottom > 0 && rect.top < window.innerHeight;
+      };
+      const syncTocVisibility = function() {
+        const shouldHide = !isInViewport(contentElement)
+          || Boolean(relatedSection && isInViewport(relatedSection));
+        document.body.classList.toggle('toc-out-of-content', shouldHide);
+        if (shouldHide) {
+          collapseExpandedToc();
+        }
+      };
+      tocObserver = new IntersectionObserver(function() {
+        syncTocVisibility();
+      }, { threshold: 0 });
+      observedElements.forEach(function(el) {
+        tocObserver.observe(el);
+      });
+      syncTocVisibility();
+    }
   };
   articleApi.initTOC = initTOC;
 

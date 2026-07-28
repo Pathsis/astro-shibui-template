@@ -21,6 +21,7 @@ import {
 } from './runtime-podcast-lazy.js';
 import {
   installSearchShortcut,
+  installRssCopyButtons,
   installPrintLinkSanitizer,
   installGithubCornerTouch,
   sanitizeLocationHash,
@@ -109,6 +110,7 @@ const bootstrapMainRuntime = function() {
   installOutboundLinkTracking(runtime, trackUmami);
   installPrintTracking(runtime);
   installSearchShortcut(runtime);
+  installRssCopyButtons(runtime);
   installPrintLinkSanitizer(runtime);
   installLifecycleBindings(runtime, {
     startCapabilityRuntimes,
